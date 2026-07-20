@@ -23,9 +23,15 @@ func errNotStruct(v any) error {
 type Option func(*config)
 
 type config struct {
-	seed   uint64
-	locale string
-	refs   []refSpec
+	seed     uint64
+	locale   string
+	refs     []refSpec
+	weighted map[string]weightedSpec
+}
+
+type weightedSpec struct {
+	choices []string
+	weights []float64
 }
 
 type refSpec struct {
@@ -40,6 +46,24 @@ func WithSeed(seed uint64) Option { return func(c *config) { c.seed = seed } }
 
 // WithLocale selects a locale ("uz_UZ", "en_US", ...).
 func WithLocale(name string) Option { return func(c *config) { c.locale = name } }
+
+// Weighted turns a field into a weighted enum in code (an alternative to the
+// `synth:"enum,choices=...,weights=..."` tag). Weights need not sum to 1.
+//
+//	synth.Weighted("Status", map[string]float64{"settled":0.94,"pending":0.05,"failed":0.01})
+func Weighted(field string, choices map[string]float64) Option {
+	ws := weightedSpec{}
+	for k, v := range choices {
+		ws.choices = append(ws.choices, k)
+		ws.weights = append(ws.weights, v)
+	}
+	return func(c *config) {
+		if c.weighted == nil {
+			c.weighted = map[string]weightedSpec{}
+		}
+		c.weighted[field] = ws
+	}
+}
 
 // Ref links a foreign-key field on the child to a parent slice, so every
 // child row points at a real parent. Pass OneToMany to control cardinality.
@@ -87,6 +111,7 @@ func TryMake[T any](n int, opts ...Option) ([]T, error) {
 	// Work on a copy: refs mutate fields and the cache must stay pristine.
 	s := &schema.Schema{Fields: append([]schema.Field(nil), cached.Fields...)}
 	applyRefs(s, cfg.refs)
+	applyWeighted(s, cfg.weighted)
 
 	eng, err := gen.Compile(s, cfg.locale)
 	if err != nil {
@@ -130,6 +155,17 @@ func applyRefs(s *schema.Schema, refs []refSpec) {
 		if f := s.FieldByName(rs.fkField); f != nil {
 			f.FromRef = rs.values
 			f.RefMin, f.RefMax = rs.min, rs.max
+		}
+	}
+}
+
+// applyWeighted turns named fields into weighted enums per the config.
+func applyWeighted(s *schema.Schema, w map[string]weightedSpec) {
+	for name, ws := range w {
+		if f := s.FieldByName(name); f != nil {
+			f.Kind = schema.KindEnum
+			f.Choices = ws.choices
+			f.Weights = ws.weights
 		}
 	}
 }

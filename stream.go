@@ -39,6 +39,7 @@ func (s *Streamer[T]) engine() (*gen.Engine, *rng.Rand, []string, error) {
 	cached, _ := reflectfe.Build(rt)
 	sc := &schema.Schema{Fields: append([]schema.Field(nil), cached.Fields...)}
 	applyRefs(sc, cfg.refs)
+	applyWeighted(sc, cfg.weighted)
 	eng, err := gen.Compile(sc, cfg.locale)
 	if err != nil {
 		return nil, nil, nil, err

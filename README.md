@@ -52,13 +52,26 @@ Locale isn't just a name list. Pick `uz_UZ` and you get Uzbek names, `+998` phon
 ### Statistical shape
 Real data isn't uniform. Synth draws from distributions so your test data stresses the same paths production does.
 
+Via tags:
+
 ```go
-synth.Field("amount", synth.LogNormal(mu, sigma))
-synth.Field("country", synth.Zipf())         // a few countries dominate
-synth.Field("status", synth.Weighted(map[string]float64{
+type Txn struct {
+    Amount   float64 `synth:"amount,dist=lognormal,mu=10,sigma=1"` // long tail
+    Status   string  `synth:"enum,choices=settled|pending|failed,weights=0.94|0.05|0.01"`
+    Category string  `synth:"enum,choices=a|b|c|d,dist=zipf,s=1.2"` // hot keys
+}
+```
+
+Or in code:
+
+```go
+synth.Make[Txn](1_000_000, synth.Weighted("Status", map[string]float64{
     "settled": 0.94, "pending": 0.05, "failed": 0.01,
 }))
 ```
+
+Distributions: `normal`, `lognormal`, `exp` (numeric fields) and `zipf` /
+explicit `weights` (enums).
 
 Long tails, hot keys, and skew are what break partitioning and query planners — uniform fakers never surface those bugs.
 
@@ -193,8 +206,10 @@ synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
 parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
 
-**Roadmap (separate specs):** statistical distributions (LogNormal, Zipf,
-Weighted), edge-case/chaos injection, OpenAPI-driven payloads, more locales.
+statistical distributions (Normal/LogNormal/Exponential/Zipf/Weighted).
+
+**Roadmap (separate specs):** edge-case/chaos injection, OpenAPI-driven
+payloads, more locales, more field types.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 

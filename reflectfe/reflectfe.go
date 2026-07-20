@@ -4,6 +4,7 @@
 package reflectfe
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -81,6 +82,14 @@ func parseTag(f *schema.Field, tag string) {
 				f.From = v
 			case "match":
 				f.Match = v
+			case "choices":
+				f.Choices = strings.Split(v, "|")
+			case "weights":
+				for _, ws := range strings.Split(v, "|") {
+					var w float64
+					fmt.Sscanf(ws, "%g", &w)
+					f.Weights = append(f.Weights, w)
+				}
 			default:
 				f.Params[k] = v
 			}

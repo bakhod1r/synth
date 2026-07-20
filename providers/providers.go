@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bakhodir/synth/dist"
 	"github.com/bakhodir/synth/internal/rng"
 	"github.com/bakhodir/synth/locale"
 	"github.com/bakhodir/synth/schema"
@@ -21,6 +22,8 @@ type Ctx struct {
 	Rand   *rng.Rand
 	Locale *locale.Locale
 	Params map[string]string
+	// Field is the full schema field (for enum choices/weights, etc.).
+	Field *schema.Field
 	// Place is the record's chosen locale.Place, shared across city/region/
 	// postcode/phone so they stay coherent within one record.
 	Place *locale.Place
@@ -60,6 +63,60 @@ func init() {
 	registry[schema.KindIPv4] = ipv4
 	registry[schema.KindURL] = urlProvider
 	registry[schema.KindAmount] = amount
+	registry[schema.KindEnum] = enum
+}
+
+// enum picks from Field.Choices: uniform, weighted, or Zipf-skewed depending
+// on the field's Weights and dist param.
+func enum(c Ctx) any {
+	if c.Field == nil || len(c.Field.Choices) == 0 {
+		return ""
+	}
+	ch := c.Field.Choices
+	if len(c.Field.Weights) == len(ch) {
+		return ch[weightedPick(c.Rand, c.Field.Weights)]
+	}
+	if c.Params["dist"] == "zipf" {
+		z := dist.NewZipf(len(ch), paramFloat(c.Params, "s", 1.07))
+		return ch[z.Rank(c.Rand)]
+	}
+	return ch[c.Rand.Pick(len(ch))]
+}
+
+func weightedPick(r *rng.Rand, w []float64) int {
+	sum := 0.0
+	for _, x := range w {
+		sum += x
+	}
+	u := r.Float64() * sum
+	acc := 0.0
+	for i, x := range w {
+		acc += x
+		if u < acc {
+			return i
+		}
+	}
+	return len(w) - 1
+}
+
+// sampleDist returns a value from the field's dist param, or ok=false if none.
+func sampleDist(c Ctx) (float64, bool) {
+	name := c.Params["dist"]
+	if name == "" {
+		return 0, false
+	}
+	var d dist.Dist
+	switch name {
+	case "normal":
+		d = dist.Normal{Mu: paramFloat(c.Params, "mu", 0), Sigma: paramFloat(c.Params, "sigma", 1)}
+	case "lognormal":
+		d = dist.LogNormal{Mu: paramFloat(c.Params, "mu", 0), Sigma: paramFloat(c.Params, "sigma", 1)}
+	case "exp", "exponential":
+		d = dist.Exponential{Rate: paramFloat(c.Params, "rate", 1)}
+	default:
+		return 0, false
+	}
+	return d.Sample(c.Rand), true
 }
 
 func username(c Ctx) any {
@@ -79,7 +136,12 @@ func urlProvider(c Ctx) any {
 func amount(c Ctx) any {
 	min := paramInt(c.Params, "min", 1)
 	max := paramInt(c.Params, "max", 100000)
-	v := float64(min) + c.Rand.Float64()*float64(max-min)
+	var v float64
+	if s, ok := sampleDist(c); ok {
+		v = clampFloat(s, float64(min), float64(max))
+	} else {
+		v = float64(min) + c.Rand.Float64()*float64(max-min)
+	}
 	return float64(int(v*100)) / 100
 }
 
@@ -136,13 +198,39 @@ func phone(c Ctx) any {
 func intProvider(c Ctx) any {
 	min := paramInt(c.Params, "min", 0)
 	max := paramInt(c.Params, "max", 1000)
+	if v, ok := sampleDist(c); ok {
+		return clampInt(int(v), min, max)
+	}
 	return c.Rand.IntRange(min, max)
 }
 
 func floatProvider(c Ctx) any {
 	min := paramInt(c.Params, "min", 0)
 	max := paramInt(c.Params, "max", 1000)
+	if v, ok := sampleDist(c); ok {
+		return clampFloat(v, float64(min), float64(max))
+	}
 	return float64(min) + c.Rand.Float64()*float64(max-min)
+}
+
+func clampInt(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func clampFloat(v, min, max float64) float64 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
 
 // anchorTime is a fixed reference so time generation stays deterministic
@@ -226,6 +314,19 @@ func mod97(s string) int {
 func passport(c Ctx) any {
 	l := func() byte { return byte('A' + c.Rand.Intn(26)) }
 	return fmt.Sprintf("%c%c%s", l(), l(), c.Rand.Digits(7))
+}
+
+func paramFloat(p map[string]string, key string, def float64) float64 {
+	if p == nil {
+		return def
+	}
+	if v, ok := p[key]; ok {
+		var f float64
+		if _, err := fmt.Sscanf(v, "%g", &f); err == nil {
+			return f
+		}
+	}
+	return def
 }
 
 func paramInt(p map[string]string, key string, def int) int {

@@ -32,6 +32,7 @@ func MakeParallel[T any](n, workers int, opts ...Option) ([]T, error) {
 	cached, _ := reflectfe.Build(rt)
 	s := &schema.Schema{Fields: append([]schema.Field(nil), cached.Fields...)}
 	applyRefs(s, cfg.refs)
+	applyWeighted(s, cfg.weighted)
 	eng, err := gen.Compile(s, cfg.locale)
 	if err != nil {
 		return nil, err

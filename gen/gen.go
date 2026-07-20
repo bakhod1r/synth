@@ -113,6 +113,7 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 		Rand:   r,
 		Locale: e.loc,
 		Params: f.Params,
+		Field:  f,
 		Place:  place,
 		Sibling: func(name string) any {
 			if name == "__from__" {

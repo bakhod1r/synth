@@ -3,7 +3,10 @@
 // goroutines never contend on a shared mutex — the classic faker bottleneck.
 package rng
 
-import "math/rand/v2"
+import (
+	"math"
+	"math/rand/v2"
+)
 
 // Rand is a lightweight, non-cryptographic PRNG. Not safe for concurrent
 // use; give each goroutine its own via Fork or a pool.
@@ -46,6 +49,15 @@ func (r *Rand) Pick(n int) int { return r.src.IntN(n) }
 
 // Uint64 returns a random 64-bit value.
 func (r *Rand) Uint64() uint64 { return r.src.Uint64() }
+
+// NormFloat64 returns a standard-normal (mean 0, stddev 1) sample via
+// Box-Muller. Used by the dist package for Normal/LogNormal.
+func (r *Rand) NormFloat64() float64 {
+	// u1 in (0,1] to avoid log(0).
+	u1 := 1 - r.src.Float64()
+	u2 := r.src.Float64()
+	return math.Sqrt(-2*math.Log(u1)) * math.Cos(2*math.Pi*u2)
+}
 
 // Digits returns a string of n random decimal digits.
 func (r *Rand) Digits(n int) string {

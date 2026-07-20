@@ -31,6 +31,7 @@ const (
 	KindURL       Kind = "url"
 	KindCurrency  Kind = "currency"
 	KindAmount    Kind = "amount"
+	KindEnum      Kind = "enum"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""
@@ -61,6 +62,12 @@ type Field struct {
 	// RefCardinality controls how FromRef values are distributed
 	// (0 means uniform-random).
 	RefMin, RefMax int
+	// Choices holds the value set for KindEnum.
+	Choices []string
+	// Weights, if set, are relative probabilities for Choices (same length).
+	// If empty, Choices are picked uniformly (or by Zipf if Params["dist"]
+	// == "zipf").
+	Weights []float64
 }
 
 // Schema is an ordered list of fields describing one record type.
