@@ -15,9 +15,10 @@ type User struct {
 	FirstName string
 	Email     string `synth:"email,from=FirstName"` // email derives from the name
 	Phone     string
+	Country   string
 	Region    string
 	City      string
-	Postcode  string // stays coherent with City/Region
+	Postcode  string // stays coherent with Country/Region/City
 	Card      string `synth:"card"` // Luhn-valid HUMO/UZCARD
 	CreatedAt time.Time
 }
@@ -31,8 +32,8 @@ type Order struct {
 func main() {
 	users := synth.Make[User](5, synth.WithSeed(42), synth.WithLocale("uz_UZ"))
 	for _, u := range users {
-		fmt.Printf("%s | %s | %s | %s/%s %s | %s\n",
-			u.FirstName, u.Email, u.Phone, u.Region, u.City, u.Postcode, u.Card)
+		fmt.Printf("%s | %s | %s | %s, %s/%s %s | %s\n",
+			u.FirstName, u.Email, u.Phone, u.Country, u.Region, u.City, u.Postcode, u.Card)
 	}
 
 	// Referential integrity: orders point at real users.

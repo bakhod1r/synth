@@ -6,6 +6,15 @@ import (
 	"github.com/bakhodir/synth"
 )
 
+func BenchmarkFluentName(b *testing.B) {
+	g := synth.New(synth.Config{Seed: 1})
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = g.Name()
+	}
+}
+
 func BenchmarkMake(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

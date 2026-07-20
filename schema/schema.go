@@ -15,6 +15,7 @@ const (
 	KindPhone     Kind = "phone"
 	KindCity      Kind = "city"
 	KindRegion    Kind = "region"
+	KindCountry   Kind = "country"
 	KindPostcode  Kind = "postcode"
 	KindInt       Kind = "int"
 	KindFloat     Kind = "float"
@@ -24,6 +25,12 @@ const (
 	KindIBAN      Kind = "iban"
 	KindCard      Kind = "card"
 	KindPassport  Kind = "passport"
+	KindCompany   Kind = "company"
+	KindUsername  Kind = "username"
+	KindIPv4      Kind = "ipv4"
+	KindURL       Kind = "url"
+	KindCurrency  Kind = "currency"
+	KindAmount    Kind = "amount"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""

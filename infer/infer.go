@@ -12,19 +12,26 @@ import (
 // synonyms maps normalized field-name aliases to a Kind. Extendable via Alias.
 var synonyms = map[string]schema.Kind{
 	"id": schema.KindUUID, "uuid": schema.KindUUID, "guid": schema.KindUUID,
-	"name": schema.KindName, "fullname": schema.KindName, "username": schema.KindName,
+	"name": schema.KindName, "fullname": schema.KindName, "displayname": schema.KindName,
 	"firstname": schema.KindFirstName, "givenname": schema.KindFirstName,
 	"lastname": schema.KindLastName, "surname": schema.KindLastName, "familyname": schema.KindLastName,
 	"email": schema.KindEmail, "mail": schema.KindEmail, "emailaddress": schema.KindEmail,
 	"phone": schema.KindPhone, "tel": schema.KindPhone, "mobile": schema.KindPhone, "phonenumber": schema.KindPhone,
 	"city": schema.KindCity, "town": schema.KindCity,
 	"region": schema.KindRegion, "state": schema.KindRegion, "province": schema.KindRegion, "viloyat": schema.KindRegion,
+	"country": schema.KindCountry, "davlat": schema.KindCountry, "nation": schema.KindCountry,
 	"postcode": schema.KindPostcode, "zip": schema.KindPostcode, "zipcode": schema.KindPostcode, "postal": schema.KindPostcode,
 	"iban": schema.KindIBAN,
 	"card": schema.KindCard, "cardnumber": schema.KindCard, "pan": schema.KindCard,
 	"passport": schema.KindPassport,
 	"age":      schema.KindInt,
-	"bio":      schema.KindLorem, "description": schema.KindLorem, "notes": schema.KindLorem,
+	"company":  schema.KindCompany, "employer": schema.KindCompany, "organization": schema.KindCompany,
+	"username": schema.KindUsername, "login": schema.KindUsername, "handle": schema.KindUsername,
+	"ip": schema.KindIPv4, "ipaddress": schema.KindIPv4, "ipv4": schema.KindIPv4,
+	"url": schema.KindURL, "website": schema.KindURL, "link": schema.KindURL,
+	"currency": schema.KindCurrency, "ccy": schema.KindCurrency,
+	"amount": schema.KindAmount, "price": schema.KindAmount, "total": schema.KindAmount, "balance": schema.KindAmount,
+	"bio": schema.KindLorem, "description": schema.KindLorem, "notes": schema.KindLorem,
 }
 
 // Alias registers an extra field-name synonym (e.g. Uzbek "ismi" → name).

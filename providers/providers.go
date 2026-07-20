@@ -45,6 +45,7 @@ func init() {
 	registry[schema.KindRegion] = func(c Ctx) any { return c.Place.Region }
 	registry[schema.KindCity] = func(c Ctx) any { return c.Place.City }
 	registry[schema.KindPostcode] = func(c Ctx) any { return c.Place.Postcode }
+	registry[schema.KindCountry] = func(c Ctx) any { return c.Locale.Country }
 	registry[schema.KindInt] = intProvider
 	registry[schema.KindFloat] = floatProvider
 	registry[schema.KindBool] = func(c Ctx) any { return c.Rand.Bool(0.5) }
@@ -53,6 +54,33 @@ func init() {
 	registry[schema.KindIBAN] = iban
 	registry[schema.KindCard] = card
 	registry[schema.KindPassport] = passport
+	registry[schema.KindCompany] = func(c Ctx) any { return pick(c.Rand, c.Locale.Companies) }
+	registry[schema.KindCurrency] = func(c Ctx) any { return c.Locale.Currency }
+	registry[schema.KindUsername] = username
+	registry[schema.KindIPv4] = ipv4
+	registry[schema.KindURL] = urlProvider
+	registry[schema.KindAmount] = amount
+}
+
+func username(c Ctx) any {
+	first := strings.ToLower(pick(c.Rand, c.Locale.FirstNames))
+	return fmt.Sprintf("%s_%s", first, c.Rand.Digits(3))
+}
+
+func ipv4(c Ctx) any {
+	return fmt.Sprintf("%d.%d.%d.%d", c.Rand.IntRange(1, 223), c.Rand.Intn(256), c.Rand.Intn(256), c.Rand.IntRange(1, 254))
+}
+
+func urlProvider(c Ctx) any {
+	return "https://" + strings.ToLower(strings.ReplaceAll(pick(c.Rand, c.Locale.Companies), " ", "")) + ".com"
+}
+
+// amount returns a monetary value in [min,max] rounded to 2 decimals.
+func amount(c Ctx) any {
+	min := paramInt(c.Params, "min", 1)
+	max := paramInt(c.Params, "max", 100000)
+	v := float64(min) + c.Rand.Float64()*float64(max-min)
+	return float64(int(v*100)) / 100
 }
 
 // Get returns the provider for a kind, or nil if unknown.

@@ -69,10 +69,10 @@ Records are pushed through a pipeline, never accumulated. Generating 100M rows u
 A seed fully determines the output. The same seed produces byte-identical data across runs, machines, and Go versions — so a failing CI run is reproducible locally, and golden-file tests stay stable.
 
 ```go
-synth.New(synth.WithSeed(42))
+synth.Make[User](1000, synth.WithSeed(42))
 ```
 
-Sub-streams are seeded independently, so adding a new field doesn't shift the values of existing ones.
+Each record is seeded independently from the base seed, so parallel generation is byte-identical to serial output.
 
 ### Schema-driven generation
 Point Synth at a schema instead of hand-writing generators:
@@ -94,30 +94,76 @@ synth.New(synth.WithChaos(0.02))   // 2% of records carry a nasty value
 ## Install
 
 ```bash
-go get github.com/bakhod1r/synth
+go get github.com/bakhodir/synth
 ```
 
 ## Quick start
+
+Synth is a **pure data provider**: it never connects to a database, never runs
+`INSERT`, never reads DDL. You hand it a plain Go struct; it hands you coherent
+records — in memory, to a file, or streamed. Loading is a separate tool's job.
 
 ```go
 package main
 
 import (
-	"context"
-	"os"
+	"time"
 
-	"github.com/bakhod1r/synth"
+	"github.com/bakhodir/synth"
+	"github.com/google/uuid"
 )
 
-func main() {
-	gen := synth.New(
-		synth.WithLocale("uz_UZ"),
-		synth.WithSeed(42),
-	)
+type User struct {
+	ID        uuid.UUID `synth:"pk"`
+	FirstName string
+	Email     string `synth:"email,from=FirstName"` // derived from the name
+	Phone     string
+	Country   string
+	Region    string
+	City      string
+	Postcode  string // stays coherent with Country/Region/City
+	Card      string `synth:"card"` // Luhn-valid HUMO/UZCARD
+	CreatedAt time.Time
+}
 
-	gen.Stream(context.Background(), synth.Users(1_000_000), synth.JSONL(os.Stdout))
+func main() {
+	// Tags are optional — untagged fields are inferred from name and type.
+	users := synth.Make[User](10_000, synth.WithSeed(42), synth.WithLocale("uz_UZ"))
+
+	synth.WriteCSV("users.csv", users)                       // to a file
+	synth.Stream[User](1_000_000).ToJSONL("users.jsonl")     // constant memory
 }
 ```
+
+### Referential integrity
+
+```go
+users  := synth.Make[User](10_000, synth.WithSeed(1))
+orders := synth.Make[Order](500_000, synth.Ref(users, "UserID")) // every FK is real
+```
+
+### Fluent single values
+
+```go
+g := synth.New(synth.Config{Seed: 42, Locale: "uz_UZ"})
+g.Name()      // "Azizbek Karimov"
+g.Phone()     // "+998901234567"
+g.Card()      // Luhn-valid
+g.Amount(1000, 500000)
+```
+
+## Benchmarks
+
+Measured on Apple Silicon (`go test -bench`), Go 1.25:
+
+| Operation | Throughput | allocs/op |
+| --- | --- | --- |
+| Single value (`g.Name()`) | ~15.6M ops/sec (64 ns) | 2 |
+| `Make[User]` (10 fields), serial | ~560K records/sec | — |
+| `MakeParallel[User]`, 8 cores | ~1.28M records/sec | — |
+
+Per-instance RNG means no global-`rand` mutex — parallel generation scales, and
+same-seed output is byte-identical regardless of worker count.
 
 ## Data domains
 
@@ -128,21 +174,29 @@ func main() {
 | Transactions | ledger entries, timestamps, statuses |
 | Business | companies, invoices, orders, inventory |
 
-## Sinks
+## Output
+
+Synth writes **files** — it never opens a network or DB connection.
 
 ```go
-synth.Kafka(brokers, topic)   // stream to Kafka
-synth.Postgres(dsn, table)    // batched COPY into Postgres
-synth.CSV(w)                  // CSV
-synth.JSONL(w)                // newline-delimited JSON
+synth.WriteCSV("users.csv", users)
+synth.WriteJSONL("users.jsonl", users)
+synth.WriteSQL("users.sql", "users", users) // INSERT statements you run yourself
+
+synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 ```
 
-## OpenAPI payloads
+## Status & roadmap
 
-```go
-spec, _ := synth.LoadOpenAPI("openapi.yaml")
-payload, _ := spec.Payload("POST", "/v1/payments")
-```
+**Implemented:** struct frontend with tagless inference, referential integrity
+(`Ref`), locale coherence (country → region → city → postcode → phone),
+Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
+parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
+
+**Roadmap (separate specs):** statistical distributions (LogNormal, Zipf,
+Weighted), edge-case/chaos injection, OpenAPI-driven payloads, more locales.
+Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
+a pure provider; feed its output to your own loader.
 
 ## License
 

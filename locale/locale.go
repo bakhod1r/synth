@@ -26,6 +26,12 @@ type Locale struct {
 	// IBANCountry is the 2-letter ISO country for IBAN generation.
 	IBANCountry string
 	IBANLength  int
+	// Country is the human-readable country name (e.g. "Uzbekistan").
+	Country string
+	// Currency is the ISO 4217 code for monetary amounts (e.g. "UZS").
+	Currency string
+	// Companies are sample company/brand names for this locale.
+	Companies []string
 }
 
 var registry = map[string]*Locale{
@@ -50,6 +56,9 @@ var enUS = &Locale{
 	CardBINs:    []string{"4539", "4556", "5425", "5105", "374245"},
 	IBANCountry: "US",
 	IBANLength:  24,
+	Country:     "United States",
+	Currency:    "USD",
+	Companies:   []string{"Acme Corp", "Globex", "Initech", "Umbrella LLC", "Stark Industries"},
 	Places: []Place{
 		{"California", "Los Angeles", "90001", "213"},
 		{"California", "San Diego", "92101", "619"},
@@ -69,6 +78,9 @@ var uzUZ = &Locale{
 	CardBINs:    []string{"8600", "9860"},
 	IBANCountry: "UZ",
 	IBANLength:  28,
+	Country:     "Uzbekistan",
+	Currency:    "UZS",
+	Companies:   []string{"Uzum", "Payme", "Click", "Artel", "Uztelecom"},
 	Places: []Place{
 		{"Toshkent", "Toshkent", "100000", "90"},
 		{"Samarqand", "Samarqand", "140100", "91"},
