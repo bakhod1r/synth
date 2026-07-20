@@ -206,10 +206,17 @@ synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
 parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
 
-statistical distributions (Normal/LogNormal/Exponential/Zipf/Weighted).
+statistical distributions (Normal/LogNormal/Exponential/Zipf/Weighted),
+**50+ locales** (native names, dialing codes, currencies, capital regions), and
+**custom types** via `Register`/`RegisterSet`.
+
+```go
+synth.RegisterSet("cinema", "Inception", "Interstellar", "Tenet", "Dune")
+synth.Register("rating", func(r synth.R) any { return r.IntRange(1, 5) })
+```
 
 **Roadmap (separate specs):** edge-case/chaos injection, OpenAPI-driven
-payloads, more locales, more field types.
+payloads, deeper per-locale datasets (addresses, companies).
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 

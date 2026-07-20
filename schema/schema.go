@@ -32,6 +32,13 @@ const (
 	KindCurrency  Kind = "currency"
 	KindAmount    Kind = "amount"
 	KindEnum      Kind = "enum"
+	KindStreet    Kind = "street"
+	KindColor     Kind = "color"
+	KindJob       Kind = "job"
+	KindProduct   Kind = "product"
+	KindMAC       Kind = "mac"
+	KindHexColor  Kind = "hexcolor"
+	KindGender    Kind = "gender"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""

@@ -64,6 +64,21 @@ func init() {
 	registry[schema.KindURL] = urlProvider
 	registry[schema.KindAmount] = amount
 	registry[schema.KindEnum] = enum
+	registry[schema.KindStreet] = func(c Ctx) any {
+		return fmt.Sprintf("%d %s", c.Rand.IntRange(1, 200), pick(c.Rand, c.Locale.Streets))
+	}
+	registry[schema.KindColor] = func(c Ctx) any { return pick(c.Rand, locale.Colors) }
+	registry[schema.KindHexColor] = func(c Ctx) any { return fmt.Sprintf("#%06x", c.Rand.Intn(0x1000000)) }
+	registry[schema.KindJob] = func(c Ctx) any { return pick(c.Rand, c.Locale.Jobs) }
+	registry[schema.KindProduct] = func(c Ctx) any { return pick(c.Rand, c.Locale.Products) }
+	registry[schema.KindGender] = func(c Ctx) any { return pick(c.Rand, locale.Genders) }
+	registry[schema.KindMAC] = func(c Ctx) any {
+		b := make([]string, 6)
+		for i := range b {
+			b[i] = fmt.Sprintf("%02x", c.Rand.Intn(256))
+		}
+		return strings.Join(b, ":")
+	}
 }
 
 // enum picks from Field.Choices: uniform, weighted, or Zipf-skewed depending
@@ -147,6 +162,15 @@ func amount(c Ctx) any {
 
 // Get returns the provider for a kind, or nil if unknown.
 func Get(k schema.Kind) Provider { return registry[k] }
+
+// Register adds or overrides a provider for a kind. Used by the public
+// synth.Register / synth.RegisterSet to support user-defined types (e.g. a
+// "cinema" type drawing from movie data).
+func Register(k schema.Kind, p Provider) { registry[k] = p }
+
+// PickString returns a random element from s, exposed so user providers built
+// on top of Ctx can reuse the same picking logic.
+func PickString(c Ctx, s []string) string { return pick(c.Rand, s) }
 
 func pick(r *rng.Rand, s []string) string {
 	if len(s) == 0 {

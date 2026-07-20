@@ -32,6 +32,13 @@ var synonyms = map[string]schema.Kind{
 	"currency": schema.KindCurrency, "ccy": schema.KindCurrency,
 	"amount": schema.KindAmount, "price": schema.KindAmount, "total": schema.KindAmount, "balance": schema.KindAmount,
 	"bio": schema.KindLorem, "description": schema.KindLorem, "notes": schema.KindLorem,
+	"street": schema.KindStreet, "streetaddress": schema.KindStreet, "address": schema.KindStreet,
+	"color": schema.KindColor, "colour": schema.KindColor,
+	"hexcolor": schema.KindHexColor, "hex": schema.KindHexColor,
+	"job": schema.KindJob, "jobtitle": schema.KindJob, "position": schema.KindJob, "title": schema.KindJob,
+	"product": schema.KindProduct, "item": schema.KindProduct,
+	"mac": schema.KindMAC, "macaddress": schema.KindMAC,
+	"gender": schema.KindGender, "sex": schema.KindGender,
 }
 
 // Alias registers an extra field-name synonym (e.g. Uzbek "ismi" → name).
