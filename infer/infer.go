@@ -39,6 +39,18 @@ var synonyms = map[string]schema.Kind{
 	"product": schema.KindProduct, "item": schema.KindProduct,
 	"mac": schema.KindMAC, "macaddress": schema.KindMAC,
 	"gender": schema.KindGender, "sex": schema.KindGender,
+	"book": schema.KindBook, "booktitle": schema.KindBook, "novel": schema.KindBook,
+	"movie": schema.KindMovie, "film": schema.KindMovie, "cinema": schema.KindMovie,
+	"celebrity": schema.KindCelebrity, "famousperson": schema.KindCelebrity, "star": schema.KindCelebrity,
+	"band": schema.KindBand, "artist": schema.KindBand, "musician": schema.KindBand,
+	"brand": schema.KindBrand,
+	"food":  schema.KindFood, "dish": schema.KindFood, "meal": schema.KindFood,
+	"animal": schema.KindAnimal, "pet": schema.KindAnimal,
+	"sport":      schema.KindSport,
+	"planet":     schema.KindPlanet,
+	"university": schema.KindUniversity, "college": schema.KindUniversity, "school": schema.KindUniversity,
+	"language": schema.KindLanguage, "proglang": schema.KindLanguage,
+	"emoji": schema.KindEmoji,
 }
 
 // Alias registers an extra field-name synonym (e.g. Uzbek "ismi" → name).

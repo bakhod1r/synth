@@ -208,7 +208,10 @@ parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
 
 statistical distributions (Normal/LogNormal/Exponential/Zipf/Weighted),
 **50+ locales** (native names, dialing codes, currencies, capital regions), and
-**custom types** via `Register`/`RegisterSet`.
+**custom types** via `Register`/`RegisterSet`, and **real-world datasets**
+(books, movies, celebrities, brands, foods, animals, sports, universities,
+languages, emoji) — recognizable values blended with combinatorial ones so
+repetition stays low across large datasets.
 
 ```go
 synth.RegisterSet("cinema", "Inception", "Interstellar", "Tenet", "Dune")

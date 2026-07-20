@@ -39,6 +39,21 @@ const (
 	KindMAC       Kind = "mac"
 	KindHexColor  Kind = "hexcolor"
 	KindGender    Kind = "gender"
+	KindBook      Kind = "book"
+	KindMovie     Kind = "movie"
+	KindCelebrity Kind = "celebrity"
+	KindBand      Kind = "band"
+	KindBrand     Kind = "brand"
+	// KindCountryName is a random famous country (not tied to the locale, unlike
+	// KindCountry which returns the locale's own country).
+	KindCountryName Kind = "countryname"
+	KindFood        Kind = "food"
+	KindAnimal      Kind = "animal"
+	KindSport       Kind = "sport"
+	KindPlanet      Kind = "planet"
+	KindUniversity  Kind = "university"
+	KindLanguage    Kind = "language"
+	KindEmoji       Kind = "emoji"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""
