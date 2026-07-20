@@ -268,9 +268,44 @@ func clampFloat(v, min, max float64) float64 {
 var anchorTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 func timeProvider(c Ctx) any {
+	// Temporal causality: if this field comes `after` another time field,
+	// generate a point strictly after it, by a realistic gap. This is how a
+	// record's lifecycle stays ordered (created < paid < shipped < delivered).
+	if c.Field != nil && c.Field.From != "" && c.Sibling != nil {
+		if prev, ok := c.Sibling(c.Field.From).(time.Time); ok {
+			min, max := parseGap(c.Params["gap"])
+			d := min + time.Duration(c.Rand.Float64()*float64(max-min))
+			return prev.Add(d)
+		}
+	}
 	// Default: a random point in the 2 years before the anchor.
 	back := c.Rand.IntRange(0, 2*365*24*3600)
 	return anchorTime.Add(-time.Duration(back) * time.Second)
+}
+
+// parseGap parses "1h..48h" into a duration range. Defaults to 1m..72h.
+func parseGap(s string) (min, max time.Duration) {
+	min, max = time.Minute, 72*time.Hour
+	if s == "" {
+		return
+	}
+	lo, hi, ok := strings.Cut(s, "..")
+	if !ok {
+		if d, err := time.ParseDuration(s); err == nil {
+			return d, d
+		}
+		return
+	}
+	if d, err := time.ParseDuration(lo); err == nil {
+		min = d
+	}
+	if d, err := time.ParseDuration(hi); err == nil {
+		max = d
+	}
+	if max < min {
+		max = min
+	}
+	return
 }
 
 var words = strings.Fields("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor")

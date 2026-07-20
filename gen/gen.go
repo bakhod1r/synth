@@ -20,6 +20,8 @@ type Engine struct {
 	// Chaos is the probability [0,1] that a string/numeric field carries an
 	// edge-case value instead of a normal one (see WithChaos).
 	Chaos float64
+	// seen tracks generated values per unique field, to enforce distinctness.
+	seen map[string]map[any]bool
 }
 
 // Compile validates the schema (unknown kinds, from= cycles) and computes the
@@ -40,7 +42,18 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 			return nil, fmt.Errorf("synth: field %q has unknown kind %q", f.Name, f.Kind)
 		}
 	}
-	return &Engine{schema: s, loc: locale.Get(localeName), order: order}, nil
+	e := &Engine{schema: s, loc: locale.Get(localeName), order: order}
+	for _, f := range s.Fields {
+		// UUIDs are unique by construction — no stateful tracking needed, which
+		// also keeps them safe for parallel generation.
+		if f.Unique && f.Kind != schema.KindUUID {
+			if e.seen == nil {
+				e.seen = map[string]map[any]bool{}
+			}
+			e.seen[f.Name] = map[any]bool{}
+		}
+	}
+	return e, nil
 }
 
 // topoOrder returns field indices such that every from=/match= dependency is
@@ -102,6 +115,15 @@ func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 		if e.Chaos > 0 && f.FromRef == nil && r.Bool(e.Chaos) {
 			v = chaosValue(r, v)
 		}
+		// Unique enforcement: resample until a fresh value is found. Uses a
+		// generous cap; on exhaustion it keeps the last value (callers should
+		// ensure the field's space exceeds the row count).
+		if seen := e.seen[f.Name]; seen != nil {
+			for attempt := 0; seen[v] && attempt < 1000; attempt++ {
+				v = e.field(r, f, &place, values)
+			}
+			seen[v] = true
+		}
 		values[f.Name] = v
 	}
 	return values
@@ -137,3 +159,7 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 
 // Schema exposes the underlying schema (for encoders needing column order).
 func (e *Engine) Schema() *schema.Schema { return e.schema }
+
+// HasUnique reports whether any field requires unique values. Unique tracking
+// is stateful, so callers must use serial generation when this is true.
+func (e *Engine) HasUnique() bool { return e.seen != nil }

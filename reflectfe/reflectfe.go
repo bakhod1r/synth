@@ -63,10 +63,14 @@ func parseTag(f *schema.Field, tag string) {
 	switch head {
 	case "pk":
 		f.PK = true
+		f.Unique = true
 		if f.GoType == "uuid.UUID" || f.GoType == "string" {
 			f.Kind = schema.KindUUID
 		} else {
 			f.Kind = schema.KindInt
+			// Wide range so integer PKs stay unique across large datasets.
+			f.Params["min"] = "1"
+			f.Params["max"] = "2000000000"
 		}
 	default:
 		f.Kind = schema.Kind(head)

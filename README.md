@@ -155,6 +155,21 @@ users  := synth.Make[User](10_000, synth.WithSeed(1))
 orders := synth.Make[Order](500_000, synth.Ref(users, "UserID")) // every FK is real
 ```
 
+### Temporal causality
+
+Timestamps respect the order events can happen in — a record's lifecycle stays
+consistent instead of scattering random points in a range.
+
+```go
+type Order struct {
+    CreatedAt   time.Time
+    PaidAt      time.Time `synth:"time,after=CreatedAt,gap=1h..48h"`
+    ShippedAt   time.Time `synth:"time,after=PaidAt,gap=1h..72h"`
+    DeliveredAt time.Time `synth:"time,after=ShippedAt,gap=1h..120h"`
+}
+// CreatedAt < PaidAt < ShippedAt < DeliveredAt, always.
+```
+
 ### Fluent single values
 
 ```go
@@ -202,7 +217,8 @@ synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 ## Status & roadmap
 
 **Implemented:** struct frontend with tagless inference, referential integrity
-(`Ref`), locale coherence (country → region → city → postcode → phone),
+(`Ref`), temporal causality (`after=`/`gap=` lifecycle ordering), unique
+constraints (`unique` tag, PKs), locale coherence (country → region → city → postcode → phone),
 Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
 parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
 

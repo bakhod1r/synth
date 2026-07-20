@@ -1,6 +1,7 @@
 package synth
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"sync"
@@ -38,6 +39,9 @@ func MakeParallel[T any](n, workers int, opts ...Option) ([]T, error) {
 		return nil, err
 	}
 	eng.Chaos = cfg.chaos
+	if eng.HasUnique() {
+		return nil, fmt.Errorf("synth: MakeParallel does not support unique fields; use Make")
+	}
 
 	out := make([]T, n)
 	var wg sync.WaitGroup
