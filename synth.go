@@ -27,6 +27,7 @@ type config struct {
 	locale   string
 	refs     []refSpec
 	weighted map[string]weightedSpec
+	chaos    float64
 }
 
 type weightedSpec struct {
@@ -64,6 +65,12 @@ func Weighted(field string, choices map[string]float64) Option {
 		c.weighted[field] = ws
 	}
 }
+
+// WithChaos makes a fraction p (0..1) of string/numeric fields carry an
+// edge-case value — empty strings, emoji, RTL text, SQL/HTML fragments,
+// pathologically long input, boundary numerics. Use it to test the paths the
+// happy path never reaches. Referential-key fields are never corrupted.
+func WithChaos(p float64) Option { return func(c *config) { c.chaos = p } }
 
 // Ref links a foreign-key field on the child to a parent slice, so every
 // child row points at a real parent. Pass OneToMany to control cardinality.
@@ -117,6 +124,7 @@ func TryMake[T any](n int, opts ...Option) ([]T, error) {
 	if err != nil {
 		return nil, err
 	}
+	eng.Chaos = cfg.chaos
 	base := rng.New(cfg.seed)
 	out := make([]T, n)
 	for i := 0; i < n; i++ {

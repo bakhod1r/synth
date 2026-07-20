@@ -17,6 +17,9 @@ type Engine struct {
 	schema *schema.Schema
 	loc    *locale.Locale
 	order  []int // field indices in dependency order
+	// Chaos is the probability [0,1] that a string/numeric field carries an
+	// edge-case value instead of a normal one (see WithChaos).
+	Chaos float64
 }
 
 // Compile validates the schema (unknown kinds, from= cycles) and computes the
@@ -95,7 +98,11 @@ func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 	values := make(map[string]any, len(e.schema.Fields))
 	for _, i := range e.order {
 		f := &e.schema.Fields[i]
-		values[f.Name] = e.field(r, f, &place, values)
+		v := e.field(r, f, &place, values)
+		if e.Chaos > 0 && f.FromRef == nil && r.Bool(e.Chaos) {
+			v = chaosValue(r, v)
+		}
+		values[f.Name] = v
 	}
 	return values
 }

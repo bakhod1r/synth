@@ -44,6 +44,7 @@ func (s *Streamer[T]) engine() (*gen.Engine, *rng.Rand, []string, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	eng.Chaos = cfg.chaos
 	return eng, rng.New(cfg.seed), fieldNames(rt), nil
 }
 

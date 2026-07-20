@@ -37,6 +37,7 @@ func MakeParallel[T any](n, workers int, opts ...Option) ([]T, error) {
 	if err != nil {
 		return nil, err
 	}
+	eng.Chaos = cfg.chaos
 
 	out := make([]T, n)
 	var wg sync.WaitGroup

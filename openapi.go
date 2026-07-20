@@ -56,6 +56,7 @@ func (a *APISpec) Payloads(method, path string, n int, opts ...Option) ([]map[st
 	if err != nil {
 		return nil, err
 	}
+	eng.Chaos = cfg.chaos
 	base := rng.New(cfg.seed)
 	out := make([]map[string]any, n)
 	for i := 0; i < n; i++ {
