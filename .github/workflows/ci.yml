@@ -23,3 +23,11 @@ jobs:
         run: go test -race ./...
       - name: Build CLI
         run: go build ./cmd/synth
+      # Submodules keep their dependencies out of the core library, so they are
+      # built and tested separately.
+      - name: Test Parquet submodule
+        run: go test ./...
+        working-directory: sink/parquet
+      - name: Build benchmark submodule
+        run: go build ./...
+        working-directory: benchcmp

@@ -335,6 +335,24 @@ synth.WriteSQL("users.sql", "users", users) // INSERT statements you run yoursel
 synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 ```
 
+### Parquet
+
+Parquet lives in its own module, so its dependency stays optional — the core
+library still needs only `google/uuid` and `yaml.v3`:
+
+```bash
+go get github.com/bakhodir/synth/sink/parquet
+```
+
+```go
+parquet.WriteStructs("users.parquet", users)              // from Go structs
+parquet.WriteRows("users.parquet", spec.Columns(), rows)  // from YAML/DDL/profiling
+```
+
+Column types are inferred (int64, double, boolean, string), so query engines
+see real types rather than everything-as-string. Uploading the file to S3,
+MinIO or a warehouse is your loader's job.
+
 ## Status & roadmap
 
 **Implemented:** struct frontend with tagless inference, referential integrity
