@@ -319,11 +319,20 @@ func lorem(c Ctx) any {
 	return strings.Join(out, " ")
 }
 
-// card returns a Luhn-valid number from a locale BIN.
+// card returns a Luhn-valid card number. Precedence:
+//  1. an explicit brand param (synth:"card,brand=visa")
+//  2. the locale's own BINs (e.g. HUMO/UZCARD for uz_UZ)
+//  3. a random global brand (Visa, MasterCard, Amex, ...)
 func card(c Ctx) any {
-	bin := pick(c.Rand, c.Locale.CardBINs)
-	body := bin + c.Rand.Digits(15-len(bin))
-	return body + string(luhnCheck(body))
+	if brand := c.Params["brand"]; brand != "" {
+		return generateCard(c.Rand, brand)
+	}
+	if len(c.Locale.CardBINs) > 0 {
+		bin := pick(c.Rand, c.Locale.CardBINs)
+		body := bin + c.Rand.Digits(15-len(bin))
+		return body + string(luhnCheck(body))
+	}
+	return generateCard(c.Rand, "")
 }
 
 // luhnCheck returns the check digit that makes body+digit Luhn-valid.
