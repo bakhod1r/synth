@@ -134,16 +134,20 @@ func topoOrder(s *schema.Schema) ([]int, error) {
 func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 	r := base.Fork(uint64(seq))
 	place := e.loc.Places[r.Pick(len(e.loc.Places))]
-	return e.generate(r, &place)
+	gender := "male"
+	if r.Bool(0.5) {
+		gender = "female"
+	}
+	return e.generate(r, &place, gender)
 }
 
-// generate fills one record using the given rng and locale place (shared so
-// nested objects stay locale-coherent with their parent).
-func (e *Engine) generate(r *rng.Rand, place *locale.Place) map[string]any {
+// generate fills one record using the given rng, locale place and gender
+// (shared so nested objects and name/gender fields stay coherent).
+func (e *Engine) generate(r *rng.Rand, place *locale.Place, gender string) map[string]any {
 	values := make(map[string]any, len(e.schema.Fields))
 	for _, i := range e.order {
 		f := &e.schema.Fields[i]
-		v := e.field(r, f, place, values)
+		v := e.field(r, f, place, gender, values)
 		if e.Chaos > 0 && f.FromRef == nil && r.Bool(e.Chaos) {
 			v = chaosValue(r, v)
 		}
@@ -152,7 +156,7 @@ func (e *Engine) generate(r *rng.Rand, place *locale.Place) map[string]any {
 		// ensure the field's space exceeds the row count).
 		if seen := e.seen[f.Name]; seen != nil {
 			for attempt := 0; seen[v] && attempt < 1000; attempt++ {
-				v = e.field(r, f, place, values)
+				v = e.field(r, f, place, gender, values)
 			}
 			seen[v] = true
 		}
@@ -161,7 +165,7 @@ func (e *Engine) generate(r *rng.Rand, place *locale.Place) map[string]any {
 	return values
 }
 
-func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values map[string]any) any {
+func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any) any {
 	// Foreign key: draw from the referenced parent's PK values.
 	if f.FromRef != nil {
 		return f.FromRef[r.Pick(len(f.FromRef))]
@@ -169,16 +173,16 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 	if f.Kind == schema.KindUnknown {
 		return nil
 	}
-	// Nested object: generate a sub-record with the same rng and place.
+	// Nested object: generate a sub-record with the same rng, place and gender.
 	if f.Kind == schema.KindObject {
 		if sub := e.sub[f.Nested]; sub != nil {
-			return sub.generate(r, place)
+			return sub.generate(r, place, gender)
 		}
 		return nil
 	}
 	// Array: generate a slice of elements (scalars or nested objects).
 	if f.Kind == schema.KindArray {
-		return e.array(r, f, place, values)
+		return e.array(r, f, place, gender, values)
 	}
 	p := providers.Get(f.Kind)
 	c := providers.Ctx{
@@ -187,6 +191,7 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 		Params: f.Params,
 		Field:  f,
 		Place:  place,
+		Gender: gender,
 		Sibling: func(name string) any {
 			if name == "__from__" {
 				if f.From != "" {
@@ -201,7 +206,7 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 }
 
 // array generates a slice value for a KindArray field.
-func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, values map[string]any) []any {
+func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any) []any {
 	min, max := f.ArrMin, f.ArrMax
 	if max < min {
 		max = min
@@ -214,13 +219,13 @@ func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, values
 	for i := 0; i < n; i++ {
 		if f.Elem.Kind == schema.KindObject {
 			if sub := e.sub[f.Elem.Nested]; sub != nil {
-				out[i] = sub.generate(r, place)
+				out[i] = sub.generate(r, place, gender)
 				continue
 			}
 			out[i] = nil
 			continue
 		}
-		out[i] = e.field(r, f.Elem, place, values)
+		out[i] = e.field(r, f.Elem, place, gender, values)
 	}
 	return out
 }

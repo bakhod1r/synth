@@ -27,6 +27,10 @@ type Ctx struct {
 	// Place is the record's chosen locale.Place, shared across city/region/
 	// postcode/phone so they stay coherent within one record.
 	Place *locale.Place
+	// Gender is the record's chosen gender ("male"/"female"), shared so first
+	// name, last name and the gender field agree (in gendered-surname locales
+	// a male first name gets a male surname form).
+	Gender string
 	// Sibling returns an already-generated field value by name (for from=).
 	Sibling func(name string) any
 }
@@ -38,10 +42,10 @@ var registry = map[schema.Kind]Provider{}
 
 func init() {
 	registry[schema.KindUUID] = func(c Ctx) any { return uuidFrom(c.Rand) }
-	registry[schema.KindFirstName] = func(c Ctx) any { return pick(c.Rand, c.Locale.FirstNames) }
-	registry[schema.KindLastName] = func(c Ctx) any { return pick(c.Rand, c.Locale.LastNames) }
+	registry[schema.KindFirstName] = func(c Ctx) any { return pick(c.Rand, c.Locale.FirstNamesFor(c.Gender)) }
+	registry[schema.KindLastName] = func(c Ctx) any { return pick(c.Rand, c.Locale.LastNamesFor(c.Gender)) }
 	registry[schema.KindName] = func(c Ctx) any {
-		return pick(c.Rand, c.Locale.FirstNames) + " " + pick(c.Rand, c.Locale.LastNames)
+		return pick(c.Rand, c.Locale.FirstNamesFor(c.Gender)) + " " + pick(c.Rand, c.Locale.LastNamesFor(c.Gender))
 	}
 	registry[schema.KindEmail] = email
 	registry[schema.KindPhone] = phone
@@ -73,7 +77,12 @@ func init() {
 	registry[schema.KindHexColor] = func(c Ctx) any { return fmt.Sprintf("#%06x", c.Rand.Intn(0x1000000)) }
 	registry[schema.KindJob] = func(c Ctx) any { return pick(c.Rand, c.Locale.Jobs) }
 	registry[schema.KindProduct] = func(c Ctx) any { return pick(c.Rand, c.Locale.Products) }
-	registry[schema.KindGender] = func(c Ctx) any { return pick(c.Rand, locale.Genders) }
+	registry[schema.KindGender] = func(c Ctx) any {
+		if c.Gender != "" {
+			return c.Gender // coherent with the record's name
+		}
+		return pick(c.Rand, locale.Genders)
+	}
 	registry[schema.KindMAC] = func(c Ctx) any {
 		b := make([]string, 6)
 		for i := range b {
@@ -137,7 +146,7 @@ func sampleDist(c Ctx) (float64, bool) {
 }
 
 func username(c Ctx) any {
-	first := strings.ToLower(pick(c.Rand, c.Locale.FirstNames))
+	first := strings.ToLower(pick(c.Rand, c.Locale.FirstNamesFor(c.Gender)))
 	return fmt.Sprintf("%s_%s", first, c.Rand.Digits(3))
 }
 
@@ -214,10 +223,10 @@ func email(c Ctx) any {
 		}
 	}
 	if first == "" {
-		first = pick(c.Rand, c.Locale.FirstNames)
+		first = pick(c.Rand, c.Locale.FirstNamesFor(c.Gender))
 	}
 	if last == "" {
-		last = pick(c.Rand, c.Locale.LastNames)
+		last = pick(c.Rand, c.Locale.LastNamesFor(c.Gender))
 	}
 	dom := pick(c.Rand, c.Locale.EmailDomain)
 	return strings.ToLower(fmt.Sprintf("%s.%s%d@%s", first, last, c.Rand.IntRange(1, 99), dom))

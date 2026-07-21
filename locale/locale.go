@@ -15,12 +15,18 @@ type Place struct {
 
 // Locale is one language/region dataset.
 type Locale struct {
-	Name        string
-	FirstNames  []string
-	LastNames   []string
-	Places      []Place
-	CountryCode string // e.g. "+998"
-	EmailDomain []string
+	Name       string
+	FirstNames []string
+	LastNames  []string
+	// Gendered name banks. When set, first name, last name and the gender field
+	// stay consistent within a record (a male first name gets a male surname
+	// form in gendered-surname locales like uz/ru). When empty, the mixed
+	// FirstNames/LastNames are used with no gender coherence.
+	MaleFirst, FemaleFirst []string
+	MaleLast, FemaleLast   []string
+	Places                 []Place
+	CountryCode            string // e.g. "+998"
+	EmailDomain            []string
 	// CardBINs are valid issuer prefixes for this locale's card brands.
 	CardBINs []string
 	// IBANCountry is the 2-letter ISO country for IBAN generation.
@@ -72,6 +78,38 @@ var registry = map[string]*Locale{
 	"ru_RU": ruRU,
 }
 
+// FirstNamesFor returns the first-name bank for a gender, falling back to the
+// mixed list when the locale has no gendered names.
+func (l *Locale) FirstNamesFor(gender string) []string {
+	switch gender {
+	case "female":
+		if len(l.FemaleFirst) > 0 {
+			return l.FemaleFirst
+		}
+	case "male":
+		if len(l.MaleFirst) > 0 {
+			return l.MaleFirst
+		}
+	}
+	return l.FirstNames
+}
+
+// LastNamesFor returns the surname bank for a gender, falling back to the mixed
+// list (locales without gendered surnames share one list).
+func (l *Locale) LastNamesFor(gender string) []string {
+	switch gender {
+	case "female":
+		if len(l.FemaleLast) > 0 {
+			return l.FemaleLast
+		}
+	case "male":
+		if len(l.MaleLast) > 0 {
+			return l.MaleLast
+		}
+	}
+	return l.LastNames
+}
+
 // Names returns all registered locale names.
 func Names() []string {
 	out := make([]string, 0, len(registry))
@@ -99,12 +137,17 @@ func Get(name string) *Locale {
 
 var enUS = &Locale{
 	Name: "en_US",
-	FirstNames: []string{
-		"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda", "David", "Elizabeth",
-		"William", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen",
-		"Daniel", "Nancy", "Matthew", "Lisa", "Anthony", "Betty", "Mark", "Sandra", "Donald", "Ashley",
-		"Steven", "Emily", "Andrew", "Kimberly",
+	MaleFirst: []string{
+		"James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph", "Thomas", "Charles",
+		"Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Andrew", "Paul", "Joshua", "Kevin",
+		"Brian", "George", "Edward", "Ronald",
 	},
+	FemaleFirst: []string{
+		"Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica", "Sarah", "Karen",
+		"Nancy", "Lisa", "Betty", "Sandra", "Ashley", "Emily", "Kimberly", "Donna", "Michelle", "Carol",
+		"Amanda", "Melissa", "Deborah", "Stephanie",
+	},
+	// English surnames are not gendered — shared across both.
 	LastNames: []string{
 		"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Wilson", "Anderson",
 		"Taylor", "Thomas", "Moore", "Jackson", "Martin", "Lee", "Thompson", "White", "Harris", "Clark",
@@ -133,17 +176,25 @@ var enUS = &Locale{
 
 var uzUZ = &Locale{
 	Name: "uz_UZ",
-	FirstNames: []string{
-		"Azizbek", "Dilnoza", "Jasur", "Malika", "Sardor", "Nilufar", "Bekzod", "Gulnora", "Otabek", "Shahnoza",
-		"Sanjar", "Zuhra", "Farrux", "Kamola", "Ulug'bek", "Feruza", "Doniyor", "Sevara", "Islom", "Madina",
-		"Jahongir", "Nodira", "Rustam", "Charos", "Alisher", "Dilfuza", "Bobur", "Muslima", "Temur", "Gulbahor",
-		"Shohruh", "Zilola", "Aziz", "Nargiza",
+	MaleFirst: []string{
+		"Azizbek", "Jasur", "Sardor", "Bekzod", "Otabek", "Sanjar", "Farrux", "Ulug'bek", "Doniyor", "Islom",
+		"Jahongir", "Rustam", "Alisher", "Bobur", "Temur", "Shohruh", "Aziz", "Sherzod", "Javohir", "Diyor",
+		"Akmal", "Botir", "Kamron", "Umid",
 	},
-	LastNames: []string{
-		"Karimov", "Rashidova", "Yusupov", "Ismoilova", "Tursunov", "Abdullayeva", "Qodirov", "Saidova", "Mirzayev", "Rahimova",
-		"Ergashev", "Yo'ldosheva", "Sobirov", "Nazarova", "Umarov", "Xolmatova", "Rasulov", "G'aniyeva", "Yoqubov", "Sultonova",
-		"Aliyev", "Boboyeva", "Xakimov", "Nurmatova", "Sharipov", "Islomova", "Toshpo'latov", "Qosimova", "Berdiyev", "Ochilova",
-		"Jo'rayev", "Hamidova", "Nabiyev", "Salimova",
+	FemaleFirst: []string{
+		"Dilnoza", "Malika", "Nilufar", "Gulnora", "Shahnoza", "Zuhra", "Kamola", "Feruza", "Sevara", "Madina",
+		"Nodira", "Charos", "Dilfuza", "Muslima", "Gulbahor", "Zilola", "Nargiza", "Sabina", "Laylo", "Zarina",
+		"Maftuna", "Dilorom", "Shahzoda", "Ozoda",
+	},
+	MaleLast: []string{
+		"Karimov", "Yusupov", "Tursunov", "Qodirov", "Mirzayev", "Ergashev", "Sobirov", "Umarov", "Rasulov", "Yoqubov",
+		"Aliyev", "Xakimov", "Sharipov", "Toshpo'latov", "Berdiyev", "Jo'rayev", "Nabiyev", "Sultonov", "Ismoilov", "Rahimov",
+		"Abdullayev", "Saidov", "Nazarov", "Xolmatov",
+	},
+	FemaleLast: []string{
+		"Karimova", "Yusupova", "Tursunova", "Qodirova", "Mirzayeva", "Ergasheva", "Sobirova", "Umarova", "Rasulova", "Yoqubova",
+		"Aliyeva", "Xakimova", "Sharipova", "Toshpo'latova", "Berdiyeva", "Jo'rayeva", "Nabiyeva", "Sultonova", "Ismoilova", "Rahimova",
+		"Abdullayeva", "Saidova", "Nazarova", "Xolmatova",
 	},
 	CountryCode: "+998",
 	EmailDomain: []string{"mail.uz", "umail.uz", "example.uz"},
@@ -168,17 +219,25 @@ var uzUZ = &Locale{
 
 var ruRU = &Locale{
 	Name: "ru_RU",
-	FirstNames: []string{
-		"Иван", "Мария", "Дмитрий", "Анна", "Сергей", "Елена", "Алексей", "Ольга", "Андрей", "Наталья",
-		"Михаил", "Татьяна", "Владимир", "Ирина", "Николай", "Светлана", "Александр", "Екатерина", "Павел", "Юлия",
-		"Максим", "Виктория", "Артём", "Марина", "Кирилл", "Дарья", "Роман", "Людмила", "Егор", "Валентина",
-		"Никита", "Галина", "Денис", "Полина",
+	MaleFirst: []string{
+		"Иван", "Дмитрий", "Сергей", "Алексей", "Андрей", "Михаил", "Владимир", "Николай", "Александр", "Павел",
+		"Максим", "Артём", "Кирилл", "Роман", "Егор", "Никита", "Денис", "Владислав", "Илья", "Виктор",
+		"Олег", "Антон", "Григорий", "Юрий",
 	},
-	LastNames: []string{
-		"Иванов", "Петрова", "Смирнов", "Кузнецова", "Попов", "Соколова", "Волков", "Морозова", "Новиков", "Лебедева",
-		"Козлов", "Егорова", "Павлов", "Николаева", "Орлов", "Макарова", "Андреев", "Фёдорова", "Захаров", "Васильева",
-		"Степанов", "Романова", "Сорокин", "Ковалёва", "Зайцев", "Белова", "Соловьёв", "Комарова", "Борисов", "Медведева",
-		"Киселёв", "Тарасова", "Фролов", "Гусева",
+	FemaleFirst: []string{
+		"Мария", "Анна", "Елена", "Ольга", "Наталья", "Татьяна", "Ирина", "Светлана", "Екатерина", "Юлия",
+		"Виктория", "Марина", "Дарья", "Людмила", "Валентина", "Галина", "Полина", "Ксения", "Анастасия", "Вера",
+		"Надежда", "Алина", "Оксана", "Инна",
+	},
+	MaleLast: []string{
+		"Иванов", "Смирнов", "Попов", "Волков", "Новиков", "Козлов", "Павлов", "Орлов", "Андреев", "Захаров",
+		"Степанов", "Сорокин", "Зайцев", "Соловьёв", "Борисов", "Киселёв", "Фролов", "Морозов", "Васильев", "Петров",
+		"Михайлов", "Николаев", "Фёдоров", "Макаров",
+	},
+	FemaleLast: []string{
+		"Иванова", "Смирнова", "Попова", "Волкова", "Новикова", "Козлова", "Павлова", "Орлова", "Андреева", "Захарова",
+		"Степанова", "Сорокина", "Зайцева", "Соловьёва", "Борисова", "Киселёва", "Фролова", "Морозова", "Васильева", "Петрова",
+		"Михайлова", "Николаева", "Фёдорова", "Макарова",
 	},
 	CountryCode: "+7",
 	EmailDomain: []string{"mail.ru", "yandex.ru", "example.ru"},
