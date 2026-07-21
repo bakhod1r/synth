@@ -238,3 +238,98 @@ func TestVerifyRejectsMalformedRef(t *testing.T) {
 		t.Fatalf("error does not show the expected form: %s", stderr.String())
 	}
 }
+
+// snapshot must materialize a point in time, and its event log must line up
+// with the snapshots on either side.
+func TestSnapshotSubcommand(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+	specPath := filepath.Join(dir, "spec.yaml")
+	os.WriteFile(specPath, []byte(`name: orders
+count: 200
+seed: 42
+fields:
+  id:         { kind: uuid, pk: true }
+  customer:   { kind: name }
+  amount:     { kind: amount, min: 1, max: 500 }
+  created_at: { kind: time }
+  updated_at: { kind: time }
+`), 0o644)
+
+	jan := filepath.Join(dir, "jan.csv")
+	run(t, bin, "snapshot", "-s", specPath, "--at", "2026-04-01", "-o", jan, "--churn", "2")
+	janRows := mustExist(t, jan)
+
+	jul := filepath.Join(dir, "jul.csv")
+	run(t, bin, "snapshot", "-s", specPath, "--at", "2026-10-01", "-o", jul, "--churn", "2")
+	julRows := mustExist(t, jul)
+
+	// The table grows over time, so the later snapshot must have more rows.
+	if bytes.Count(julRows, []byte("\n")) <= bytes.Count(janRows, []byte("\n")) {
+		t.Fatal("the later snapshot is not larger than the earlier one")
+	}
+
+	changes := filepath.Join(dir, "changes.jsonl")
+	run(t, bin, "snapshot", "-s", specPath, "--from", "2026-04-01",
+		"--to", "2026-10-01", "-o", changes, "--churn", "2")
+	events := mustExist(t, changes)
+	if !bytes.Contains(events, []byte(`"op"`)) {
+		t.Fatalf("events are not in Debezium envelope shape:\n%s", events[:200])
+	}
+}
+
+// Asking for an instant and a range at once is a contradiction, not a
+// preference to resolve silently.
+func TestSnapshotRejectsAtWithRange(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+	specPath := filepath.Join(dir, "spec.yaml")
+	os.WriteFile(specPath, []byte(spec), 0o644)
+
+	cmd := exec.Command(bin, "snapshot", "-s", specPath,
+		"--at", "2026-01-01", "--from", "2026-01-01", "--to", "2026-02-01")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err == nil {
+		t.Fatal("expected an error when --at and --from/--to are combined")
+	}
+	if !strings.Contains(stderr.String(), "one or the other") {
+		t.Fatalf("error does not explain the conflict: %s", stderr.String())
+	}
+}
+
+// A backwards range is a mistake worth reporting.
+func TestSnapshotRejectsBackwardsRange(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+	specPath := filepath.Join(dir, "spec.yaml")
+	os.WriteFile(specPath, []byte(spec), 0o644)
+
+	cmd := exec.Command(bin, "snapshot", "-s", specPath, "--from", "2026-06-01", "--to", "2026-01-01")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err == nil {
+		t.Fatal("expected an error for a backwards range")
+	}
+	if !strings.Contains(stderr.String(), "after") {
+		t.Fatalf("error is unclear: %s", stderr.String())
+	}
+}
+
+// An unparseable date must say what form it wanted.
+func TestSnapshotRejectsBadDate(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+	specPath := filepath.Join(dir, "spec.yaml")
+	os.WriteFile(specPath, []byte(spec), 0o644)
+
+	cmd := exec.Command(bin, "snapshot", "-s", specPath, "--at", "last tuesday")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err == nil {
+		t.Fatal("expected an error for an unparseable date")
+	}
+	if !strings.Contains(stderr.String(), "2026-01-01") {
+		t.Fatalf("error does not show the expected form: %s", stderr.String())
+	}
+}

@@ -10,6 +10,7 @@
 //	synth mask -i export.csv -o safe.csv --key K    # anonymize a real dump
 //	synth cdc -s users.yaml -o changes.jsonl -n 1000
 //	synth verify -i orders.csv --ref user_id=users.csv:id
+//	synth snapshot -s users.yaml --at 2026-01-01 -o jan.csv
 package main
 
 import (
@@ -20,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bakhodir/synth"
 	"github.com/bakhodir/synth/constraint"
@@ -43,6 +45,8 @@ func main() {
 		err = runCDC(os.Args[2:])
 	case "verify":
 		err = runVerify(os.Args[2:])
+	case "snapshot":
+		err = runSnapshot(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -242,9 +246,10 @@ func runCDC(args []string) error {
 type flags struct {
 	spec, in, out, format, locale, key, name string
 	refs                                     []string
+	at, from, to                             string
 	seed                                     uint64
 	n, snapshot                              int
-	chaos, updateRate, deleteRate            float64
+	chaos, updateRate, deleteRate, churn     float64
 }
 
 // options turns the shared generation flags into synth options.
@@ -281,6 +286,14 @@ func parseFlags(args []string) (flags, error) {
 			f.key, err = next(args, &i)
 		case "--name":
 			f.name, err = next(args, &i)
+		case "--at":
+			f.at, err = next(args, &i)
+		case "--from":
+			f.from, err = next(args, &i)
+		case "--to":
+			f.to, err = next(args, &i)
+		case "--churn":
+			err = scanFloat(args, &i, &f.churn)
 		case "--ref":
 			var v string
 			v, err = next(args, &i)
@@ -436,6 +449,8 @@ Usage:
   synth gen     -s <spec.yaml> [-o out] [-f csv|jsonl|sql] [-n rows] [-l locale] [--seed N] [--chaos p]
   synth profile -i <export.csv> [-o spec.yaml] [--name table] [-n rows]
   synth mask    -i <export.csv> -o <safe.csv> --key <secret> [-l locale]
+  synth snapshot -s <spec.yaml> --at <date> [-o out]        # the table at an instant
+  synth snapshot -s <spec.yaml> --from <date> --to <date>   # what changed between two
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]
 
@@ -450,6 +465,8 @@ Flags:
       --key        masking key; the same key keeps foreign keys joinable
       --seed       deterministic seed
       --chaos      fraction of edge-case values (0..1)
+      --at, --from, --to   instants for snapshot (2026-01-01 or RFC 3339)
+      --churn      mean updates per row over the window
       --ref        foreign key to resolve, as col=parent.csv:key (repeatable)
       --update-rate, --delete-rate, --snapshot   CDC history shape
 
@@ -528,4 +545,88 @@ func parseRef(spec string) (verify.Ref, error) {
 		return verify.Ref{}, fmt.Errorf("--ref %q: %w", spec, err)
 	}
 	return verify.Ref{Column: col, Parent: parent, ParentKey: key}, nil
+}
+
+// runSnapshot materializes the table at an instant, or the change events
+// between two. Both come from the same derived per-row history, so replaying
+// the events over the earlier snapshot reproduces the later one.
+func runSnapshot(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	if fs.spec == "" {
+		return fmt.Errorf("snapshot: -s <spec.yaml> is required")
+	}
+	if fs.at == "" && (fs.from == "" || fs.to == "") {
+		return fmt.Errorf("snapshot: give --at <date>, or both --from and --to")
+	}
+	if fs.at != "" && (fs.from != "" || fs.to != "") {
+		return fmt.Errorf("snapshot: --at asks for one instant and --from/--to " +
+			"for a range; use one or the other")
+	}
+	spec, err := synth.LoadYAML(fs.spec)
+	if err != nil {
+		return err
+	}
+	cfg := synth.SnapshotConfig{Rows: fs.n, Churn: fs.churn, Seed: fs.seed, Locale: fs.locale}
+	if fs.deleteRate > 0 {
+		cfg.DeleteFrac = fs.deleteRate
+	}
+	tl, err := spec.Snapshot(cfg)
+	if err != nil {
+		return err
+	}
+
+	out, closeOut, err := output(fs.out)
+	if err != nil {
+		return err
+	}
+	defer closeOut()
+	w := bufio.NewWriter(out)
+	defer w.Flush()
+
+	if fs.at != "" {
+		when, err := synth.ParseInstant(fs.at)
+		if err != nil {
+			return err
+		}
+		rows := tl.At(when)
+		format := fs.format
+		if format == "" {
+			format = formatFromExt(fs.out)
+		}
+		switch format {
+		case "jsonl":
+			writeJSONL(w, rows)
+		case "sql":
+			writeSQL(w, spec.Name(), spec.Columns(), rows)
+		default:
+			writeCSV(w, spec.Columns(), rows)
+		}
+		fmt.Fprintf(os.Stderr, "%d rows as of %s\n", len(rows), when.Format(time.RFC3339))
+		return nil
+	}
+
+	from, err := synth.ParseInstant(fs.from)
+	if err != nil {
+		return err
+	}
+	to, err := synth.ParseInstant(fs.to)
+	if err != nil {
+		return err
+	}
+	if !to.After(from) {
+		return fmt.Errorf("snapshot: --to must be after --from")
+	}
+	events := tl.Between(from, to)
+	enc := json.NewEncoder(w)
+	for _, ev := range events {
+		if err := enc.Encode(ev); err != nil {
+			return err
+		}
+	}
+	fmt.Fprintf(os.Stderr, "%d change events between %s and %s\n",
+		len(events), from.Format(time.RFC3339), to.Format(time.RFC3339))
+	return nil
 }
