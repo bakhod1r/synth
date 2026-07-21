@@ -6,7 +6,7 @@
 
 A user's email matches their name. A transaction points at a real account, in that account's currency, with a timestamp after the account was opened. Every card passes Luhn, every IBAN passes its checksum. That's the difference: fakers generate *fields*, Synth generates *records that reference each other* — at millions of rows per run, streamed, in constant memory.
 
-Synth generates *realistic*, locale-aware data — users, payments, transactions, business records — instead of random fake values. It streams millions of records straight to Kafka, Postgres, CSV, or JSONL with minimal memory usage, and can produce valid request payloads from OpenAPI schemas.
+Synth generates *realistic*, locale-aware data — users, payments, transactions, business records — instead of random fake values. It streams millions of records to CSV, JSONL, SQL `INSERT` files, or Parquet with minimal memory usage, and can produce valid request payloads from OpenAPI schemas.
 
 ## How it differs from a faker
 
@@ -16,7 +16,7 @@ Synth generates *realistic*, locale-aware data — users, payments, transactions
 | Consistency | `Name()` and `Email()` are unrelated | email derives from the name, city matches the postcode |
 | Validity | random digits | Luhn-valid cards, checksum-valid IBANs, real BIN ranges |
 | Volume | build a slice in memory | streamed, constant memory at 100M+ rows |
-| Output | strings you wire up yourself | Kafka, Postgres, CSV, JSONL sinks |
+| Output | strings you wire up yourself | CSV, JSONL, SQL, Parquet, CDC files |
 | Schemas | none | generates valid payloads from your OpenAPI spec |
 
 ## Features
@@ -29,7 +29,7 @@ users := synth.Users(10_000)
 synth.Orders(500_000, synth.BelongsTo(users, "user_id"))
 ```
 
-Foreign keys resolve. Cardinality is controllable (`OneToMany`, `Weighted`). Load a parent table straight into Postgres and the child table's FK constraints pass on the first try.
+Foreign keys resolve. Cardinality is controllable (`OneToMany`, `Weighted`). Load the exported parent table into Postgres with your own loader and the child table's FK constraints pass on the first try.
 
 ### Temporal causality
 Timestamps aren't random points in a range — they respect the order events can happen in. An order is `created → paid → shipped → delivered`, each strictly after the last, with realistic gaps. Accounts are never used before they're opened, and refunds never precede their charge.
@@ -94,8 +94,10 @@ Point Synth at a schema instead of hand-writing generators:
 - **SQL DDL** — read `CREATE TABLE`, infer types, honor `NOT NULL`, `UNIQUE`, `CHECK`, and FK constraints
 - **Go structs** — generate from your existing domain types via tags
 
-### Test-ready sinks
-Kafka, Postgres (batched `COPY`), CSV, and JSONL out of the box, behind one interface — write your own in a few lines.
+### Test-ready outputs
+CSV, JSONL, SQL `INSERT` files, Parquet, and Debezium-shaped CDC events — every
+one of them a file. Synth never opens a database or network connection; handing
+the file to your loader is the last step, and it is yours.
 
 ### Edge-case injection
 Testing the happy path is the easy part. Ask for the values that break parsers: unicode names, emoji, RTL text, empty strings, boundary numerics, nulls in nullable columns.
