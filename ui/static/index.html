@@ -3,56 +3,99 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Synth workbench</title>
+<title>Synth</title>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 
 <header>
-  <h1>Synth</h1>
-  <p class="tag">Local workbench &mdash; loopback only, nothing leaves this machine.</p>
+  <div class="brand">
+    <span class="logo">Synth</span>
+    <span class="tag" data-i18n="tagline"></span>
+  </div>
+  <label class="lang">
+    <span data-i18n="language"></span>
+    <select id="lang">
+      <option value="en">English</option>
+      <option value="uz">O‘zbekcha</option>
+      <option value="ru">Русский</option>
+    </select>
+  </label>
 </header>
 
 <main>
-  <section id="palette" aria-label="Field types">
-    <h2>Types</h2>
-    <input id="search" type="search" placeholder="Search types" autocomplete="off">
+  <section id="palette">
+    <h2 data-i18n="types"></h2>
+    <input id="search" type="search" autocomplete="off" data-i18n-placeholder="searchTypes">
+    <p class="legend">
+      <span class="dot on"></span><span data-i18n="legendLocalized"></span>
+      <span class="dot"></span><span data-i18n="legendGlobal"></span>
+    </p>
     <div id="types"></div>
   </section>
 
-  <section id="builder" aria-label="Schema">
-    <h2>Schema</h2>
+  <section id="builder">
+    <h2 data-i18n="schema"></h2>
+
     <div class="settings">
-      <label>Name <input id="name" value="users"></label>
-      <label>Rows <input id="count" type="number" value="10" min="1"></label>
-      <label>Locale <select id="locale"></select></label>
-      <label class="seed">Seed <input id="seed" type="number" value="42"></label>
+      <label><span data-i18n="tableName"></span><input id="name" value="users"></label>
+      <label><span data-i18n="rows"></span><input id="count" type="number" value="10" min="1"></label>
+      <label><span data-i18n="locale"></span><select id="locale"></select></label>
+      <label class="seed">
+        <span data-i18n="seed"></span>
+        <span class="seed-row">
+          <input id="seed" type="number" value="42">
+          <button id="reseed" type="button" title="" data-i18n-title="reseedHint">⟳</button>
+        </span>
+      </label>
     </div>
-    <p class="hint">
-      The seed fully determines the output. Keep it and this dataset is
-      reproducible anywhere, forever.
-    </p>
-    <table id="fields"><tbody></tbody></table>
-    <p id="empty" class="hint">Pick a type on the left to add a field.</p>
+    <p class="hint" data-i18n="seedHint"></p>
+
+    <table id="fields">
+      <thead>
+        <tr>
+          <th></th>
+          <th data-i18n="colName"></th>
+          <th data-i18n="colType"></th>
+          <th data-i18n="colOptions"></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p id="empty" class="hint" data-i18n="emptySchema"></p>
+
+    <button id="add" type="button" class="primary">
+      <span aria-hidden="true">＋</span> <span data-i18n="addField"></span>
+    </button>
+
     <div class="actions">
-      <label>Download as
+      <label><span data-i18n="downloadAs"></span>
         <select id="format">
           <option value="csv">CSV</option>
           <option value="jsonl">JSONL</option>
           <option value="sql">SQL</option>
         </select>
       </label>
-      <button id="download" type="button">Download</button>
+      <button id="download" type="button" class="primary" data-i18n="download"></button>
+      <button id="copyYaml" type="button" data-i18n="copyYaml"></button>
     </div>
   </section>
 
-  <section id="preview-pane" aria-label="Preview">
-    <h2>Preview</h2>
+  <section id="preview-pane">
+    <div class="pane-head">
+      <h2 data-i18n="preview"></h2>
+      <span id="previewNote" class="hint"></span>
+    </div>
     <p id="error" role="alert" hidden></p>
     <div id="preview"></div>
   </section>
 </main>
 
+<div id="toast" role="status" hidden></div>
+
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

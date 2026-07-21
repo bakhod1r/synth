@@ -210,7 +210,7 @@ func TestGenerateIsNotCapped(t *testing.T) {
 // The page must not reference any external origin. A workbench that phones
 // home would break the promise the whole project rests on.
 func TestPageHasNoExternalResources(t *testing.T) {
-	for _, path := range []string{"/", "/app.js", "/app.css"} {
+	for _, path := range []string{"/", "/app.js", "/app.css", "/i18n.js"} {
 		body := get(t, path).Body.String()
 		for _, bad := range []string{"http://", "https://", "//cdn", "fonts.googleapis", "googletagmanager"} {
 			if strings.Contains(body, bad) {
