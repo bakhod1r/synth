@@ -48,3 +48,10 @@ func WriteCDC[T any](path string, n int, cfg CDCConfig) error {
 	defer f.Close()
 	return s.WriteJSONL(f, n)
 }
+
+// CDCFromSpec builds a change-event stream from a YAML spec rather than a Go
+// type, so the CLI can generate a history without compiled structs.
+func (y *YAMLSpec) CDC(cfg CDCConfig) (*CDCStream, error) {
+	s := &schema.Schema{Fields: append([]schema.Field(nil), y.spec.Schema.Fields...)}
+	return cdc.New(s, cfg)
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/bakhodir/synth/internal/rng"
 	"github.com/bakhodir/synth/profile"
 	"github.com/bakhodir/synth/schema"
+	"github.com/bakhodir/synth/yamlfe"
 )
 
 // Profiled is a schema learned from a real-data sample (see the profile
@@ -56,4 +57,12 @@ func (p *Profiled) Generate(n int, opts ...Option) ([]map[string]any, error) {
 		out[i] = eng.Record(base, i)
 	}
 	return out, nil
+}
+
+// YAML renders the profiled schema as a YAML spec, the same dialect yamlfe
+// parses. This closes the loop: profile a real export once, keep the spec in
+// version control, and generate from it forever after without the original
+// data.
+func (p *Profiled) YAML(name string, count int) ([]byte, error) {
+	return yamlfe.Render(p.res.Schema, p.res.Order, name, count)
 }

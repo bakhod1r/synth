@@ -1,12 +1,14 @@
-// Command synth generates data from a declarative YAML spec and writes it to a
-// file — no Go code required. Synth stays a pure provider: this writes files
-// (CSV/JSONL/SQL), it never connects to a database.
+// Command synth generates, profiles, masks and audits data from the command
+// line. Synth stays a pure provider: every subcommand reads and writes files,
+// none of them opens a database or network connection.
 //
 // Usage:
 //
 //	synth gen -s users.yaml -o users.csv            # format from extension
 //	synth gen -s users.yaml -f sql -o users.sql -n 100000
-//	synth gen -s users.yaml -f jsonl                # stdout
+//	synth profile -i export.csv -o inferred.yaml    # learn a spec from real data
+//	synth mask -i export.csv -o safe.csv --key K    # anonymize a real dump
+//	synth cdc -s users.yaml -o changes.jsonl -n 1000
 package main
 
 import (
@@ -22,107 +24,337 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 || os.Args[1] != "gen" {
+	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
 	}
-	fs := parseFlags(os.Args[2:])
+	var err error
+	switch os.Args[1] {
+	case "gen":
+		err = runGen(os.Args[2:])
+	case "profile":
+		err = runProfile(os.Args[2:])
+	case "mask":
+		err = runMask(os.Args[2:])
+	case "cdc":
+		err = runCDC(os.Args[2:])
+	case "-h", "--help", "help":
+		usage()
+		return
+	default:
+		fmt.Fprintf(os.Stderr, "unknown subcommand: %s\n\n", os.Args[1])
+		usage()
+		os.Exit(2)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "synth:", err)
+		os.Exit(1)
+	}
+}
+
+// runGen generates records from a YAML spec.
+func runGen(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
 	if fs.spec == "" {
-		fmt.Fprintln(os.Stderr, "error: -s <spec.yaml> is required")
-		usage()
-		os.Exit(2)
+		return fmt.Errorf("gen: -s <spec.yaml> is required")
 	}
-
 	spec, err := synth.LoadYAML(fs.spec)
-	check(err)
-
-	var opts []synth.Option
-	if fs.seed != 0 {
-		opts = append(opts, synth.WithSeed(fs.seed))
+	if err != nil {
+		return err
 	}
-	if fs.locale != "" {
-		opts = append(opts, synth.WithLocale(fs.locale))
+	recs, err := spec.Generate(fs.options()...)
+	if err != nil {
+		return err
 	}
-	if fs.chaos > 0 {
-		opts = append(opts, synth.WithChaos(fs.chaos))
-	}
-	recs, err := spec.Generate(opts...)
-	check(err)
 	if fs.n > 0 && fs.n < len(recs) {
 		recs = recs[:fs.n]
 	}
 
-	out := os.Stdout
-	if fs.out != "" {
-		f, err := os.Create(fs.out)
-		check(err)
-		defer f.Close()
-		out = f
-	}
 	format := fs.format
 	if format == "" {
 		format = formatFromExt(fs.out)
+	}
+	if format == "parquet" {
+		return fmt.Errorf("parquet output lives in an optional submodule so the " +
+			"core stays dependency-light: go get github.com/bakhodir/synth/sink/parquet")
 	}
 	table := spec.Name()
 	if table == "" {
 		table = "data"
 	}
-	w := bufio.NewWriter(out)
-	defer w.Flush()
 
+	out, closeOut, err := output(fs.out)
+	if err != nil {
+		return err
+	}
+	defer closeOut()
+	w := bufio.NewWriter(out)
 	switch format {
 	case "jsonl":
 		writeJSONL(w, recs)
 	case "sql":
 		writeSQL(w, table, spec.Columns(), recs)
-	default:
+	case "csv":
 		writeCSV(w, spec.Columns(), recs)
+	default:
+		return fmt.Errorf("gen: unknown format %q (want csv, jsonl or sql)", format)
+	}
+	if err := w.Flush(); err != nil {
+		return err
 	}
 	if fs.out != "" {
 		fmt.Fprintf(os.Stderr, "wrote %d rows to %s (%s)\n", len(recs), fs.out, format)
 	}
+	return nil
+}
+
+// runProfile learns a spec from a real CSV/JSONL export. It reads the file;
+// it never touches the system the export came from.
+func runProfile(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	if fs.in == "" {
+		return fmt.Errorf("profile: -i <export.csv> is required")
+	}
+	p, err := synth.Profile(fs.in)
+	if err != nil {
+		return err
+	}
+	name := fs.name
+	if name == "" {
+		name = strings.TrimSuffix(filepath.Base(fs.in), filepath.Ext(fs.in))
+	}
+	count := fs.n
+	if count == 0 {
+		count = p.SampleRows()
+	}
+	doc, err := p.YAML(name, count)
+	if err != nil {
+		return err
+	}
+	out, closeOut, err := output(fs.out)
+	if err != nil {
+		return err
+	}
+	defer closeOut()
+	if _, err := out.Write(doc); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "profiled %d rows, %d columns\n", p.SampleRows(), len(p.Columns()))
+	return nil
+}
+
+// runMask rewrites a real export with synthetic values of the same shape.
+func runMask(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	if fs.in == "" {
+		return fmt.Errorf("mask: -i <export.csv> is required")
+	}
+	if fs.out == "" {
+		return fmt.Errorf("mask: -o <output> is required (masking never writes over the input)")
+	}
+	if fs.key == "" {
+		return fmt.Errorf("mask: --key is required — it makes replacements " +
+			"deterministic so foreign keys still join across files")
+	}
+	if fs.in == fs.out {
+		return fmt.Errorf("mask: -i and -o are the same file; refusing to " +
+			"overwrite the original data")
+	}
+	m := synth.NewMasker(fs.key, fs.locale)
+	rep, err := m.File(fs.in, fs.out)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "masked %d rows: %s -> %s\n", rep.Rows, fs.in, fs.out)
+	for _, col := range rep.Columns {
+		if n := rep.Masked[col]; n > 0 {
+			fmt.Fprintf(os.Stderr, "  %s: %d values replaced\n", col, n)
+		}
+	}
+	if len(rep.Untouched) > 0 {
+		fmt.Fprintf(os.Stderr, "  left as-is: %s\n", strings.Join(rep.Untouched, ", "))
+	}
+	return nil
+}
+
+// runCDC writes a coherent insert/update/delete history as JSONL.
+func runCDC(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	if fs.spec == "" {
+		return fmt.Errorf("cdc: -s <spec.yaml> is required")
+	}
+	spec, err := synth.LoadYAML(fs.spec)
+	if err != nil {
+		return err
+	}
+	n := fs.n
+	if n == 0 {
+		n = spec.Count()
+	}
+	table := spec.Name()
+	if table == "" {
+		table = "data"
+	}
+	stream, err := spec.CDC(synth.CDCConfig{
+		Table:      table,
+		UpdateRate: fs.updateRate,
+		DeleteRate: fs.deleteRate,
+		Snapshot:   fs.snapshot,
+	})
+	if err != nil {
+		return err
+	}
+	out, closeOut, err := output(fs.out)
+	if err != nil {
+		return err
+	}
+	defer closeOut()
+	w := bufio.NewWriter(out)
+	if err := stream.WriteJSONL(w, n); err != nil {
+		return err
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	if fs.out != "" {
+		fmt.Fprintf(os.Stderr, "wrote %d change events to %s\n", n, fs.out)
+	}
+	return nil
 }
 
 type flags struct {
-	spec, out, format, locale string
-	seed                      uint64
-	n                         int
-	chaos                     float64
+	spec, in, out, format, locale, key, name string
+	seed                                     uint64
+	n, snapshot                              int
+	chaos, updateRate, deleteRate            float64
 }
 
-func parseFlags(args []string) flags {
+// options turns the shared generation flags into synth options.
+func (f flags) options() []synth.Option {
+	var opts []synth.Option
+	if f.seed != 0 {
+		opts = append(opts, synth.WithSeed(f.seed))
+	}
+	if f.locale != "" {
+		opts = append(opts, synth.WithLocale(f.locale))
+	}
+	if f.chaos > 0 {
+		opts = append(opts, synth.WithChaos(f.chaos))
+	}
+	return opts
+}
+
+func parseFlags(args []string) (flags, error) {
 	var f flags
 	for i := 0; i < len(args); i++ {
+		var err error
 		switch args[i] {
 		case "-s", "--spec":
-			f.spec = next(args, &i)
+			f.spec, err = next(args, &i)
+		case "-i", "--in":
+			f.in, err = next(args, &i)
 		case "-o", "--out":
-			f.out = next(args, &i)
+			f.out, err = next(args, &i)
 		case "-f", "--format":
-			f.format = next(args, &i)
+			f.format, err = next(args, &i)
 		case "-l", "--locale":
-			f.locale = next(args, &i)
+			f.locale, err = next(args, &i)
+		case "--key":
+			f.key, err = next(args, &i)
+		case "--name":
+			f.name, err = next(args, &i)
 		case "-n", "--rows":
-			fmt.Sscanf(next(args, &i), "%d", &f.n)
+			err = scanInto(args, &i, &f.n)
+		case "--snapshot":
+			err = scanInto(args, &i, &f.snapshot)
 		case "--seed":
-			fmt.Sscanf(next(args, &i), "%d", &f.seed)
+			err = scanUint(args, &i, &f.seed)
 		case "--chaos":
-			fmt.Sscanf(next(args, &i), "%g", &f.chaos)
+			err = scanFloat(args, &i, &f.chaos)
+		case "--update-rate":
+			err = scanFloat(args, &i, &f.updateRate)
+		case "--delete-rate":
+			err = scanFloat(args, &i, &f.deleteRate)
 		default:
-			fmt.Fprintf(os.Stderr, "unknown flag: %s\n", args[i])
-			os.Exit(2)
+			return f, fmt.Errorf("unknown flag: %s", args[i])
+		}
+		if err != nil {
+			return f, err
 		}
 	}
-	return f
+	return f, nil
 }
 
-func next(args []string, i *int) string {
+func next(args []string, i *int) (string, error) {
+	flag := args[*i]
 	*i++
 	if *i >= len(args) {
-		fmt.Fprintln(os.Stderr, "error: missing value for flag")
-		os.Exit(2)
+		return "", fmt.Errorf("missing value for %s", flag)
 	}
-	return args[*i]
+	return args[*i], nil
+}
+
+// scanInto parses a numeric flag value and reports a bad one instead of
+// silently leaving the field at zero.
+func scanInto(args []string, i *int, dst *int) error {
+	flag := args[*i]
+	v, err := next(args, i)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Sscanf(v, "%d", dst); err != nil {
+		return fmt.Errorf("%s: %q is not a number", flag, v)
+	}
+	return nil
+}
+
+func scanUint(args []string, i *int, dst *uint64) error {
+	flag := args[*i]
+	v, err := next(args, i)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Sscanf(v, "%d", dst); err != nil {
+		return fmt.Errorf("%s: %q is not a number", flag, v)
+	}
+	return nil
+}
+
+func scanFloat(args []string, i *int, dst *float64) error {
+	flag := args[*i]
+	v, err := next(args, i)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Sscanf(v, "%g", dst); err != nil {
+		return fmt.Errorf("%s: %q is not a number", flag, v)
+	}
+	return nil
+}
+
+// output opens the destination, defaulting to stdout. The returned close
+// function is a no-op for stdout so callers can defer it unconditionally.
+func output(path string) (*os.File, func(), error) {
+	if path == "" {
+		return os.Stdout, func() {}, nil
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	return f, func() { f.Close() }, nil
 }
 
 func formatFromExt(path string) string {
@@ -131,6 +363,8 @@ func formatFromExt(path string) string {
 		return "jsonl"
 	case "sql":
 		return "sql"
+	case "parquet":
+		return "parquet"
 	default:
 		return "csv"
 	}
@@ -186,22 +420,24 @@ func sqlValue(v any) string {
 func usage() {
 	fmt.Fprintln(os.Stderr, `synth — realistic data generator
 
+Every subcommand reads and writes files. Synth never connects to a database.
+
 Usage:
-  synth gen -s <spec.yaml> [-o out] [-f csv|jsonl|sql] [-n rows] [-l locale] [--seed N] [--chaos p]
+  synth gen     -s <spec.yaml> [-o out] [-f csv|jsonl|sql] [-n rows] [-l locale] [--seed N] [--chaos p]
+  synth profile -i <export.csv> [-o spec.yaml] [--name table] [-n rows]
+  synth mask    -i <export.csv> -o <safe.csv> --key <secret> [-l locale]
+  synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]
 
 Flags:
-  -s, --spec     YAML data-definition file (required)
-  -o, --out      output file (default: stdout); format inferred from extension
-  -f, --format   csv | jsonl | sql (default: csv)
-  -n, --rows     cap number of rows
-  -l, --locale   override locale (e.g. uz_UZ)
-      --seed     override deterministic seed
-      --chaos    fraction of edge-case values (0..1)`)
-}
-
-func check(err error) {
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
-	}
+  -s, --spec       YAML data-definition file
+  -i, --in         input file to profile or mask
+  -o, --out        output file (default: stdout)
+  -f, --format     csv | jsonl | sql
+  -n, --rows       number of rows or events
+  -l, --locale     locale (e.g. uz_UZ)
+      --name       table name for a profiled spec
+      --key        masking key; the same key keeps foreign keys joinable
+      --seed       deterministic seed
+      --chaos      fraction of edge-case values (0..1)
+      --update-rate, --delete-rate, --snapshot   CDC history shape`)
 }

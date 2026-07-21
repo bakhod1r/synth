@@ -325,6 +325,24 @@ synth gen -s users.yaml -o users.csv          # or -f jsonl | sql
 synth gen -s users.yaml -f sql -n 100000 --seed 42
 ```
 
+Every library capability is reachable from the command line, and every
+subcommand reads and writes **files** — none of them connects to anything.
+
+```bash
+# Learn a spec from a real export, then generate from the spec forever after.
+synth profile -i prod_export.csv -o users.yaml
+synth gen -s users.yaml -n 1000000 -o fake_users.csv
+
+# Anonymize a real dump. The same --key across files keeps foreign keys joinable.
+synth mask -i prod_export.csv -o safe.csv --key "$MASK_KEY"
+
+# Generate a coherent insert/update/delete history in Debezium's envelope shape.
+synth cdc -s users.yaml -o changes.jsonl -n 10000 --update-rate 0.3 --delete-rate 0.1
+```
+
+`synth mask` refuses to run without `--key` (an unkeyed run is not
+reproducible) and refuses to write over its own input.
+
 ## Output
 
 Synth writes **files** — it never opens a network or DB connection.
