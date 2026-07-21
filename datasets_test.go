@@ -26,26 +26,29 @@ func TestRealDatasetsInferred(t *testing.T) {
 	}
 }
 
-// Recognizable real titles must still appear, and the combinatorial space must
-// keep repetition low across a large dataset (>=1000 distinct in 10k rows).
-func TestDatasetsCardinality(t *testing.T) {
+// Every generated movie must be a real, curated title (no synthesized values).
+func TestDatasetsAreReal(t *testing.T) {
 	type M struct {
 		ID    int
 		Movie string `synth:"movie"`
 	}
-	seen := map[string]bool{}
-	real := 0
-	known := map[string]bool{"Inception": true, "The Matrix": true, "Parasite": true, "Dune": true}
-	for _, r := range synth.Make[M](10000, synth.WithSeed(2)) {
-		seen[r.Movie] = true
-		if known[r.Movie] {
-			real++
+	realTitles := map[string]bool{
+		"The Shawshank Redemption": true, "The Godfather": true, "Inception": true, "Pulp Fiction": true,
+		"The Dark Knight": true, "Forrest Gump": true, "Interstellar": true, "Fight Club": true,
+		"The Matrix": true, "Goodfellas": true, "Parasite": true, "Whiplash": true,
+		"Gladiator": true, "Titanic": true, "Dune": true, "Oppenheimer": true,
+		"Schindler's List": true, "The Lord of the Rings": true, "Se7en": true, "The Silence of the Lambs": true,
+		"Saving Private Ryan": true, "The Green Mile": true, "Léon: The Professional": true, "The Prestige": true,
+		"Casablanca": true, "Spirited Away": true, "Django Unchained": true, "The Departed": true,
+		"Joker": true, "1917": true, "La La Land": true, "Mad Max: Fury Road": true,
+		"No Country for Old Men": true, "There Will Be Blood": true, "The Grand Budapest Hotel": true, "Blade Runner 2049": true,
+		"Everything Everywhere All at Once": true, "Get Out": true, "Arrival": true, "Her": true,
+		"The Social Network": true, "Toy Story": true, "Coco": true, "Up": true,
+		"Amélie": true, "City of God": true, "Oldboy": true, "Memento": true,
+	}
+	for _, r := range synth.Make[M](3000, synth.WithSeed(2)) {
+		if !realTitles[r.Movie] {
+			t.Fatalf("non-real movie value: %q", r.Movie)
 		}
-	}
-	if real == 0 {
-		t.Fatal("expected some recognizable real titles to appear")
-	}
-	if len(seen) < 1000 {
-		t.Fatalf("too few distinct movies (%d); repetition too high", len(seen))
 	}
 }

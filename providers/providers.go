@@ -57,13 +57,7 @@ func init() {
 	registry[schema.KindIBAN] = iban
 	registry[schema.KindCard] = card
 	registry[schema.KindPassport] = passport
-	registry[schema.KindCompany] = func(c Ctx) any {
-		// Blend locale brands with combinatorial names for low repetition.
-		if c.Rand.Bool(0.3) {
-			return pick(c.Rand, c.Locale.Companies)
-		}
-		return combineCompany(c.Rand)
-	}
+	registry[schema.KindCompany] = func(c Ctx) any { return pick(c.Rand, c.Locale.Companies) }
 	registry[schema.KindCurrency] = func(c Ctx) any { return c.Locale.Currency }
 	registry[schema.KindUsername] = username
 	registry[schema.KindIPv4] = ipv4

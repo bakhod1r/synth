@@ -123,21 +123,9 @@ var (
 )
 
 func init() {
-	// Books and movies blend curated real titles (~20%, so recognizable ones
-	// still appear) with combinatorial titles (large space → low repetition
-	// across 10k+ rows).
-	registry[schema.KindBook] = func(c Ctx) any {
-		if c.Rand.Bool(0.2) {
-			return pick(c.Rand, books)
-		}
-		return combineTitle(c.Rand)
-	}
-	registry[schema.KindMovie] = func(c Ctx) any {
-		if c.Rand.Bool(0.2) {
-			return pick(c.Rand, movies)
-		}
-		return combineTitle(c.Rand)
-	}
+	// Only real, recognizable titles — no synthesized values.
+	registry[schema.KindBook] = func(c Ctx) any { return pick(c.Rand, books) }
+	registry[schema.KindMovie] = func(c Ctx) any { return pick(c.Rand, movies) }
 	registry[schema.KindCelebrity] = func(c Ctx) any { return pick(c.Rand, celebrities) }
 	registry[schema.KindBand] = func(c Ctx) any { return pick(c.Rand, bands) }
 	registry[schema.KindBrand] = func(c Ctx) any { return pick(c.Rand, brands) }
