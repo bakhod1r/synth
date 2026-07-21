@@ -86,7 +86,13 @@
   <section id="preview-pane">
     <div class="pane-head">
       <h2 data-i18n="preview"></h2>
-      <span id="previewNote" class="hint"></span>
+      <div class="pane-tools">
+        <span id="previewNote" class="hint"></span>
+        <div class="toggle" role="group">
+          <button id="viewStacked" type="button" data-i18n="viewStacked"></button>
+          <button id="viewTable" type="button" data-i18n="viewTable"></button>
+        </div>
+      </div>
     </div>
     <p id="error" role="alert" hidden></p>
     <div id="preview"></div>

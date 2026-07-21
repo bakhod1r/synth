@@ -4,8 +4,11 @@
 const state = {
   types: [],          // [{kind, category, localized, locales}]
   byKind: new Map(),
-  fields: [],         // [{name, kind, params}]
+  fields: [],         // [{name, kind, params, auto}]
   lang: 'en',
+  view: 'stacked',    // 'stacked' | 'table'
+  lastRows: [],
+  lastOrder: [],
 };
 
 const el = (id) => document.getElementById(id);
@@ -66,6 +69,9 @@ async function boot() {
   }
   el('download').addEventListener('click', download);
   el('copyYaml').addEventListener('click', copyYaml);
+  el('viewStacked').addEventListener('click', () => setView('stacked'));
+  el('viewTable').addEventListener('click', () => setView('table'));
+  setView(localStorage.getItem('synth.view') || 'stacked');
 }
 
 function navigatorLang() {
@@ -104,40 +110,81 @@ function groupByCategory(types) {
   return [...groups].sort((a, b) => categoryName(a[0]).localeCompare(categoryName(b[0])));
 }
 
+// typeButton renders one palette entry.
+function typeButton(ty) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = ty.localized ? 'type localized' : 'type';
+  b.title = ty.locales && ty.locales.length
+    ? t('localizedIn', ty.locales.length, ty.locales.join(', '))
+    : ty.localized ? t('legendLocalized') : t('legendGlobal');
+
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  b.appendChild(dot);
+  b.appendChild(document.createTextNode(ty.kind));
+  b.addEventListener('click', () => addField(ty.kind));
+  return b;
+}
+
+// renderTypes shows a shortlist first and keeps the full catalog one search
+// away. Two hundred types listed at once is a reference manual, not a
+// starting point — it buries the dozen fields most schemas actually begin
+// with.
 function renderTypes(query) {
   const q = query.trim().toLowerCase();
-  const matching = state.types.filter((ty) => !q || ty.kind.includes(q));
-
   const box = el('types');
   box.textContent = '';
-  for (const [category, items] of groupByCategory(matching)) {
-    const h = document.createElement('div');
-    h.className = 'group-name';
-    h.textContent = `${categoryName(category)} (${items.length})`;
-    box.appendChild(h);
 
-    for (const ty of items) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = ty.localized ? 'type localized' : 'type';
-      b.title = ty.locales && ty.locales.length
-        ? t('localizedIn', ty.locales.length, ty.locales.join(', '))
-        : ty.localized ? t('legendLocalized') : t('legendGlobal');
-
-      const dot = document.createElement('span');
-      dot.className = 'dot';
-      b.appendChild(dot);
-      b.appendChild(document.createTextNode(ty.kind));
-      b.addEventListener('click', () => addField(ty.kind));
-      box.appendChild(b);
+  if (q) {
+    // Searching means the user knows what they want: show every match, flat.
+    const matching = state.types.filter((ty) => ty.kind.includes(q));
+    for (const [category, items] of groupByCategory(matching)) {
+      box.appendChild(groupHeading(`${categoryName(category)} (${items.length})`));
+      for (const ty of items) box.appendChild(typeButton(ty));
     }
+    if (matching.length === 0) {
+      const p = document.createElement('p');
+      p.className = 'hint';
+      p.textContent = '—';
+      box.appendChild(p);
+    }
+    return;
   }
+
+  // Default view: the common shortlist, then every category collapsed.
+  box.appendChild(groupHeading(t('common')));
+  for (const kind of COMMON) {
+    const ty = state.byKind.get(kind);
+    if (ty) box.appendChild(typeButton(ty));
+  }
+
+  const hint = document.createElement('p');
+  hint.className = 'hint palette-hint';
+  hint.textContent = t('paletteHint', state.types.length);
+  box.appendChild(hint);
+
+  for (const [category, items] of groupByCategory(state.types)) {
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = `${categoryName(category)} (${items.length})`;
+    details.appendChild(summary);
+    for (const ty of items) details.appendChild(typeButton(ty));
+    box.appendChild(details);
+  }
+}
+
+function groupHeading(text) {
+  const h = document.createElement('div');
+  h.className = 'group-name';
+  h.textContent = text;
+  return h;
 }
 
 // ---------------------------------------------------------------- schema
 
 function addField(kind) {
-  state.fields.push({ name: uniqueName(kind), kind, params: {} });
+  state.fields.push({ name: uniqueName(kind), kind, params: {}, auto: true });
   renderFields();
   schedulePreview();
   // Keep the newly added row in view; with a long schema it would otherwise
@@ -149,6 +196,17 @@ function addField(kind) {
 // uniqueName avoids a duplicate column, which would silently drop data.
 function uniqueName(base) {
   const taken = new Set(state.fields.map((f) => f.name));
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i++) {
+    const candidate = `${base}_${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+// uniqueNameExcept is uniqueName ignoring one row — the row being renamed
+// must not collide with its own old name.
+function uniqueNameExcept(base, index) {
+  const taken = new Set(state.fields.filter((_, i) => i !== index).map((f) => f.name));
   if (!taken.has(base)) return base;
   for (let i = 2; ; i++) {
     const candidate = `${base}_${i}`;
@@ -173,8 +231,15 @@ function kindSelect(field, index) {
     sel.appendChild(group);
   }
   sel.addEventListener('change', () => {
-    state.fields[index].kind = sel.value;
-    state.fields[index].params = {};   // old bounds rarely fit a new type
+    const f = state.fields[index];
+    f.kind = sel.value;
+    f.params = {};   // old bounds rarely fit a new type
+    // A name the user never typed is just the old type's label, so leaving it
+    // produces a column called "name_2" holding phone numbers. Once they edit
+    // the name themselves it is theirs, and changing the type must not touch it.
+    if (f.auto) {
+      f.name = uniqueNameExcept(sel.value, index);
+    }
     renderFields();
     schedulePreview();
   });
@@ -249,6 +314,7 @@ function renderFields() {
     input.setAttribute('aria-label', t('colName'));
     input.addEventListener('input', () => {
       state.fields[i].name = input.value;
+      state.fields[i].auto = false;
       schedulePreview();
     });
     nameCell.appendChild(input);
@@ -335,7 +401,52 @@ async function preview() {
   }
 }
 
+// renderRows draws the preview in the chosen layout.
+//
+// A wide table runs off the side of the pane and the columns on the right are
+// simply unreadable, which is worse than useless when the whole point is to
+// check the data. The stacked layout puts one record per block with its fields
+// listed down the page, so it stays readable at any width and any column count.
 function renderRows(rows, order) {
+  state.lastRows = rows;
+  state.lastOrder = order;
+  const box = el('preview');
+  box.textContent = '';
+  box.appendChild(state.view === 'table' ? tableView(rows, order) : stackedView(rows, order));
+}
+
+function stackedView(rows, order) {
+  const frag = document.createDocumentFragment();
+  for (const [i, row] of rows.entries()) {
+    const card = document.createElement('article');
+    card.className = 'record';
+
+    const head = document.createElement('div');
+    head.className = 'record-head';
+    head.textContent = t('record', i + 1);
+    card.appendChild(head);
+
+    const dl = document.createElement('dl');
+    for (const c of order) {
+      const pair = document.createElement('div');
+      const dt = document.createElement('dt');
+      dt.textContent = c;
+      const dd = document.createElement('dd');
+      const v = row[c];
+      dd.textContent = v === null || v === undefined ? '' : String(v);
+      pair.append(dt, dd);
+      dl.appendChild(pair);
+    }
+    card.appendChild(dl);
+    frag.appendChild(card);
+  }
+  return frag;
+}
+
+function tableView(rows, order) {
+  const wrap = document.createElement('div');
+  wrap.className = 'table-scroll';
+
   const table = document.createElement('table');
   table.className = 'rows';
 
@@ -358,10 +469,16 @@ function renderRows(rows, order) {
     }
     table.appendChild(tr);
   }
+  wrap.appendChild(table);
+  return wrap;
+}
 
-  const box = el('preview');
-  box.textContent = '';
-  box.appendChild(table);
+function setView(mode) {
+  state.view = mode;
+  localStorage.setItem('synth.view', mode);
+  el('viewStacked').classList.toggle('on', mode === 'stacked');
+  el('viewTable').classList.toggle('on', mode === 'table');
+  if (state.lastOrder.length) renderRows(state.lastRows, state.lastOrder);
 }
 
 function showError(message) {

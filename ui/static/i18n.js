@@ -6,6 +6,12 @@
 
 const I18N = {
   en: {
+    viewStacked: 'Stacked',
+    viewTable: 'Table',
+    record: (n) => `record ${n}`,
+    common: 'Common',
+    paletteHint: (n) => `Showing the types most schemas start with. Search to reach all ${n}.`,
+    showAll: 'all types',
     tagline: 'Local workbench — loopback only, nothing leaves this machine.',
     language: 'Interface',
     types: 'Types',
@@ -42,6 +48,12 @@ const I18N = {
   },
 
   uz: {
+    viewStacked: 'Ustma-ust',
+    viewTable: 'Jadval',
+    record: (n) => `${n}-yozuv`,
+    common: 'Ko‘p ishlatiladigan',
+    paletteHint: (n) => `Ko‘pchilik sxema shulardan boshlanadi. Qolganini qidiruv orqali toping — jami ${n} ta.`,
+    showAll: 'barcha turlar',
     tagline: 'Lokal ish stoli — faqat loopback, ma’lumot bu kompyuterdan chiqmaydi.',
     language: 'Interfeys',
     types: 'Turlar',
@@ -78,6 +90,12 @@ const I18N = {
   },
 
   ru: {
+    viewStacked: 'Столбиком',
+    viewTable: 'Таблица',
+    record: (n) => `запись ${n}`,
+    common: 'Частые',
+    paletteHint: (n) => `Показаны типы, с которых начинается большинство схем. Поиском доступны все ${n}.`,
+    showAll: 'все типы',
     tagline: 'Локальный верстак — только loopback, данные не покидают этот компьютер.',
     language: 'Интерфейс',
     types: 'Типы',
@@ -132,3 +150,14 @@ const CATEGORY_NAMES = {
     basic: 'базовые', culture: 'культура', other: 'прочее',
   },
 };
+
+// COMMON is the shortlist the palette opens with. Two hundred types is a
+// reference, not a starting point: dumping all of them on first load makes the
+// pane a wall of words and hides the dozen anyone actually reaches for. The
+// rest stay one search away.
+const COMMON = [
+  'uuid', 'name', 'firstname', 'lastname', 'email', 'phone', 'username',
+  'gender', 'time', 'int', 'float', 'bool', 'enum', 'amount', 'currency',
+  'country', 'city', 'street', 'postcode', 'company', 'job', 'card', 'iban',
+  'url', 'ipv4', 'lorem', 'product', 'color',
+];

@@ -65,7 +65,27 @@ h2 {
   color: var(--muted);
 }
 
-.pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pane-tools { display: flex; align-items: center; gap: 10px; }
+.pane-tools .hint { margin: 0; }
+
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.toggle button {
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.toggle button:hover { color: var(--text); background: var(--raised); }
+.toggle button.on { background: var(--accent-dim); color: #dbe7ff; }
 
 /* ---------------------------------------------------------------- controls */
 
@@ -155,6 +175,35 @@ button.icon:hover { color: var(--text); background: var(--raised); }
 }
 .type.localized .dot, .dot.on { background: var(--accent); }
 
+.palette-hint { margin: 10px 0 12px; font-size: 11px; line-height: 1.45; }
+
+/* Collapsed category groups. The full catalog stays reachable without being
+   the first thing anyone sees. */
+#types details { border-top: 1px solid var(--line); }
+#types details > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 7px 4px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #6e768a;
+  user-select: none;
+}
+#types details > summary::-webkit-details-marker { display: none; }
+#types details > summary::before {
+  content: '›';
+  display: inline-block;
+  width: 12px;
+  color: #4d5566;
+  transition: transform .12s ease;
+}
+#types details[open] > summary::before { transform: rotate(90deg); }
+#types details > summary:hover { color: var(--text); }
+#types details[open] > summary { color: var(--text); }
+#types details > .type { padding-left: 18px; }
+
 /* ---------------------------------------------------------------- builder */
 
 .settings {
@@ -213,6 +262,40 @@ button.icon:hover { color: var(--text); background: var(--raised); }
   font-size: 13px;
 }
 
+/* Stacked layout: one record per block, fields down the page. Readable at any
+   width, and it does not lose the right-hand columns off the edge. */
+.record {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: #0f1218;
+}
+.record-head {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #6e768a;
+}
+.record dl { margin: 0; padding: 6px 12px 8px; }
+.record dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 30%) 1fr;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid #1b1f28;
+}
+.record dl > div:last-child { border-bottom: none; }
+.record dt { color: var(--muted); font-size: 12px; }
+.record dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.table-scroll { overflow-x: auto; }
 table.rows { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.rows th, table.rows td {
   border-bottom: 1px solid var(--line);
