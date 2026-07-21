@@ -30,7 +30,7 @@ var synonyms = map[string]schema.Kind{
 	"ip": schema.KindIPv4, "ipaddress": schema.KindIPv4, "ipv4": schema.KindIPv4,
 	"url": schema.KindURL, "website": schema.KindURL, "link": schema.KindURL,
 	"currency": schema.KindCurrency, "ccy": schema.KindCurrency,
-	"amount": schema.KindAmount, "price": schema.KindAmount, "total": schema.KindAmount, "balance": schema.KindAmount,
+	"amount": schema.KindAmount, "price": schema.KindAmount, "total": schema.KindAmount,
 	"bio": schema.KindLorem, "description": schema.KindLorem, "notes": schema.KindLorem,
 	"street": schema.KindStreet, "streetaddress": schema.KindStreet, "address": schema.KindStreet,
 	"color": schema.KindColor, "colour": schema.KindColor,
@@ -53,7 +53,15 @@ var synonyms = map[string]schema.Kind{
 	"programminglanguage": schema.KindProgrammingLanguage, "codinglanguage": schema.KindProgrammingLanguage,
 	"humanlanguage": schema.KindHumanLanguage, "spokenlanguage": schema.KindHumanLanguage,
 	"nativelanguage": schema.KindHumanLanguage, "motherTongue": schema.KindHumanLanguage,
-	"cardbrand": schema.KindCardBrand, "cardtype": schema.KindCardBrand,
+	"cardexpiry": schema.KindCardExpiry, "expiry": schema.KindCardExpiry,
+	"expirydate": schema.KindCardExpiry, "expdate": schema.KindCardExpiry,
+	"expiresat": schema.KindCardExpiry, "validthru": schema.KindCardExpiry,
+	"cvv": schema.KindCVV, "cvc": schema.KindCVV, "securitycode": schema.KindCVV,
+	"balance": schema.KindBalance, "accountbalance": schema.KindBalance,
+	"passphrase":   schema.KindPassphrase,
+	"passwordhash": schema.KindPasswordHash, "pwhash": schema.KindPasswordHash,
+	"hashedpassword": schema.KindPasswordHash,
+	"cardbrand":      schema.KindCardBrand, "cardtype": schema.KindCardBrand,
 	"paymentbrand": schema.KindCardBrand, "cardscheme": schema.KindCardBrand,
 	"bodypart": schema.KindBodyPart, "organ": schema.KindBodyPart, "anatomy": schema.KindBodyPart,
 	"emoji":     schema.KindEmoji,
@@ -256,7 +264,7 @@ func LinkDependencies(s *schema.Schema) {
 	if cardField != "" {
 		for i := range s.Fields {
 			f := &s.Fields[i]
-			if f.Kind == schema.KindCardBrand && f.From == "" {
+			if (f.Kind == schema.KindCardBrand || f.Kind == schema.KindCVV) && f.From == "" {
 				f.From = cardField
 			}
 		}

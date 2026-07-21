@@ -197,7 +197,21 @@ const (
 	KindBodyPart Kind = "bodypart"
 	// KindCardBrand is the payment brand of a card. With from=<card column> it
 	// is read off that number's issuer prefix, so the two always agree.
-	KindCardBrand     Kind = "cardbrand"
+	KindCardBrand Kind = "cardbrand"
+	// KindCardExpiry is a card expiry date, MM/YY by default and always in the
+	// future unless expired=true asks for a lapsed card.
+	KindCardExpiry Kind = "cardexpiry"
+	// KindCVV is a card security code, three digits except on American
+	// Express, which uses four.
+	KindCVV Kind = "cvv"
+	// KindBalance is an account balance. Unlike KindAmount it may be negative,
+	// because overdrafts exist and code that assumes otherwise breaks on them.
+	KindBalance Kind = "balance"
+	// KindPassphrase is a memorable word-based password.
+	KindPassphrase Kind = "passphrase"
+	// KindPasswordHash is a self-describing PBKDF2 hash of a generated
+	// password, for seeding a credentials table.
+	KindPasswordHash  Kind = "passwordhash"
 	KindIMEI          Kind = "imei"
 	KindUPC           Kind = "upc"
 	KindRoutingNumber Kind = "routingnumber"

@@ -1,6 +1,10 @@
 // Synth workbench. No framework, no build step, no external requests.
 'use strict';
 
+// Params the spec expects as numbers. Everything else is passed through as
+// written, because "very-strong" is not a number and Number() would send NaN.
+const NUMBER_PARAMS = new Set(['min', 'max', 'length', 'words', 'negative', 'iterations']);
+
 const state = {
   types: [],          // [{kind, category, localized, locales}]
   byKind: new Map(),
@@ -16,13 +20,6 @@ const t = (key, ...args) => {
   const v = (I18N[state.lang] || I18N.en)[key];
   return typeof v === 'function' ? v(...args) : (v ?? key);
 };
-
-// Kinds that take numeric bounds, and the one that takes a list. Everything
-// else has no options, and showing empty boxes for them would be noise.
-const NUMERIC_KINDS = new Set([
-  'int', 'float', 'amount', 'salary', 'percentage', 'rating',
-  'temperature', 'year', 'port', 'latitude', 'longitude',
-]);
 
 // ---------------------------------------------------------------- boot
 
@@ -250,30 +247,66 @@ function kindSelect(field, index) {
   return sel;
 }
 
+// PARAM_SPECS declares the controls each kind offers. Showing a type's real
+// knobs beats a generic min/max that means nothing for a password.
+const PARAM_SPECS = {
+  password:     [{ key: 'strength', type: 'select', options: ['', 'pin', 'weak', 'medium', 'strong', 'very-strong'] },
+                 { key: 'length', type: 'number' }],
+  passwordhash: [{ key: 'strength', type: 'select', options: ['', 'pin', 'weak', 'medium', 'strong', 'very-strong'] }],
+  passphrase:   [{ key: 'words', type: 'number' }, { key: 'sep', type: 'text' }],
+  cardexpiry:   [{ key: 'format', type: 'select', options: ['', 'MM/YYYY', 'YYYY-MM'] },
+                 { key: 'expired', type: 'select', options: ['', 'true'] }],
+  card:         [{ key: 'brand', type: 'select', options: ['', 'visa', 'mastercard', 'american express', 'discover', 'jcb', 'diners club'] }],
+  balance:      [{ key: 'min', type: 'number' }, { key: 'max', type: 'number' },
+                 { key: 'negative', type: 'number' }],
+  enum:         [{ key: 'choices', type: 'text' }],
+};
+
+// Kinds that take plain numeric bounds and nothing else.
+const NUMERIC_KINDS = new Set([
+  'int', 'float', 'amount', 'salary', 'percentage', 'rating',
+  'temperature', 'year', 'port', 'latitude', 'longitude',
+]);
+
+function specFor(kind) {
+  if (PARAM_SPECS[kind]) return PARAM_SPECS[kind];
+  if (NUMERIC_KINDS.has(kind)) {
+    return [{ key: 'min', type: 'number' }, { key: 'max', type: 'number' }];
+  }
+  return [];
+}
+
 function optionInputs(field, index) {
   const box = document.createElement('div');
   box.className = 'opts';
 
-  const bind = (key, placeholder, type) => {
-    const input = document.createElement('input');
-    input.type = type;
-    input.placeholder = placeholder;
-    input.setAttribute('aria-label', `${field.name} ${placeholder}`);
-    if (field.params[key] !== undefined) input.value = field.params[key];
-    input.addEventListener('input', () => {
-      const raw = input.value.trim();
-      if (raw === '') delete state.fields[index].params[key];
-      else state.fields[index].params[key] = raw;
+  for (const spec of specFor(field.kind)) {
+    const label = t(spec.key);
+    let control;
+    if (spec.type === 'select') {
+      control = document.createElement('select');
+      for (const value of spec.options) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value === '' ? `— ${label} —` : value;
+        control.appendChild(opt);
+      }
+      control.value = field.params[spec.key] ?? '';
+    } else {
+      control = document.createElement('input');
+      control.type = spec.type;
+      control.placeholder = label;
+      if (field.params[spec.key] !== undefined) control.value = field.params[spec.key];
+    }
+    control.setAttribute('aria-label', `${field.name} ${label}`);
+    control.addEventListener('input', () => {
+      const raw = String(control.value).trim();
+      if (raw === '') delete state.fields[index].params[spec.key];
+      else state.fields[index].params[spec.key] = raw;
       schedulePreview();
     });
-    box.appendChild(input);
-  };
-
-  if (NUMERIC_KINDS.has(field.kind)) {
-    bind('min', t('min'), 'number');
-    bind('max', t('max'), 'number');
-  } else if (field.kind === 'enum') {
-    bind('choices', t('choices'), 'text');
+    control.addEventListener('change', () => control.dispatchEvent(new Event('input')));
+    box.appendChild(control);
   }
   return box;
 }
@@ -352,7 +385,8 @@ function currentSpec() {
     const def = { kind: f.kind };
     for (const [k, v] of Object.entries(f.params)) {
       if (k === 'choices') def.choices = v.split(',').map((s) => s.trim()).filter(Boolean);
-      else def[k] = Number(v);
+      else if (NUMBER_PARAMS.has(k)) def[k] = Number(v);
+      else def[k] = v;   // strength, format, brand and sep are words, not numbers
     }
     fields[name] = def;
     order.push(name);

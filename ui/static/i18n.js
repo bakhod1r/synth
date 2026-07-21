@@ -6,6 +6,14 @@
 
 const I18N = {
   en: {
+    strength: 'strength',
+    length: 'length',
+    words: 'words',
+    sep: 'separator',
+    format: 'format',
+    expired: 'expired',
+    brand: 'brand',
+    negative: 'overdraft share',
     tools: 'Tools',
     close: 'Close',
     toolsHint: 'Hashing and encoding, run on this machine. A hash is one-way — there is no decode for it. An encoding round-trips both ways.',
@@ -67,6 +75,14 @@ const I18N = {
   },
 
   uz: {
+    strength: 'daraja',
+    length: 'uzunlik',
+    words: 'so‘zlar',
+    sep: 'ajratgich',
+    format: 'format',
+    expired: 'muddati o‘tgan',
+    brand: 'brend',
+    negative: 'minus ulushi',
     tools: 'Asboblar',
     close: 'Yopish',
     toolsHint: 'Hashlash va kodlash, shu kompyuterda bajariladi. Hash bir tomonlama — uni ochib bo‘lmaydi. Kodlash esa ikki tomonga ishlaydi.',
@@ -128,6 +144,14 @@ const I18N = {
   },
 
   ru: {
+    strength: 'сложность',
+    length: 'длина',
+    words: 'слов',
+    sep: 'разделитель',
+    format: 'формат',
+    expired: 'просрочена',
+    brand: 'бренд',
+    negative: 'доля овердрафта',
     tools: 'Инструменты',
     close: 'Закрыть',
     toolsHint: 'Хеширование и кодирование, выполняется на этой машине. Хеш односторонний — расшифровать его нельзя. Кодирование обратимо.',
@@ -214,7 +238,8 @@ const CATEGORY_NAMES = {
 // rest stay one search away.
 const COMMON = [
   'uuid', 'name', 'firstname', 'lastname', 'email', 'phone', 'username',
-  'gender', 'time', 'int', 'float', 'bool', 'enum', 'amount', 'currency',
-  'country', 'city', 'street', 'postcode', 'company', 'job', 'card', 'iban',
+  'password', 'passwordhash', 'gender', 'time', 'int', 'float', 'bool', 'enum',
+  'amount', 'balance', 'currency', 'country', 'city', 'street', 'postcode',
+  'company', 'job', 'card', 'cardbrand', 'cardexpiry', 'cvv', 'iban',
   'url', 'ipv4', 'lorem', 'product', 'color',
 ];

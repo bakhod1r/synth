@@ -115,7 +115,15 @@ func Parse(data []byte) (*Spec, error) {
 		if err := d.Fields.Content[i+1].Decode(&fd); err != nil {
 			return nil, fmt.Errorf("yamlfe: field %q: %w", name, err)
 		}
-		sp.Schema.Fields = append(sp.Schema.Fields, toField(name, fd))
+		// Providers take their own parameters — strength, format, brand, words
+		// — and there is no useful list of them here: each provider owns its
+		// own. Anything not consumed above is passed through, so a spec can
+		// reach every knob a tag can.
+		var extra map[string]any
+		if err := d.Fields.Content[i+1].Decode(&extra); err != nil {
+			return nil, fmt.Errorf("yamlfe: field %q: %w", name, err)
+		}
+		sp.Schema.Fields = append(sp.Schema.Fields, toField(name, fd, extra))
 		sp.Order = append(sp.Order, name)
 	}
 	// Wire up the automatic coherence the struct frontend applies: an email
@@ -135,7 +143,15 @@ func Parse(data []byte) (*Spec, error) {
 	return sp, nil
 }
 
-func toField(name string, fd fieldDef) schema.Field {
+// knownKeys are the keys fieldDef already consumes. Everything else in a field
+// mapping is a provider parameter.
+var knownKeys = map[string]bool{
+	"kind": true, "from": true, "match": true, "min": true, "max": true,
+	"dist": true, "mu": true, "sigma": true, "s": true, "rate": true,
+	"gap": true, "choices": true, "weights": true, "unique": true, "pk": true,
+}
+
+func toField(name string, fd fieldDef, extra map[string]any) schema.Field {
 	f := schema.Field{Name: name, Params: map[string]string{}, From: fd.From, Match: fd.Match,
 		Choices: fd.Choices, Weights: fd.Weights, Unique: fd.Unique, PK: fd.PK}
 	if fd.PK {
@@ -156,6 +172,12 @@ func toField(name string, fd fieldDef) schema.Field {
 	}
 	if fd.Gap != "" {
 		f.Params["gap"] = fd.Gap
+	}
+	for k, v := range extra {
+		if knownKeys[k] || v == nil {
+			continue
+		}
+		f.Params[k] = fmt.Sprint(v)
 	}
 	return f
 }

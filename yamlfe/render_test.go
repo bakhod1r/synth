@@ -208,3 +208,56 @@ fields:
 		}
 	}
 }
+
+// Providers own their own parameters, so a spec must pass unknown keys through
+// rather than silently dropping them. Dropping "strength" meant a spec asking
+// for a very strong password quietly got a default one.
+func TestSpecPassesProviderParamsThrough(t *testing.T) {
+	sp, err := yamlfe.Parse([]byte(`name: t
+count: 3
+fields:
+  pw:     { kind: password, strength: very-strong }
+  expiry: { kind: cardexpiry, format: MM/YYYY, expired: true }
+  phrase: { kind: passphrase, words: 5, sep: "." }
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]map[string]string{
+		"pw":     {"strength": "very-strong"},
+		"expiry": {"format": "MM/YYYY", "expired": "true"},
+		"phrase": {"words": "5", "sep": "."},
+	}
+	for _, f := range sp.Schema.Fields {
+		for k, v := range want[f.Name] {
+			if f.Params[k] != v {
+				t.Errorf("field %q: param %s = %q, want %q", f.Name, k, f.Params[k], v)
+			}
+		}
+	}
+}
+
+// Passed-through params must survive a render/parse round trip too, or the
+// spec the workbench hands you generates something different.
+func TestProviderParamsSurviveRoundTrip(t *testing.T) {
+	src := []byte(`name: t
+count: 3
+fields:
+  pw: { kind: password, strength: very-strong }
+`)
+	first, err := yamlfe.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := yamlfe.Render(first.Schema, first.Order, first.Name, first.Count, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := yamlfe.Parse(doc)
+	if err != nil {
+		t.Fatalf("rendered spec does not parse: %v\n%s", err, doc)
+	}
+	if got := second.Schema.Fields[0].Params["strength"]; got != "very-strong" {
+		t.Fatalf("strength lost in the round trip: %q\n%s", got, doc)
+	}
+}
