@@ -161,10 +161,32 @@ func Warnings[T any]() []schema.Warning {
 func applyRefs(s *schema.Schema, refs []refSpec) {
 	for _, rs := range refs {
 		if f := s.FieldByName(rs.fkField); f != nil {
-			f.FromRef = rs.values
+			f.FromRef = expandCardinality(rs.values, rs.min, rs.max)
 			f.RefMin, f.RefMax = rs.min, rs.max
 		}
 	}
+}
+
+// expandCardinality implements OneToMany: each parent appears a deterministic
+// count in [min,max] in the returned pool, so drawing foreign keys uniformly
+// from the pool gives each parent roughly that many children. When min<=0 the
+// values are returned unchanged (uniform, unbounded cardinality).
+func expandCardinality(values []any, min, max int) []any {
+	if min <= 0 || len(values) == 0 {
+		return values
+	}
+	if max < min {
+		max = min
+	}
+	span := max - min + 1
+	out := make([]any, 0, len(values)*(min+max)/2)
+	for i, v := range values {
+		count := min + i%span // spread counts deterministically across the range
+		for j := 0; j < count; j++ {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // applyWeighted turns named fields into weighted enums per the config.
