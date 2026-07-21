@@ -2,6 +2,7 @@ package providers_test
 
 import (
 	"testing"
+	"unicode"
 
 	"github.com/bakhodir/synth"
 	"github.com/bakhodir/synth/providers"
@@ -131,4 +132,79 @@ func TestLocaleListsHaveNoDuplicates(t *testing.T) {
 			}
 		}
 	}
+}
+
+// A passphrase draws several words at once, so its bank is the one locale
+// dataset where size genuinely buys strength: 64 words gives 64⁴ ≈ 16.7 million
+// four-word phrases.
+func TestPassphraseBanksAreLargeEnough(t *testing.T) {
+	for _, code := range providers.LocalesFor(schema.KindPassphrase) {
+		words := providers.LocaleValues(code, schema.KindPassphrase)
+		if len(words) < 64 {
+			t.Errorf("%s has only %d passphrase words", code, len(words))
+		}
+		combos := 1
+		for i := 0; i < 4; i++ {
+			combos *= len(words)
+		}
+		if combos < 1_000_000 {
+			t.Errorf("%s yields only %d four-word phrases", code, combos)
+		}
+	}
+}
+
+// A word in the wrong script is invisible to a reader who does not know the
+// language and glaring to one who does. This has slipped through by hand more
+// than once, so it is checked here rather than by eye.
+func TestLocaleValuesUseTheirOwnScript(t *testing.T) {
+	scripts := map[string]*unicode.RangeTable{
+		"ru_RU": unicode.Cyrillic,
+		"ja_JP": unicode.Han, // kana are checked separately below
+	}
+	latin := []string{"uz_UZ", "tr_TR", "de_DE", "fr_FR", "es_ES", "it_IT", "pt_BR", "pl_PL"}
+	for _, code := range latin {
+		scripts[code] = unicode.Latin
+	}
+
+	for _, kind := range providers.LocalizedKinds() {
+		for code, script := range scripts {
+			for _, v := range providers.LocaleValues(code, kind) {
+				if !scriptOK(v, code, script) {
+					t.Errorf("%s %s: %q is not written in the locale's script", code, kind, v)
+				}
+			}
+		}
+	}
+}
+
+// scriptNeutral are letters that carry no script identity of their own. The
+// Japanese prolonged sound mark is the important one: コーヒー is correctly
+// written in katakana, but "ー" belongs to no script, so counting it as a
+// foreign character would reject perfectly good data.
+var scriptNeutral = map[rune]bool{
+	'ー': true, '々': true, 'ヽ': true, 'ヾ': true, 'ゝ': true, 'ゞ': true,
+}
+
+// scriptOK allows the Japanese mix of kanji, hiragana and katakana, and lets a
+// stray digit or separator through anywhere.
+func scriptOK(s, code string, script *unicode.RangeTable) bool {
+	letters, ok := 0, 0
+	for _, r := range s {
+		if !unicode.IsLetter(r) || scriptNeutral[r] {
+			continue
+		}
+		letters++
+		switch code {
+		case "ja_JP":
+			if unicode.Is(unicode.Han, r) || unicode.Is(unicode.Hiragana, r) ||
+				unicode.Is(unicode.Katakana, r) {
+				ok++
+			}
+		default:
+			if unicode.Is(script, r) {
+				ok++
+			}
+		}
+	}
+	return letters == 0 || float64(ok)/float64(letters) >= 0.8
 }
