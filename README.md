@@ -182,13 +182,31 @@ g.Amount(1000, 500000)
 
 ## Benchmarks
 
-Measured on Apple Silicon (`go test -bench`), Go 1.25:
+Measured on Apple Silicon (M-series, 8 cores), Go 1.25, `go test -bench -benchmem`.
+Each library fills the same four fields (name, email, phone, city).
 
-| Operation | Throughput | allocs/op |
-| --- | --- | --- |
-| Single value (`g.Name()`) | ~15.6M ops/sec (64 ns) | 2 |
-| `Make[User]` (10 fields), serial | ~560K records/sec | — |
-| `MakeParallel[User]`, 8 cores | ~1.28M records/sec | — |
+**Struct filling** — one record from a struct definition:
+
+| Library | ns/op | B/op | allocs/op |
+| --- | --- | --- | --- |
+| `go-faker/faker` v4 | 10,848 | 8,778 | 116 |
+| **Synth** | **2,494** | **2,001** | **34** |
+
+**Per-field calls** — the fluent API:
+
+| Library | ns/op | B/op | allocs/op |
+| --- | --- | --- | --- |
+| `jaswdr/faker` v2 | 5,612 | 4,533 | 61 |
+| **Synth** | **778** | **222** | **14** |
+
+**Batch generation** — Synth's normal mode, where schema work is done once for
+the whole run: 1,678 ns/record (~596K records/sec single-threaded), and
+~1.28M records/sec across 8 cores with `MakeParallel`.
+
+Reproduce with `cd benchcmp && go test -bench=. -benchmem -run=^$ .`
+(the comparison lives in its own module, so the competing fakers never enter
+this library's dependency graph — Synth depends only on `google/uuid` and
+`yaml.v3`).
 
 Per-instance RNG means no global-`rand` mutex — parallel generation scales, and
 same-seed output is byte-identical regardless of worker count.
