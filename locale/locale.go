@@ -98,9 +98,19 @@ func Get(name string) *Locale {
 }
 
 var enUS = &Locale{
-	Name:        "en_US",
-	FirstNames:  []string{"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda", "David", "Elizabeth"},
-	LastNames:   []string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Wilson", "Anderson"},
+	Name: "en_US",
+	FirstNames: []string{
+		"James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda", "David", "Elizabeth",
+		"William", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen",
+		"Daniel", "Nancy", "Matthew", "Lisa", "Anthony", "Betty", "Mark", "Sandra", "Donald", "Ashley",
+		"Steven", "Emily", "Andrew", "Kimberly",
+	},
+	LastNames: []string{
+		"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Wilson", "Anderson",
+		"Taylor", "Thomas", "Moore", "Jackson", "Martin", "Lee", "Thompson", "White", "Harris", "Clark",
+		"Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Green", "Baker",
+		"Hall", "Nelson", "Carter", "Mitchell",
+	},
 	CountryCode: "+1",
 	EmailDomain: []string{"example.com", "mail.com", "test.org"},
 	CardBINs:    []string{"4539", "4556", "5425", "5105", "374245"},
@@ -157,9 +167,19 @@ var uzUZ = &Locale{
 }
 
 var ruRU = &Locale{
-	Name:        "ru_RU",
-	FirstNames:  []string{"Иван", "Мария", "Дмитрий", "Анна", "Сергей", "Елена", "Алексей", "Ольга", "Андрей", "Наталья"},
-	LastNames:   []string{"Иванов", "Петрова", "Смирнов", "Кузнецова", "Попов", "Соколова", "Волков", "Морозова", "Новиков", "Лебедева"},
+	Name: "ru_RU",
+	FirstNames: []string{
+		"Иван", "Мария", "Дмитрий", "Анна", "Сергей", "Елена", "Алексей", "Ольга", "Андрей", "Наталья",
+		"Михаил", "Татьяна", "Владимир", "Ирина", "Николай", "Светлана", "Александр", "Екатерина", "Павел", "Юлия",
+		"Максим", "Виктория", "Артём", "Марина", "Кирилл", "Дарья", "Роман", "Людмила", "Егор", "Валентина",
+		"Никита", "Галина", "Денис", "Полина",
+	},
+	LastNames: []string{
+		"Иванов", "Петрова", "Смирнов", "Кузнецова", "Попов", "Соколова", "Волков", "Морозова", "Новиков", "Лебедева",
+		"Козлов", "Егорова", "Павлов", "Николаева", "Орлов", "Макарова", "Андреев", "Фёдорова", "Захаров", "Васильева",
+		"Степанов", "Романова", "Сорокин", "Ковалёва", "Зайцев", "Белова", "Соловьёв", "Комарова", "Борисов", "Медведева",
+		"Киселёв", "Тарасова", "Фролов", "Гусева",
+	},
 	CountryCode: "+7",
 	EmailDomain: []string{"mail.ru", "yandex.ru", "example.ru"},
 	CardBINs:    []string{"2200", "2202", "4276"},
