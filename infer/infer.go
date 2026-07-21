@@ -176,6 +176,20 @@ var synonyms = map[string]schema.Kind{
 	"filesize": schema.KindFileSize,
 	"duration": schema.KindDuration,
 	"gittag":   schema.KindGitTag, "tag2": schema.KindGitTag,
+	// Regulated-domain identifiers.
+	"icd10": schema.KindICD10, "icd": schema.KindICD10,
+	"diagnosiscode": schema.KindICD10, "diagnosis": schema.KindICD10,
+	"ndc": schema.KindNDC, "drugcode": schema.KindNDC,
+	"drugname": schema.KindDrugName, "medication": schema.KindDrugName,
+	"drug":  schema.KindDrugName,
+	"isin":  schema.KindISIN,
+	"lei":   schema.KindLEI,
+	"cusip": schema.KindCUSIP,
+	"cidr":  schema.KindCIDR, "subnet": schema.KindCIDR, "network": schema.KindCIDR,
+	"asn":       schema.KindASN,
+	"macvendor": schema.KindMACVendor, "oui": schema.KindMACVendor,
+	"geojson": schema.KindGeoJSONPoint, "geojsonpoint": schema.KindGeoJSONPoint,
+	"geometry": schema.KindGeoJSONPoint,
 }
 
 // Alias registers an extra field-name synonym (e.g. Uzbek "ismi" → name).
