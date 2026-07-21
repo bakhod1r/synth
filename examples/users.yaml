@@ -1,0 +1,18 @@
+# Declarative data definition — no Go code required.
+# Generate with:  synth gen -s examples/users.yaml -o users.csv
+name: users
+count: 1000
+locale: uz_UZ
+seed: 42
+fields:
+  id:         { kind: uuid, pk: true }
+  fullname:   { kind: name }
+  email:      { kind: email, from: fullname }
+  phone:      { kind: phone }
+  country:    { kind: country }
+  city:       { kind: city }
+  postcode:   { kind: postcode }
+  card:       { kind: card }
+  status:     { kind: enum, choices: [active, inactive, banned], weights: [0.9, 0.08, 0.02] }
+  balance:    { kind: amount, min: 0, max: 1000000, dist: lognormal, mu: 9, sigma: 1.2 }
+  created_at: { kind: time }

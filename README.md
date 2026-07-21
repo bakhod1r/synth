@@ -202,6 +202,29 @@ same-seed output is byte-identical regardless of worker count.
 | Transactions | ledger entries, timestamps, statuses |
 | Business | companies, invoices, orders, inventory |
 
+## CLI & YAML specs
+
+Describe data declaratively and generate it without writing Go:
+
+```yaml
+# users.yaml
+name: users
+count: 1000
+locale: uz_UZ
+fields:
+  id:      { kind: uuid, pk: true }
+  name:    { kind: name }
+  email:   { kind: email, from: name }
+  status:  { kind: enum, choices: [active, inactive], weights: [0.9, 0.1] }
+  balance: { kind: amount, min: 0, max: 1000000, dist: lognormal, mu: 9, sigma: 1.2 }
+```
+
+```bash
+go install github.com/bakhodir/synth/cmd/synth@latest
+synth gen -s users.yaml -o users.csv          # or -f jsonl | sql
+synth gen -s users.yaml -f sql -n 100000 --seed 42
+```
+
 ## Output
 
 Synth writes **files** — it never opens a network or DB connection.
@@ -235,8 +258,11 @@ synth.RegisterSet("cinema", "Inception", "Interstellar", "Tenet", "Dune")
 synth.Register("rating", func(r synth.R) any { return r.IntRange(1, 5) })
 ```
 
-**Roadmap (separate specs):** edge-case/chaos injection, OpenAPI-driven
-payloads, deeper per-locale datasets (addresses, companies).
+chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
+(`synth gen`), nested structs/slices, and `OneToMany` cardinality.
+
+**Roadmap:** deeper per-locale datasets (addresses, companies), more field
+types, and a SQL-DDL frontend.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 
