@@ -12,6 +12,16 @@ type seed struct {
 	ibanLen                              int
 	first, last                          []string
 	region, city, postcode, prefix       string
+	// Optional native datasets; when empty, mk falls back to en_US samples.
+	companies, streets, jobs, products []string
+}
+
+// orDefault returns v if non-empty, else the fallback dataset.
+func orDefault(v, fallback []string) []string {
+	if len(v) > 0 {
+		return v
+	}
+	return fallback
 }
 
 // mk builds a *Locale from a seed, filling gaps with sensible defaults so no
@@ -28,10 +38,10 @@ func mk(s seed) *Locale {
 		IBANLength:  s.ibanLen,
 		EmailDomain: enUS.EmailDomain,
 		CardBINs:    enUS.CardBINs,
-		Companies:   enUS.Companies,
-		Streets:     enUS.Streets,
-		Jobs:        enUS.Jobs,
-		Products:    enUS.Products,
+		Companies:   orDefault(s.companies, enUS.Companies),
+		Streets:     orDefault(s.streets, enUS.Streets),
+		Jobs:        orDefault(s.jobs, enUS.Jobs),
+		Products:    orDefault(s.products, enUS.Products),
 		Places:      []Place{{s.region, s.city, s.postcode, s.prefix}},
 	}
 	if l.IBANLength == 0 {
@@ -57,19 +67,39 @@ var extLocales = []seed{
 		region: "England", city: "London", postcode: "EC1A", prefix: "20"},
 	{key: "de_DE", country: "Germany", code: "+49", currency: "EUR", ibanCC: "DE", ibanLen: 22,
 		first: []string{"Lukas", "Marie", "Leon", "Sophie", "Paul"}, last: []string{"Müller", "Schmidt", "Schneider", "Fischer", "Weber"},
-		region: "Berlin", city: "Berlin", postcode: "10115", prefix: "30"},
+		region: "Berlin", city: "Berlin", postcode: "10115", prefix: "30",
+		companies: []string{"Siemens", "Volkswagen", "SAP", "Bosch", "Allianz", "BMW", "Adidas"},
+		streets:   []string{"Hauptstraße", "Bahnhofstraße", "Schulstraße", "Gartenweg", "Lindenallee"},
+		jobs:      []string{"Softwareentwickler", "Ingenieur", "Kaufmann", "Lehrer", "Arzt"},
+		products:  []string{"Bierkrug", "Kuckucksuhr", "Lederhose", "Bratwurst", "Brezel"}},
 	{key: "fr_FR", country: "France", code: "+33", currency: "EUR", ibanCC: "FR", ibanLen: 27,
 		first: []string{"Louis", "Emma", "Gabriel", "Jade", "Hugo"}, last: []string{"Martin", "Bernard", "Dubois", "Thomas", "Robert"},
-		region: "Île-de-France", city: "Paris", postcode: "75001", prefix: "1"},
+		region: "Île-de-France", city: "Paris", postcode: "75001", prefix: "1",
+		companies: []string{"L'Oréal", "Renault", "Airbus", "Danone", "Orange", "Total", "Carrefour"},
+		streets:   []string{"Rue de la Paix", "Avenue des Champs-Élysées", "Rue du Faubourg", "Boulevard Saint-Germain", "Rue de Rivoli"},
+		jobs:      []string{"Développeur", "Ingénieur", "Comptable", "Professeur", "Médecin"},
+		products:  []string{"Baguette", "Fromage", "Parfum", "Croissant", "Vin"}},
 	{key: "es_ES", country: "Spain", code: "+34", currency: "EUR", ibanCC: "ES", ibanLen: 24,
 		first: []string{"Hugo", "Lucía", "Martín", "Sofía", "Pablo"}, last: []string{"García", "Rodríguez", "González", "Fernández", "López"},
-		region: "Madrid", city: "Madrid", postcode: "28001", prefix: "91"},
+		region: "Madrid", city: "Madrid", postcode: "28001", prefix: "91",
+		companies: []string{"Zara", "Santander", "Telefónica", "Iberdrola", "Repsol", "Mango", "Seat"},
+		streets:   []string{"Calle Mayor", "Gran Vía", "Calle de Alcalá", "Paseo del Prado", "Calle Serrano"},
+		jobs:      []string{"Desarrollador", "Ingeniero", "Contador", "Profesor", "Médico"},
+		products:  []string{"Paella", "Jamón", "Guitarra", "Abanico", "Turrón"}},
 	{key: "it_IT", country: "Italy", code: "+39", currency: "EUR", ibanCC: "IT", ibanLen: 27,
 		first: []string{"Leonardo", "Sofia", "Francesco", "Giulia", "Alessandro"}, last: []string{"Rossi", "Russo", "Ferrari", "Esposito", "Bianchi"},
-		region: "Lazio", city: "Roma", postcode: "00118", prefix: "6"},
+		region: "Lazio", city: "Roma", postcode: "00118", prefix: "6",
+		companies: []string{"Ferrari", "Fiat", "Barilla", "Gucci", "Prada", "Lavazza", "Pirelli"},
+		streets:   []string{"Via Roma", "Via Nazionale", "Corso Italia", "Via Garibaldi", "Piazza del Duomo"},
+		jobs:      []string{"Sviluppatore", "Ingegnere", "Contabile", "Insegnante", "Medico"},
+		products:  []string{"Pasta", "Pizza", "Espresso", "Gelato", "Parmigiano"}},
 	{key: "pt_BR", country: "Brazil", code: "+55", currency: "BRL", ibanCC: "BR", ibanLen: 29,
 		first: []string{"Miguel", "Helena", "Arthur", "Alice", "Bernardo"}, last: []string{"Silva", "Santos", "Oliveira", "Souza", "Lima"},
-		region: "São Paulo", city: "São Paulo", postcode: "01000", prefix: "11"},
+		region: "São Paulo", city: "São Paulo", postcode: "01000", prefix: "11",
+		companies: []string{"Petrobras", "Vale", "Itaú", "Ambev", "Natura", "Magazine Luiza", "Embraer"},
+		streets:   []string{"Avenida Paulista", "Rua Augusta", "Avenida Brasil", "Rua das Flores", "Avenida Atlântica"},
+		jobs:      []string{"Desenvolvedor", "Engenheiro", "Contador", "Professor", "Médico"},
+		products:  []string{"Café", "Açaí", "Feijoada", "Havaianas", "Guaraná"}},
 	{key: "pt_PT", country: "Portugal", code: "+351", currency: "EUR", ibanCC: "PT", ibanLen: 25,
 		first: []string{"João", "Maria", "Rodrigo", "Leonor", "Tomás"}, last: []string{"Silva", "Santos", "Ferreira", "Pereira", "Costa"},
 		region: "Lisboa", city: "Lisboa", postcode: "1000", prefix: "21"},
@@ -81,7 +111,11 @@ var extLocales = []seed{
 		region: "Mazowieckie", city: "Warszawa", postcode: "00-001", prefix: "22"},
 	{key: "tr_TR", country: "Turkey", code: "+90", currency: "TRY", ibanCC: "TR", ibanLen: 26,
 		first: []string{"Yusuf", "Zeynep", "Eymen", "Elif", "Ömer"}, last: []string{"Yılmaz", "Kaya", "Demir", "Şahin", "Çelik"},
-		region: "İstanbul", city: "İstanbul", postcode: "34000", prefix: "212"},
+		region: "İstanbul", city: "İstanbul", postcode: "34000", prefix: "212",
+		companies: []string{"Turkish Airlines", "Arçelik", "Turkcell", "Vestel", "Ülker", "Beko", "Garanti"},
+		streets:   []string{"İstiklal Caddesi", "Bağdat Caddesi", "Atatürk Bulvarı", "Cumhuriyet Caddesi", "Barbaros Bulvarı"},
+		jobs:      []string{"Yazılımcı", "Mühendis", "Muhasebeci", "Öğretmen", "Doktor"},
+		products:  []string{"Baklava", "Halı", "Lokum", "Çay", "Kebap"}},
 	{key: "ar_SA", country: "Saudi Arabia", code: "+966", currency: "SAR", ibanCC: "SA", ibanLen: 24,
 		first: []string{"محمد", "فاطمة", "أحمد", "عائشة", "علي"}, last: []string{"العتيبي", "الغامدي", "الشهري", "القحطاني", "الدوسري"},
 		region: "الرياض", city: "الرياض", postcode: "11564", prefix: "11"},
@@ -102,13 +136,25 @@ var extLocales = []seed{
 		region: "ঢাকা", city: "ঢাকা", postcode: "1000", prefix: "2"},
 	{key: "ja_JP", country: "Japan", code: "+81", currency: "JPY", ibanCC: "JP", ibanLen: 0,
 		first: []string{"陽翔", "陽菜", "蓮", "凛", "湊"}, last: []string{"佐藤", "鈴木", "高橋", "田中", "渡辺"},
-		region: "東京都", city: "東京", postcode: "100-0001", prefix: "3"},
+		region: "東京都", city: "東京", postcode: "100-0001", prefix: "3",
+		companies: []string{"トヨタ", "ソニー", "任天堂", "パナソニック", "ソフトバンク", "ホンダ", "楽天"},
+		streets:   []string{"銀座通り", "青山通り", "表参道", "中央通り", "桜通り"},
+		jobs:      []string{"エンジニア", "デザイナー", "会計士", "教師", "医師"},
+		products:  []string{"寿司", "ラーメン", "着物", "扇子", "抹茶"}},
 	{key: "ko_KR", country: "South Korea", code: "+82", currency: "KRW", ibanCC: "KR", ibanLen: 0,
 		first: []string{"서준", "서연", "도윤", "지우", "하준"}, last: []string{"김", "이", "박", "최", "정"},
-		region: "서울", city: "서울", postcode: "04524", prefix: "2"},
+		region: "서울", city: "서울", postcode: "04524", prefix: "2",
+		companies: []string{"삼성", "현대", "LG", "SK", "카카오", "네이버", "기아"},
+		streets:   []string{"강남대로", "테헤란로", "종로", "세종대로", "을지로"},
+		jobs:      []string{"개발자", "엔지니어", "회계사", "교사", "의사"},
+		products:  []string{"김치", "비빔밥", "한복", "인삼", "떡"}},
 	{key: "zh_CN", country: "China", code: "+86", currency: "CNY", ibanCC: "CN", ibanLen: 0,
 		first: []string{"伟", "芳", "娜", "敏", "静"}, last: []string{"王", "李", "张", "刘", "陈"},
-		region: "北京市", city: "北京", postcode: "100000", prefix: "10"},
+		region: "北京市", city: "北京", postcode: "100000", prefix: "10",
+		companies: []string{"阿里巴巴", "腾讯", "华为", "百度", "小米", "京东", "字节跳动"},
+		streets:   []string{"长安街", "南京路", "中山路", "人民路", "解放路"},
+		jobs:      []string{"软件工程师", "设计师", "会计", "教师", "医生"},
+		products:  []string{"茶", "瓷器", "丝绸", "饺子", "月饼"}},
 	{key: "zh_TW", country: "Taiwan", code: "+886", currency: "TWD", ibanCC: "TW", ibanLen: 0,
 		first: []string{"家豪", "淑芬", "俊傑", "美玲", "志明"}, last: []string{"陳", "林", "黃", "張", "李"},
 		region: "臺北市", city: "臺北", postcode: "100", prefix: "2"},
