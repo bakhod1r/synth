@@ -1,65 +1,104 @@
 package synth_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/bakhodir/synth"
+	"github.com/bakhodir/synth/locale"
 )
 
-// In gendered-surname locales, a female first name must get a female surname
-// form and a Gender field of "female" (and vice versa).
-func TestGenderCoherenceUz(t *testing.T) {
+// set turns a name list into a lookup.
+func set(vals []string) map[string]bool {
+	m := make(map[string]bool, len(vals))
+	for _, v := range vals {
+		m[v] = true
+	}
+	return m
+}
+
+// A record's first name, surname and gender field must agree. The expected
+// names are read from the locale itself rather than copied into the test:
+// a hardcoded copy goes stale the moment the name banks are enriched, and
+// then the test fails for a reason that has nothing to do with coherence.
+func TestGenderCoherence(t *testing.T) {
 	type Person struct {
 		ID        int
 		FirstName string
 		LastName  string
 		Gender    string
 	}
-	femaleFirst := map[string]bool{
-		"Dilnoza": true, "Malika": true, "Nilufar": true, "Gulnora": true, "Shahnoza": true,
-		"Zuhra": true, "Kamola": true, "Feruza": true, "Sevara": true, "Madina": true,
-		"Nodira": true, "Charos": true, "Dilfuza": true, "Muslima": true, "Gulbahor": true,
-		"Zilola": true, "Nargiza": true, "Sabina": true, "Laylo": true, "Zarina": true,
-		"Maftuna": true, "Dilorom": true, "Shahzoda": true, "Ozoda": true,
-	}
-	for _, p := range synth.Make[Person](2000, synth.WithSeed(1), synth.WithLocale("uz_UZ")) {
-		isFemaleFirst := femaleFirst[p.FirstName]
-		femaleSurname := strings.HasSuffix(p.LastName, "a") // -ova/-eva/-a
-		if isFemaleFirst != femaleSurname {
-			t.Fatalf("name gender mismatch: %s %s", p.FirstName, p.LastName)
-		}
-		wantGender := "male"
-		if isFemaleFirst {
-			wantGender = "female"
-		}
-		if p.Gender != wantGender {
-			t.Fatalf("%s %s: gender %q, want %q", p.FirstName, p.LastName, p.Gender, wantGender)
-		}
+
+	for _, code := range []string{"uz_UZ", "en_US", "ru_RU", "cs_CZ", "pl_PL", "lv_LV"} {
+		t.Run(code, func(t *testing.T) {
+			l := locale.Get(code)
+			if l == nil {
+				t.Fatalf("%s is not registered", code)
+			}
+			maleFirst := set(l.FirstNamesFor("male"))
+			femaleFirst := set(l.FirstNamesFor("female"))
+			maleLast := set(l.LastNamesFor("male"))
+			femaleLast := set(l.LastNamesFor("female"))
+
+			// Only meaningful where the two surname lists actually differ.
+			gendered := false
+			for s := range maleLast {
+				if !femaleLast[s] {
+					gendered = true
+					break
+				}
+			}
+
+			seenMale, seenFemale := 0, 0
+			for _, p := range synth.Make[Person](2000, synth.WithSeed(1), synth.WithLocale(code)) {
+				switch p.Gender {
+				case "male":
+					seenMale++
+					if !maleFirst[p.FirstName] {
+						t.Fatalf("%s: %q is not a male first name", code, p.FirstName)
+					}
+					if gendered && !maleLast[p.LastName] {
+						t.Fatalf("%s: male %q got the surname %q", code, p.FirstName, p.LastName)
+					}
+				case "female":
+					seenFemale++
+					if !femaleFirst[p.FirstName] {
+						t.Fatalf("%s: %q is not a female first name", code, p.FirstName)
+					}
+					if gendered && !femaleLast[p.LastName] {
+						t.Fatalf("%s: female %q got the surname %q", code, p.FirstName, p.LastName)
+					}
+				default:
+					t.Fatalf("%s: unexpected gender %q", code, p.Gender)
+				}
+			}
+			if seenMale == 0 || seenFemale == 0 {
+				t.Fatalf("%s: got %d male and %d female records; one gender never appeared",
+					code, seenMale, seenFemale)
+			}
+		})
 	}
 }
 
-// English: first name matches gender field; surnames are shared (not gendered).
-func TestGenderCoherenceEn(t *testing.T) {
+// Uzbek surnames inflect, so a woman must get the -a form. This is the
+// concrete case the generic test above generalizes, kept because a regression
+// here is the kind that reads as obviously wrong to a native speaker.
+func TestUzbekFemaleSurnameIsInflected(t *testing.T) {
 	type Person struct {
-		ID        int
 		FirstName string
+		LastName  string
 		Gender    string
 	}
-	maleFirst := map[string]bool{
-		"James": true, "John": true, "Robert": true, "Michael": true, "William": true,
-		"David": true, "Richard": true, "Joseph": true, "Thomas": true, "Charles": true,
-		"Daniel": true, "Matthew": true, "Anthony": true, "Mark": true, "Donald": true,
-		"Steven": true, "Andrew": true, "Paul": true, "Joshua": true, "Kevin": true,
-		"Brian": true, "George": true, "Edward": true, "Ronald": true,
+	sawFemale := false
+	for _, p := range synth.Make[Person](500, synth.WithSeed(3), synth.WithLocale("uz_UZ")) {
+		if p.Gender != "female" {
+			continue
+		}
+		sawFemale = true
+		if len(p.LastName) == 0 || p.LastName[len(p.LastName)-1] != 'a' {
+			t.Fatalf("female %s got the masculine surname %q", p.FirstName, p.LastName)
+		}
 	}
-	for _, p := range synth.Make[Person](2000, synth.WithSeed(2), synth.WithLocale("en_US")) {
-		want := "female"
-		if maleFirst[p.FirstName] {
-			want = "male"
-		}
-		if p.Gender != want {
-			t.Fatalf("%s: gender %q, want %q", p.FirstName, p.Gender, want)
-		}
+	if !sawFemale {
+		t.Fatal("no female records were generated")
 	}
 }

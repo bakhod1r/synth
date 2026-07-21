@@ -49,6 +49,14 @@ Every generated identifier passes the check a real system would run on it:
 ### Locale coherence
 Locale isn't just a name list. Pick `uz_UZ` and you get Uzbek names, `+998` phone numbers, Tashkent districts, UZS amounts, and postcodes that match the city they're attached to — consistently across every field of the record.
 
+All 52 locales carry at least **1000 distinct full-name combinations per
+gender**, drawn from real names in the language's own script. Male and female
+lists are kept apart, and where surnames inflect for gender the correct form is
+used: Novák/Nováková, Иванов/Иванова, Bērziņš/Bērziņa, Abdullayev/Abdullayeva.
+Tests enforce the cardinality, the script and the inflection — each is the kind
+of error that is invisible to a reader who does not speak the language and
+glaring to one who does.
+
 ### Statistical shape
 Real data isn't uniform. Synth draws from distributions so your test data stresses the same paths production does.
 
@@ -510,8 +518,9 @@ chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
 a SQL-DDL frontend, JSON Schema and Avro frontends, real-data profiling,
 gender-coherent names, and 173 field types across 52 locales.
 
-**Roadmap:** gendered name banks for the remaining locales (14 of 52 currently
-reach 1000+ name combinations); protobuf `map<k,v>` fields.
+**Roadmap:** locale-specific datasets for the culturally-specific catalog types
+(food, colour and similar still return English values outside en_US — the UI
+marks which types are actually localized); protobuf `map<k,v>` fields.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 
