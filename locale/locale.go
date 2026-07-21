@@ -94,9 +94,19 @@ var enUS = &Locale{
 }
 
 var uzUZ = &Locale{
-	Name:        "uz_UZ",
-	FirstNames:  []string{"Azizbek", "Dilnoza", "Jasur", "Malika", "Sardor", "Nilufar", "Bekzod", "Gulnora", "Otabek", "Shahnoza"},
-	LastNames:   []string{"Karimov", "Rashidova", "Yusupov", "Ismoilova", "Tursunov", "Abdullayeva", "Qodirov", "Saidova", "Mirzayev", "Rahimova"},
+	Name: "uz_UZ",
+	FirstNames: []string{
+		"Azizbek", "Dilnoza", "Jasur", "Malika", "Sardor", "Nilufar", "Bekzod", "Gulnora", "Otabek", "Shahnoza",
+		"Sanjar", "Zuhra", "Farrux", "Kamola", "Ulug'bek", "Feruza", "Doniyor", "Sevara", "Islom", "Madina",
+		"Jahongir", "Nodira", "Rustam", "Charos", "Alisher", "Dilfuza", "Bobur", "Muslima", "Temur", "Gulbahor",
+		"Shohruh", "Zilola", "Aziz", "Nargiza",
+	},
+	LastNames: []string{
+		"Karimov", "Rashidova", "Yusupov", "Ismoilova", "Tursunov", "Abdullayeva", "Qodirov", "Saidova", "Mirzayev", "Rahimova",
+		"Ergashev", "Yo'ldosheva", "Sobirov", "Nazarova", "Umarov", "Xolmatova", "Rasulov", "G'aniyeva", "Yoqubov", "Sultonova",
+		"Aliyev", "Boboyeva", "Xakimov", "Nurmatova", "Sharipov", "Islomova", "Toshpo'latov", "Qosimova", "Berdiyev", "Ochilova",
+		"Jo'rayev", "Hamidova", "Nabiyev", "Salimova",
+	},
 	CountryCode: "+998",
 	EmailDomain: []string{"mail.uz", "umail.uz", "example.uz"},
 	// HUMO (9860...) and UZCARD (8600...) prefixes.

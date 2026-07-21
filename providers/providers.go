@@ -71,7 +71,9 @@ func init() {
 	registry[schema.KindAmount] = amount
 	registry[schema.KindEnum] = enum
 	registry[schema.KindStreet] = func(c Ctx) any {
-		return fmt.Sprintf("%d %s", c.Rand.IntRange(1, 200), pick(c.Rand, c.Locale.Streets))
+		// House number (1..9999) × native street → thousands of distinct
+		// addresses per locale even from a small street list.
+		return fmt.Sprintf("%d %s", c.Rand.IntRange(1, 9999), pick(c.Rand, c.Locale.Streets))
 	}
 	registry[schema.KindColor] = func(c Ctx) any { return pick(c.Rand, locale.Colors) }
 	registry[schema.KindHexColor] = func(c Ctx) any { return fmt.Sprintf("#%06x", c.Rand.Intn(0x1000000)) }
