@@ -240,6 +240,51 @@ Low-cardinality columns keep their observed split (e.g. 80% active / 15%
 inactive / 5% banned). Identifier-like columns are never echoed back, so real
 values cannot leak into the output.
 
+## Anonymize a production dump (GDPR)
+
+Hand Synth a real export and get one that is safe to share: personal data is
+replaced with synthetic values of the same format, everything else is left
+alone.
+
+```go
+m := synth.NewMasker("team-key", "en_US")
+m.Rule(synth.MaskRule{Column: "notes", Strategy: synth.MaskRedact})
+report, _ := m.File("dump.csv", "safe.csv")
+```
+
+- **Consistent** — the same input value always maps to the same replacement, so
+  joins and foreign keys still line up (use the same key across related dumps).
+- **Format-preserving** — an email stays an email, a card stays 16 digits.
+- **Irreversible** — replacements come from a keyed hash, not an encoding.
+- **Thorough** — PII is caught by column name, by value format, and inside free
+  text (an email buried in a `notes` field is scrubbed too).
+
+## Change events (CDC)
+
+Generate a coherent insert/update/delete history in Debezium's envelope shape —
+no database, no Kafka, just a file:
+
+```go
+synth.WriteCDC[User]("changes.jsonl", 10_000, synth.CDCConfig{
+    Table: "users", UpdateRate: 0.3, DeleteRate: 0.1, Snapshot: 100,
+})
+```
+
+A row exists before it is updated, updates carry the true `before` image, and
+deleted rows are never touched again. LSNs and timestamps advance monotonically.
+
+## Real-time pacing
+
+Deliver records over wall-clock time, the way a real event source would — for
+streaming tests and consumer back-pressure experiments:
+
+```go
+synth.Rate[Event](synth.RateConfig{PerSecond: 5000, Jitter: 0.2}).
+    Run(ctx, func(e Event) error { return myProducer.Send(e) })
+```
+
+Synth paces the handoff; where the events go is your code's decision.
+
 ## Input formats
 
 Synth builds its schema from whichever definition you already have:
