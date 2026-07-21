@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/bakhodir/synth/constraint"
+	"github.com/bakhodir/synth/infer"
 	"github.com/bakhodir/synth/schema"
 	"gopkg.in/yaml.v3"
 )
@@ -117,6 +118,13 @@ func Parse(data []byte) (*Spec, error) {
 		sp.Schema.Fields = append(sp.Schema.Fields, toField(name, fd))
 		sp.Order = append(sp.Order, name)
 	}
+	// Wire up the automatic coherence the struct frontend applies: an email
+	// derived from the name, a card brand read off its card number, timestamps
+	// in causal order. A spec and an equivalent Go struct must produce the same
+	// data — a field explicitly given a from= keeps it, since this only fills
+	// links the author left blank.
+	infer.LinkDependencies(sp.Schema)
+
 	for i, cd := range d.Constraints {
 		c, err := toConstraint(cd)
 		if err != nil {

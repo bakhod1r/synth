@@ -156,3 +156,55 @@ constraints:
 		t.Fatalf("error does not name the bad kind: %v", err)
 	}
 }
+
+// A spec and an equivalent Go struct must generate the same data. Coherence
+// links used to be applied only on the struct path, so a card brand written in
+// YAML disagreed with its card number while the same schema in Go was fine.
+func TestSpecGetsTheSameCoherenceAsAStruct(t *testing.T) {
+	sp, err := yamlfe.Parse([]byte(`name: payments
+count: 5
+fields:
+  fullname:  { kind: name }
+  email:     { kind: email }
+  card:      { kind: card }
+  cardbrand: { kind: cardbrand }
+  created_at: { kind: time }
+  updated_at: { kind: time }
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := map[string]string{}
+	for _, f := range sp.Schema.Fields {
+		from[f.Name] = f.From
+	}
+	if from["email"] != "fullname" {
+		t.Errorf("email should derive from the name, got from=%q", from["email"])
+	}
+	if from["cardbrand"] != "card" {
+		t.Errorf("cardbrand should derive from the card, got from=%q", from["cardbrand"])
+	}
+	if from["updated_at"] != "created_at" {
+		t.Errorf("updated_at should come after created_at, got from=%q", from["updated_at"])
+	}
+}
+
+// An explicit from= is the author's decision and must survive the automatic
+// linking.
+func TestExplicitFromIsNotOverwritten(t *testing.T) {
+	sp, err := yamlfe.Parse([]byte(`name: t
+count: 2
+fields:
+  fullname: { kind: name }
+  nickname: { kind: firstname }
+  email:    { kind: email, from: nickname }
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range sp.Schema.Fields {
+		if f.Name == "email" && f.From != "nickname" {
+			t.Fatalf("explicit from= was overwritten with %q", f.From)
+		}
+	}
+}
