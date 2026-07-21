@@ -5,6 +5,8 @@ package gen
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/bakhodir/synth/internal/rng"
 	"github.com/bakhodir/synth/locale"
@@ -166,6 +168,16 @@ func (e *Engine) generate(r *rng.Rand, place *locale.Place, gender string) map[s
 }
 
 func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any) any {
+	// A blank share applies to every kind, so it is handled here rather than
+	// asked of each provider. Real tables have missing values, and code that
+	// has only ever seen complete rows breaks the first time it meets a null.
+	//
+	// The draw happens before anything else so the cost of a blanked field is
+	// nothing, and a primary key is never blanked: a row without an identity
+	// is not missing data, it is a broken row.
+	if blank := blankShare(f); blank > 0 && !f.PK && !f.Unique && r.Bool(blank) {
+		return nil
+	}
 	// Foreign key: draw from the referenced parent's PK values.
 	if f.FromRef != nil {
 		return f.FromRef[r.Pick(len(f.FromRef))]
@@ -236,3 +248,31 @@ func (e *Engine) Schema() *schema.Schema { return e.schema }
 // HasUnique reports whether any field requires unique values. Unique tracking
 // is stateful, so callers must use serial generation when this is true.
 func (e *Engine) HasUnique() bool { return e.seen != nil }
+
+// blankShare reads the field's blank probability. It accepts a fraction
+// ("0.15") or a percentage ("15%"), because both readings of "blank: 15" are
+// natural and guessing wrong by a factor of a hundred is an unpleasant
+// surprise: a bare number is read as a percentage, matching the label users
+// see in the interface.
+func blankShare(f *schema.Field) float64 {
+	raw, ok := f.Params["blank"]
+	if !ok || raw == "" {
+		return 0
+	}
+	raw = strings.TrimSpace(raw)
+	percent := strings.HasSuffix(raw, "%")
+	raw = strings.TrimSuffix(raw, "%")
+
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil || v <= 0 {
+		return 0
+	}
+	// "0.15" means fifteen percent; "15" and "15%" mean the same thing.
+	if percent || v > 1 {
+		v /= 100
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}

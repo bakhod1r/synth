@@ -19,6 +19,7 @@ package yamlfe
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/infer"
@@ -66,11 +67,14 @@ type constraintDef struct {
 }
 
 type fieldDef struct {
-	Kind    string    `yaml:"kind"`
-	From    string    `yaml:"from"`
-	Match   string    `yaml:"match"`
-	Min     *float64  `yaml:"min"`
-	Max     *float64  `yaml:"max"`
+	Kind  string `yaml:"kind"`
+	From  string `yaml:"from"`
+	Match string `yaml:"match"`
+	// Min and Max are untyped: a numeric field bounds with numbers, a date
+	// field bounds with dates, and declaring them as float64 made a spec
+	// saying min: 2026-01-01 fail to parse at all.
+	Min     any       `yaml:"min"`
+	Max     any       `yaml:"max"`
 	Dist    string    `yaml:"dist"`
 	Mu      *float64  `yaml:"mu"`
 	Sigma   *float64  `yaml:"sigma"`
@@ -161,8 +165,8 @@ func toField(name string, fd fieldDef, extra map[string]any) schema.Field {
 		}
 	}
 	f.Kind = schema.Kind(fd.Kind)
-	setNum(f.Params, "min", fd.Min)
-	setNum(f.Params, "max", fd.Max)
+	setVal(f.Params, "min", fd.Min)
+	setVal(f.Params, "max", fd.Max)
 	setNum(f.Params, "mu", fd.Mu)
 	setNum(f.Params, "sigma", fd.Sigma)
 	setNum(f.Params, "s", fd.S)
@@ -185,6 +189,26 @@ func toField(name string, fd fieldDef, extra map[string]any) schema.Field {
 func setNum(m map[string]string, key string, v *float64) {
 	if v != nil {
 		m[key] = fmt.Sprintf("%g", *v)
+	}
+}
+
+// setVal records a bound that may be a number or a date. Numbers are written
+// in %g form so "18" does not become "18.000000"; anything else is kept as the
+// author wrote it, and the provider decides how to read it.
+func setVal(m map[string]string, key string, v any) {
+	switch x := v.(type) {
+	case nil:
+		return
+	case float64:
+		m[key] = fmt.Sprintf("%g", x)
+	case int:
+		m[key] = strconv.Itoa(x)
+	case string:
+		if x != "" {
+			m[key] = x
+		}
+	default:
+		m[key] = fmt.Sprint(x)
 	}
 }
 

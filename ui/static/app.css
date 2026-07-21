@@ -271,6 +271,9 @@ button.icon:hover { color: var(--text); background: var(--raised); }
 #fields td:last-child, #fields th:last-child { padding-right: 0; width: 1%; }
 #fields input, #fields select { width: 100%; }
 #fields td.order { width: 1%; white-space: nowrap; }
+#fields td.blank, #fields th:nth-last-child(2) { width: 1%; white-space: nowrap; }
+#fields td.blank { color: var(--muted); font-size: 12px; }
+#fields td.blank input { width: 58px; text-align: right; }
 
 .opts { display: flex; gap: 5px; }
 .opts input { min-width: 0; }

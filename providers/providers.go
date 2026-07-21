@@ -290,9 +290,47 @@ func timeProvider(c Ctx) any {
 			return prev.Add(d)
 		}
 	}
+	// An explicit window. The bounds are named min/max, matching numeric
+	// fields — "from" is already taken by the dependency reference that gives
+	// a timestamp its causal predecessor, and overloading it would make
+	// "from=CreatedAt" and "from=2026-01-01" mean different things.
+	from, hasFrom := parseInstant(c.Params["min"])
+	to, hasTo := parseInstant(c.Params["max"])
+	switch {
+	case hasFrom && hasTo:
+		if !to.After(from) {
+			return from
+		}
+		span := to.Sub(from)
+		return from.Add(time.Duration(c.Rand.Float64() * float64(span)))
+	case hasFrom:
+		return from.Add(time.Duration(c.Rand.Float64() * float64(2*365*24*time.Hour)))
+	case hasTo:
+		return to.Add(-time.Duration(c.Rand.Float64() * float64(2*365*24*time.Hour)))
+	}
+
 	// Default: a random point in the 2 years before the anchor.
 	back := c.Rand.IntRange(0, 2*365*24*3600)
 	return anchorTime.Add(-time.Duration(back) * time.Second)
+}
+
+// parseInstant reads a date or timestamp from a field param. Only the forms a
+// person would actually type are accepted; anything else is reported as absent
+// rather than silently becoming the zero time, which would put every row in
+// the year 1.
+func parseInstant(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, false
+	}
+	for _, layout := range []string{
+		time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02",
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC(), true
+		}
+	}
+	return time.Time{}, false
 }
 
 // parseGap parses "1h..48h" into a duration range. Defaults to 1m..72h.

@@ -6,6 +6,8 @@
 
 const I18N = {
   en: {
+    blank: 'blank %',
+    sentences: 'sentences',
     strength: 'strength',
     length: 'length',
     words: 'words',
@@ -75,6 +77,8 @@ const I18N = {
   },
 
   uz: {
+    blank: 'bo‘sh %',
+    sentences: 'gaplar',
     strength: 'daraja',
     length: 'uzunlik',
     words: 'so‘zlar',
@@ -144,6 +148,8 @@ const I18N = {
   },
 
   ru: {
+    blank: 'пустых %',
+    sentences: 'предложений',
     strength: 'сложность',
     length: 'длина',
     words: 'слов',

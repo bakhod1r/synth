@@ -3,7 +3,11 @@
 
 // Params the spec expects as numbers. Everything else is passed through as
 // written, because "very-strong" is not a number and Number() would send NaN.
-const NUMBER_PARAMS = new Set(['min', 'max', 'length', 'words', 'negative', 'iterations']);
+const NUMBER_PARAMS = new Set(['length', 'words', 'sentences', 'negative', 'iterations', 'blank']);
+
+// Kinds whose min/max are dates rather than numbers, so the value must be sent
+// as written instead of run through Number().
+const DATE_BOUND_KINDS = new Set(['time', 'unixtime']);
 
 const state = {
   types: [],          // [{kind, category, localized, locales}]
@@ -256,6 +260,11 @@ const PARAM_SPECS = {
   passphrase:   [{ key: 'words', type: 'number' }, { key: 'sep', type: 'text' }],
   cardexpiry:   [{ key: 'format', type: 'select', options: ['', 'MM/YYYY', 'YYYY-MM'] },
                  { key: 'expired', type: 'select', options: ['', 'true'] }],
+  time:         [{ key: 'min', type: 'date' }, { key: 'max', type: 'date' }],
+  unixtime:     [{ key: 'min', type: 'date' }, { key: 'max', type: 'date' }],
+  lorem:        [{ key: 'words', type: 'number' }],
+  sentence:     [{ key: 'words', type: 'number' }],
+  paragraph:    [{ key: 'sentences', type: 'number' }],
   card:         [{ key: 'brand', type: 'select', options: ['', 'visa', 'mastercard', 'american express', 'discover', 'jcb', 'diners club'] }],
   balance:      [{ key: 'min', type: 'number' }, { key: 'max', type: 'number' },
                  { key: 'negative', type: 'number' }],
@@ -362,6 +371,24 @@ function renderFields() {
     const optCell = document.createElement('td');
     optCell.appendChild(optionInputs(f, i));
 
+    // Blank share belongs to every column, not to a particular type: any
+    // column can have missing values, and a primary key never does.
+    const blankCell = document.createElement('td');
+    blankCell.className = 'blank';
+    const blank = document.createElement('input');
+    blank.type = 'number';
+    blank.min = '0';
+    blank.max = '100';
+    blank.value = f.params.blank ?? 0;
+    blank.setAttribute('aria-label', `${f.name} ${t('blank')}`);
+    blank.addEventListener('input', () => {
+      const v = Number(blank.value);
+      if (!v || v <= 0) delete state.fields[i].params.blank;
+      else state.fields[i].params.blank = String(Math.min(v, 100));
+      schedulePreview();
+    });
+    blankCell.append(blank, document.createTextNode('%'));
+
     const removeCell = document.createElement('td');
     removeCell.appendChild(iconButton(t('remove'), '×', () => {
       state.fields.splice(i, 1);
@@ -369,7 +396,7 @@ function renderFields() {
       schedulePreview();
     }));
 
-    tr.append(orderCell, nameCell, kindCell, optCell, removeCell);
+    tr.append(orderCell, nameCell, kindCell, optCell, blankCell, removeCell);
     body.appendChild(tr);
   }
   el('empty').hidden = state.fields.length > 0;
@@ -386,7 +413,8 @@ function currentSpec() {
     for (const [k, v] of Object.entries(f.params)) {
       if (k === 'choices') def.choices = v.split(',').map((s) => s.trim()).filter(Boolean);
       else if (NUMBER_PARAMS.has(k)) def[k] = Number(v);
-      else def[k] = v;   // strength, format, brand and sep are words, not numbers
+      else if ((k === 'min' || k === 'max') && !DATE_BOUND_KINDS.has(f.kind)) def[k] = Number(v);
+      else def[k] = v;   // dates, strength, format and brand are words, not numbers
     }
     fields[name] = def;
     order.push(name);
