@@ -1,0 +1,4 @@
+# Compiled binary. `go build ./cmd/synth` drops one here; it does not belong
+# in the repository.
+/synth
+/synth.exe

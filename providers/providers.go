@@ -5,6 +5,7 @@ package providers
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -425,4 +426,22 @@ func paramInt(p map[string]string, key string, def int) int {
 		}
 	}
 	return def
+}
+
+// Kinds returns every kind the engine can generate, sorted. The UI and the
+// docs read this rather than keeping their own list, so the catalog they show
+// cannot drift from what actually works.
+func Kinds() []schema.Kind {
+	out := make([]schema.Kind, 0, len(registry))
+	for k := range registry {
+		out = append(out, k)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+// Has reports whether a kind is registered.
+func Has(k schema.Kind) bool {
+	_, ok := registry[k]
+	return ok
 }

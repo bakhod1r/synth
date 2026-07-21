@@ -11,6 +11,7 @@
 //	synth cdc -s users.yaml -o changes.jsonl -n 1000
 //	synth verify -i orders.csv --ref user_id=users.csv:id
 //	synth snapshot -s users.yaml --at 2026-01-01 -o jan.csv
+//	synth ui --port 8080                            # local browser workbench
 package main
 
 import (
@@ -25,6 +26,7 @@ import (
 
 	"github.com/bakhodir/synth"
 	"github.com/bakhodir/synth/constraint"
+	"github.com/bakhodir/synth/ui"
 	"github.com/bakhodir/synth/verify"
 )
 
@@ -47,6 +49,8 @@ func main() {
 		err = runVerify(os.Args[2:])
 	case "snapshot":
 		err = runSnapshot(os.Args[2:])
+	case "ui":
+		err = runUI(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -246,7 +250,7 @@ func runCDC(args []string) error {
 type flags struct {
 	spec, in, out, format, locale, key, name string
 	refs                                     []string
-	at, from, to                             string
+	at, from, to, port                       string
 	seed                                     uint64
 	n, snapshot                              int
 	chaos, updateRate, deleteRate, churn     float64
@@ -292,6 +296,8 @@ func parseFlags(args []string) (flags, error) {
 			f.from, err = next(args, &i)
 		case "--to":
 			f.to, err = next(args, &i)
+		case "--port":
+			f.port, err = next(args, &i)
 		case "--churn":
 			err = scanFloat(args, &i, &f.churn)
 		case "--ref":
@@ -451,6 +457,7 @@ Usage:
   synth mask    -i <export.csv> -o <safe.csv> --key <secret> [-l locale]
   synth snapshot -s <spec.yaml> --at <date> [-o out]        # the table at an instant
   synth snapshot -s <spec.yaml> --from <date> --to <date>   # what changed between two
+  synth ui      [--port 8080]                               # browser workbench (loopback only)
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]
 
@@ -629,4 +636,18 @@ func runSnapshot(args []string) error {
 	fmt.Fprintf(os.Stderr, "%d change events between %s and %s\n",
 		len(events), from.Format(time.RFC3339), to.Format(time.RFC3339))
 	return nil
+}
+
+// runUI serves the browser workbench. It binds loopback only: the browser
+// connects in, Synth never connects out.
+func runUI(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	port := fs.port
+	if port == "" {
+		port = "8080"
+	}
+	return ui.Serve("127.0.0.1:" + port)
 }

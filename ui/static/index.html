@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synth workbench</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header>
+  <h1>Synth</h1>
+  <p class="tag">Local workbench &mdash; loopback only, nothing leaves this machine.</p>
+</header>
+
+<main>
+  <section id="palette" aria-label="Field types">
+    <h2>Types</h2>
+    <input id="search" type="search" placeholder="Search types" autocomplete="off">
+    <div id="types"></div>
+  </section>
+
+  <section id="builder" aria-label="Schema">
+    <h2>Schema</h2>
+    <div class="settings">
+      <label>Name <input id="name" value="users"></label>
+      <label>Rows <input id="count" type="number" value="10" min="1"></label>
+      <label>Locale <select id="locale"></select></label>
+      <label class="seed">Seed <input id="seed" type="number" value="42"></label>
+    </div>
+    <p class="hint">
+      The seed fully determines the output. Keep it and this dataset is
+      reproducible anywhere, forever.
+    </p>
+    <table id="fields"><tbody></tbody></table>
+    <p id="empty" class="hint">Pick a type on the left to add a field.</p>
+    <div class="actions">
+      <label>Download as
+        <select id="format">
+          <option value="csv">CSV</option>
+          <option value="jsonl">JSONL</option>
+          <option value="sql">SQL</option>
+        </select>
+      </label>
+      <button id="download" type="button">Download</button>
+    </div>
+  </section>
+
+  <section id="preview-pane" aria-label="Preview">
+    <h2>Preview</h2>
+    <p id="error" role="alert" hidden></p>
+    <div id="preview"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
