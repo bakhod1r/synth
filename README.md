@@ -295,8 +295,12 @@ synth.Register("rating", func(r synth.R) any { return r.IntRange(1, 5) })
 chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
 (`synth gen`), nested structs/slices, and `OneToMany` cardinality.
 
-**Roadmap:** deeper per-locale datasets (addresses, companies), more field
-types, and a SQL-DDL frontend.
+a SQL-DDL frontend, JSON Schema and Avro frontends, real-data profiling,
+gender-coherent names, and 173 field types across 52 locales.
+
+**Roadmap:** gendered name banks for the remaining locales (9 of 52 currently
+reach 1000+ name combinations), a Protobuf frontend, and a published benchmark
+comparison against other Go fakers.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 
