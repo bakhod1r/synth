@@ -18,9 +18,9 @@ func ExampleMake() {
 		fmt.Println(u.FirstName, u.Email)
 	}
 	// Output:
-	// Malika malika.abdullayeva51@example.uz
-	// Azizbek azizbek.tursunov61@mail.uz
-	// Shahnoza shahnoza.rashidova83@example.uz
+	// Zuhra zuhra.yoqubov51@example.uz
+	// Jasur jasur.xolmatova61@mail.uz
+	// Nargiza nargiza.qodirov83@example.uz
 }
 
 func ExampleNew() {
