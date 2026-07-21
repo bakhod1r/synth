@@ -1,6 +1,9 @@
 package synth
 
 import (
+	"fmt"
+
+	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/gen"
 	"github.com/bakhodir/synth/internal/rng"
 	"github.com/bakhodir/synth/schema"
@@ -59,5 +62,32 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 	for i := 0; i < y.spec.Count; i++ {
 		out[i] = eng.Record(base, i)
 	}
+	if err := enforceAll(y.spec.Constraints, out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// Constraints returns the spec's cross-column invariants.
+func (y *YAMLSpec) Constraints() []constraint.Constraint { return y.spec.Constraints }
+
+// enforceAll repairs each record so the spec's invariants hold. A record that
+// cannot be repaired means the constraints contradict each other, which is an
+// error in the spec — reporting it beats emitting data that quietly violates
+// what the spec promises.
+func enforceAll(cs []constraint.Constraint, recs []map[string]any) error {
+	if len(cs) == 0 {
+		return nil
+	}
+	for i, rec := range recs {
+		if !constraint.Enforce(cs, rec) {
+			for _, c := range cs {
+				if !c.Holds(rec) {
+					return fmt.Errorf("synth: row %d cannot satisfy constraint %q — "+
+						"the spec's constraints contradict each other", i, c)
+				}
+			}
+		}
+	}
+	return nil
 }

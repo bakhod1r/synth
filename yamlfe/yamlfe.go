@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/schema"
 	"gopkg.in/yaml.v3"
 )
@@ -33,14 +34,34 @@ type Spec struct {
 	Schema *schema.Schema
 	// Order preserves field declaration order for stable CSV/SQL columns.
 	Order []string
+	// Constraints are cross-column invariants, either mined from a real
+	// sample by the constraint package or written by hand. Generation
+	// enforces them after the record's fields are produced.
+	Constraints []constraint.Constraint
 }
 
 type doc struct {
-	Name   string    `yaml:"name"`
-	Count  int       `yaml:"count"`
-	Locale string    `yaml:"locale"`
-	Seed   uint64    `yaml:"seed"`
-	Fields yaml.Node `yaml:"fields"`
+	Name        string          `yaml:"name"`
+	Count       int             `yaml:"count"`
+	Locale      string          `yaml:"locale"`
+	Seed        uint64          `yaml:"seed"`
+	Fields      yaml.Node       `yaml:"fields"`
+	Constraints []constraintDef `yaml:"constraints"`
+}
+
+// constraintDef is the YAML form of one invariant.
+type constraintDef struct {
+	Kind      string   `yaml:"kind"`
+	Left      string   `yaml:"left"`
+	Right     string   `yaml:"right"`
+	Parts     []string `yaml:"parts"`
+	Whole     string   `yaml:"whole"`
+	When      string   `yaml:"when"`
+	Equals    string   `yaml:"equals"`
+	Then      string   `yaml:"then"`
+	Exclusive bool     `yaml:"exclusive"`
+	Lo        float64  `yaml:"lo"`
+	Hi        float64  `yaml:"hi"`
 }
 
 type fieldDef struct {
@@ -96,6 +117,13 @@ func Parse(data []byte) (*Spec, error) {
 		sp.Schema.Fields = append(sp.Schema.Fields, toField(name, fd))
 		sp.Order = append(sp.Order, name)
 	}
+	for i, cd := range d.Constraints {
+		c, err := toConstraint(cd)
+		if err != nil {
+			return nil, fmt.Errorf("yamlfe: constraint %d: %w", i, err)
+		}
+		sp.Constraints = append(sp.Constraints, c)
+	}
 	return sp, nil
 }
 
@@ -127,5 +155,24 @@ func toField(name string, fd fieldDef) schema.Field {
 func setNum(m map[string]string, key string, v *float64) {
 	if v != nil {
 		m[key] = fmt.Sprintf("%g", *v)
+	}
+}
+
+// toConstraint converts the YAML form to a constraint, rejecting a kind it
+// does not know rather than silently dropping an invariant the author meant
+// to enforce.
+func toConstraint(cd constraintDef) (constraint.Constraint, error) {
+	switch constraint.Kind(cd.Kind) {
+	case constraint.Ordering:
+		return constraint.Constraint{Kind: constraint.Ordering, Left: cd.Left, Right: cd.Right}, nil
+	case constraint.SumEquals:
+		return constraint.Constraint{Kind: constraint.SumEquals, Parts: cd.Parts, Whole: cd.Whole}, nil
+	case constraint.Implication:
+		return constraint.Constraint{Kind: constraint.Implication, When: cd.When,
+			Equals: cd.Equals, Then: cd.Then, Exclusive: cd.Exclusive}, nil
+	case constraint.Range:
+		return constraint.Constraint{Kind: constraint.Range, Left: cd.Left, Lo: cd.Lo, Hi: cd.Hi}, nil
+	default:
+		return constraint.Constraint{}, fmt.Errorf("unknown kind %q (want ordering, sum, implication or range)", cd.Kind)
 	}
 }

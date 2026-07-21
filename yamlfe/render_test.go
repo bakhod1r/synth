@@ -2,6 +2,7 @@ package yamlfe_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/bakhodir/synth/schema"
@@ -25,7 +26,7 @@ fields:
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, err := yamlfe.Render(first.Schema, first.Order, first.Name, first.Count)
+	doc, err := yamlfe.Render(first.Schema, first.Order, first.Name, first.Count, first.Constraints)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func TestRenderQuotesHazardousColumnNames(t *testing.T) {
 	}}
 	order := []string{"no", "2024", "order id"}
 
-	doc, err := yamlfe.Render(s, order, "t", 10)
+	doc, err := yamlfe.Render(s, order, "t", 10, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func TestRenderGivesUninferredColumnsAKind(t *testing.T) {
 	s := &schema.Schema{Fields: []schema.Field{
 		{Name: "mystery", Kind: schema.KindUnknown, Params: map[string]string{}},
 	}}
-	doc, err := yamlfe.Render(s, []string{"mystery"}, "t", 5)
+	doc, err := yamlfe.Render(s, []string{"mystery"}, "t", 5, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,5 +101,58 @@ func TestRenderGivesUninferredColumnsAKind(t *testing.T) {
 	}
 	if got.Schema.Fields[0].Kind == schema.KindUnknown {
 		t.Fatalf("uninferred column rendered with no kind:\n%s", doc)
+	}
+}
+
+// A constraints block must survive rendering and parsing: profiling writes it
+// and generation reads it, so a loss here silently drops an invariant.
+func TestRenderRoundTripsConstraints(t *testing.T) {
+	src := `name: orders
+count: 10
+fields:
+  subtotal:  { kind: amount }
+  tax:       { kind: amount }
+  total:     { kind: amount }
+  status:    { kind: enum, choices: ["paid", "refunded"] }
+  refund_at: { kind: time }
+constraints:
+  - {kind: sum, parts: [subtotal, tax], whole: total}
+  - {kind: ordering, left: subtotal, right: total}
+  - {kind: implication, when: status, equals: "refunded", then: refund_at, exclusive: true}
+  - {kind: range, left: tax, lo: 0, hi: 500}
+`
+	first, err := yamlfe.Parse([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.Constraints) != 4 {
+		t.Fatalf("parsed %d constraints, want 4", len(first.Constraints))
+	}
+	doc, err := yamlfe.Render(first.Schema, first.Order, first.Name, first.Count, first.Constraints)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := yamlfe.Parse(doc)
+	if err != nil {
+		t.Fatalf("rendered spec does not parse: %v\n%s", err, doc)
+	}
+	if !reflect.DeepEqual(first.Constraints, second.Constraints) {
+		t.Fatalf("constraints changed:\n%+v\n%+v\n%s", first.Constraints, second.Constraints, doc)
+	}
+}
+
+// An unknown constraint kind must be an error, not a silently dropped rule.
+func TestParseRejectsUnknownConstraintKind(t *testing.T) {
+	_, err := yamlfe.Parse([]byte(`name: t
+fields:
+  a: { kind: int }
+constraints:
+  - {kind: telepathy, left: a, right: a}
+`))
+	if err == nil {
+		t.Fatal("expected an error for an unknown constraint kind")
+	}
+	if !strings.Contains(err.Error(), "telepathy") {
+		t.Fatalf("error does not name the bad kind: %v", err)
 	}
 }

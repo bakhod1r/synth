@@ -3,6 +3,7 @@ package synth
 import (
 	"time"
 
+	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/gen"
 	"github.com/bakhodir/synth/internal/rng"
 	"github.com/bakhodir/synth/profile"
@@ -16,6 +17,10 @@ import (
 // the original data.
 type Profiled struct {
 	res *profile.Result
+	// cons are cross-column invariants mined from the same sample. They are
+	// what a per-column profile cannot see: a total agreeing with its parts,
+	// a timestamp ordering, a status that implies a populated column.
+	cons []constraint.Constraint
 }
 
 // Profile learns a schema from a CSV or JSONL export of real data. Synth reads
@@ -25,7 +30,15 @@ func Profile(path string) (*Profiled, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Profiled{res: r}, nil
+	p := &Profiled{res: r}
+	// Mining re-reads a bounded sample: profiling streams and keeps only
+	// statistics, but invariants are relationships between whole rows.
+	sample, err := constraint.LoadSample(path, constraint.DefaultSample)
+	if err != nil {
+		return nil, err
+	}
+	p.cons = constraint.Mine(sample, 1.0)
+	return p, nil
 }
 
 // Columns returns the profiled column names in file order.
@@ -56,6 +69,9 @@ func (p *Profiled) Generate(n int, opts ...Option) ([]map[string]any, error) {
 	for i := 0; i < n; i++ {
 		out[i] = eng.Record(base, i)
 	}
+	if err := enforceAll(p.cons, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -64,5 +80,8 @@ func (p *Profiled) Generate(n int, opts ...Option) ([]map[string]any, error) {
 // version control, and generate from it forever after without the original
 // data.
 func (p *Profiled) YAML(name string, count int) ([]byte, error) {
-	return yamlfe.Render(p.res.Schema, p.res.Order, name, count)
+	return yamlfe.Render(p.res.Schema, p.res.Order, name, count, p.cons)
 }
+
+// Constraints returns the cross-column invariants mined from the sample.
+func (p *Profiled) Constraints() []constraint.Constraint { return p.cons }

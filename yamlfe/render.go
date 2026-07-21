@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/schema"
 )
 
@@ -14,7 +15,7 @@ import (
 // to version control and generate from later without the original data.
 //
 // Round-tripping is the contract: Parse(Render(s)) must reproduce s.
-func Render(s *schema.Schema, order []string, name string, count int) ([]byte, error) {
+func Render(s *schema.Schema, order []string, name string, count int, cs []constraint.Constraint) ([]byte, error) {
 	if s == nil {
 		return nil, fmt.Errorf("yamlfe: nil schema")
 	}
@@ -43,6 +44,7 @@ func Render(s *schema.Schema, order []string, name string, count int) ([]byte, e
 		}
 		fmt.Fprintf(&b, "  %s: {%s}\n", yamlKey(n), renderField(f))
 	}
+	b.WriteString(renderConstraints(cs))
 	return b.Bytes(), nil
 }
 
@@ -111,4 +113,32 @@ func yamlKey(n string) string {
 		return `"` + strings.ReplaceAll(n, `"`, `\"`) + `"`
 	}
 	return n
+}
+
+// renderConstraints emits the mined-invariant block. Each line carries the
+// support count as a comment so a reader can judge the evidence behind it.
+func renderConstraints(cs []constraint.Constraint) string {
+	if len(cs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("constraints:\n")
+	for _, c := range cs {
+		switch c.Kind {
+		case constraint.Ordering:
+			fmt.Fprintf(&b, "  - {kind: ordering, left: %s, right: %s}", c.Left, c.Right)
+		case constraint.SumEquals:
+			fmt.Fprintf(&b, "  - {kind: sum, parts: [%s], whole: %s}",
+				strings.Join(c.Parts, ", "), c.Whole)
+		case constraint.Implication:
+			fmt.Fprintf(&b, "  - {kind: implication, when: %s, equals: %q, then: %s, exclusive: %t}",
+				c.When, c.Equals, c.Then, c.Exclusive)
+		case constraint.Range:
+			fmt.Fprintf(&b, "  - {kind: range, left: %s, lo: %g, hi: %g}", c.Left, c.Lo, c.Hi)
+		default:
+			continue
+		}
+		fmt.Fprintf(&b, "  # held over %d rows\n", c.Support)
+	}
+	return b.String()
 }
