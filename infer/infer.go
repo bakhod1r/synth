@@ -53,6 +53,8 @@ var synonyms = map[string]schema.Kind{
 	"programminglanguage": schema.KindProgrammingLanguage, "codinglanguage": schema.KindProgrammingLanguage,
 	"humanlanguage": schema.KindHumanLanguage, "spokenlanguage": schema.KindHumanLanguage,
 	"nativelanguage": schema.KindHumanLanguage, "motherTongue": schema.KindHumanLanguage,
+	"cardbrand": schema.KindCardBrand, "cardtype": schema.KindCardBrand,
+	"paymentbrand": schema.KindCardBrand, "cardscheme": schema.KindCardBrand,
 	"bodypart": schema.KindBodyPart, "organ": schema.KindBodyPart, "anatomy": schema.KindBodyPart,
 	"emoji":     schema.KindEmoji,
 	"word":      schema.KindWord,
@@ -235,12 +237,27 @@ func Kind(fieldName, goType string) (schema.Kind, bool) {
 // name→email (from), city↔postcode↔region share a Place, and multiple time
 // fields get an ordering hint by name semantics.
 func LinkDependencies(s *schema.Schema) {
-	var nameField, timeCreated string
+	var nameField, timeCreated, cardField string
 	for i := range s.Fields {
 		switch s.Fields[i].Kind {
 		case schema.KindName, schema.KindFirstName:
 			if nameField == "" {
 				nameField = s.Fields[i].Name
+			}
+		case schema.KindCard:
+			if cardField == "" {
+				cardField = s.Fields[i].Name
+			}
+		}
+	}
+	// A card brand next to a card number must describe that number. Deriving
+	// it beats drawing it: a "MasterCard" label on a 4539… number is the kind
+	// of incoherence that makes test data useless for payment code.
+	if cardField != "" {
+		for i := range s.Fields {
+			f := &s.Fields[i]
+			if f.Kind == schema.KindCardBrand && f.From == "" {
+				f.From = cardField
 			}
 		}
 	}

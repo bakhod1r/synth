@@ -194,7 +194,10 @@ const (
 	KindProgrammingLanguage Kind = "programminglanguage"
 	KindHumanLanguage       Kind = "humanlanguage"
 	// KindBodyPart is anatomy in the record's own language.
-	KindBodyPart      Kind = "bodypart"
+	KindBodyPart Kind = "bodypart"
+	// KindCardBrand is the payment brand of a card. With from=<card column> it
+	// is read off that number's issuer prefix, so the two always agree.
+	KindCardBrand     Kind = "cardbrand"
 	KindIMEI          Kind = "imei"
 	KindUPC           Kind = "upc"
 	KindRoutingNumber Kind = "routingnumber"

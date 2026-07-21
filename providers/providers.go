@@ -341,7 +341,10 @@ func card(c Ctx) any {
 	}
 	if len(c.Locale.CardBINs) > 0 {
 		bin := pick(c.Rand, c.Locale.CardBINs)
-		body := bin + c.Rand.Digits(15-len(bin))
+		// The length belongs to the scheme the BIN identifies. Amex is fifteen
+		// digits; padding it to sixteen makes a number that fails validation
+		// everywhere it matters.
+		body := bin + c.Rand.Digits(lengthForBIN(bin)-1-len(bin))
 		return body + string(luhnCheck(body))
 	}
 	return generateCard(c.Rand, "")
