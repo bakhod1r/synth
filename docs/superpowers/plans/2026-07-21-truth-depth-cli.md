@@ -4,7 +4,7 @@
 
 **Goal:** Make the docs true, close the catalog/locale gaps, and expose every capability through the CLI.
 
-**Architecture:** No architectural change. Five independent tasks against the existing frontends → IR → engine → output layering. Task 1 is a docs-only correction; Tasks 2–4 add providers/locale data; Task 5 extends `cmd/synth`.
+**Architecture:** Tasks 1–5 need no architectural change: Task 1 is a docs-only correction, Tasks 2–4 add providers/locale data, Task 5 extends `cmd/synth`. Tasks 6–9 add four new packages — `constraint` (mines invariants from a sample and enforces them during generation), `verify` (the inverse product: audits an existing dataset), `snapshot` (materializes any point in time from one seed), and `ui` (a localhost-only browser workbench).
 
 **Tech Stack:** Go 1.25, existing `providers`, `locale`, `mask`, `cdc`, `sink/parquet` packages.
 
@@ -654,4 +654,653 @@ with real flags copied from the implementation.
 ```bash
 git add cmd/synth/main.go cmd/synth/main_test.go README.md
 git commit -m "feat: expose profile, mask and cdc as CLI subcommands"
+```
+
+---
+
+### Task 6: Constraint mining — learn invariants from a sample
+
+Profiling already infers per-column types and distributions. It does not learn
+relationships *between* columns, so a generated table can hold `total = 100`
+while its line items sum to 340. This task mines invariants from a real sample
+and enforces them at generation time. It is the strongest evidence for the
+"not a faker, a dataset" claim.
+
+**Files:**
+- Create: `constraint/constraint.go` — the `Constraint` interface and the IR
+- Create: `constraint/mine.go` — detection over a sample
+- Create: `constraint/enforce.go` — repair pass applied after generation
+- Create: `constraint/constraint_test.go`
+- Modify: `profileapi.go` (emit mined constraints into the inferred spec)
+- Modify: `yamlfe/yamlfe.go` (parse a `constraints:` block)
+- Modify: `gen/gen.go` (run the enforce pass before a record is returned)
+
+**Interfaces:**
+- Consumes: `[]map[string]any` (the same shape `profile` already reads from a
+  CSV/JSONL file — no database)
+- Produces:
+  ```go
+  type Kind string
+  const (
+      Ordering    Kind = "ordering"    // A <= B
+      SumEquals   Kind = "sum"         // sum(parts) == whole
+      Implication Kind = "implication" // A == v  =>  B is non-null
+      Range       Kind = "range"       // lo <= A <= hi
+  )
+  type Constraint struct {
+      Kind    Kind
+      Left    string   // column
+      Right   string   // column, for Ordering
+      Parts   []string // columns, for SumEquals
+      Whole   string
+      When    string   // column, for Implication
+      Equals  string   // value that triggers the implication
+      Then    string   // column that must then be non-null
+      Lo, Hi  float64
+      Support int      // rows the invariant held over
+    }
+  func Mine(rows []map[string]any, minSupport float64) []Constraint
+  func Enforce(cs []Constraint, rec map[string]any)
+  func (c Constraint) Holds(rec map[string]any) bool
+  ```
+
+- [ ] **Step 1: Write the failing test**
+
+```go
+package constraint_test
+
+// Mining must find an ordering invariant that holds across the whole sample
+// and must NOT report one that holds only by chance.
+func TestMineOrdering(t *testing.T) {
+    var rows []map[string]any
+    for i := 0; i < 200; i++ {
+        rows = append(rows, map[string]any{
+            "created_at": float64(i),
+            "updated_at": float64(i + 5), // always later
+            "noise":      float64(200 - i),
+        })
+    }
+    cs := constraint.Mine(rows, 0.99)
+
+    var found bool
+    for _, c := range cs {
+        if c.Kind == constraint.Ordering && c.Left == "created_at" && c.Right == "updated_at" {
+            found = true
+        }
+        if c.Kind == constraint.Ordering && c.Left == "noise" {
+            t.Fatalf("mined a spurious ordering on noise: %+v", c)
+        }
+    }
+    if !found {
+        t.Fatalf("did not mine created_at <= updated_at; got %+v", cs)
+    }
+}
+
+// A sum invariant must be found even with floating point representation error.
+func TestMineSum(t *testing.T) {
+    var rows []map[string]any
+    for i := 0; i < 100; i++ {
+        sub, tax := float64(i)*1.1, float64(i)*0.07
+        rows = append(rows, map[string]any{
+            "subtotal": sub, "tax": tax, "total": sub + tax,
+        })
+    }
+    cs := constraint.Mine(rows, 0.99)
+    for _, c := range cs {
+        if c.Kind == constraint.SumEquals && c.Whole == "total" && len(c.Parts) == 2 {
+            return
+        }
+    }
+    t.Fatalf("did not mine subtotal + tax = total; got %+v", cs)
+}
+
+// An implication must be mined only when the trigger value actually occurs
+// often enough to be evidence.
+func TestMineImplication(t *testing.T) {
+    var rows []map[string]any
+    for i := 0; i < 300; i++ {
+        r := map[string]any{"status": "paid", "refund_at": nil}
+        if i%3 == 0 {
+            r = map[string]any{"status": "refunded", "refund_at": "2026-01-01T00:00:00Z"}
+        }
+        rows = append(rows, r)
+    }
+    cs := constraint.Mine(rows, 0.99)
+    for _, c := range cs {
+        if c.Kind == constraint.Implication && c.Equals == "refunded" && c.Then == "refund_at" {
+            return
+        }
+    }
+    t.Fatalf("did not mine status=refunded => refund_at non-null; got %+v", cs)
+}
+
+// Generated records must satisfy every mined constraint after enforcement.
+func TestEnforceRepairsRecords(t *testing.T) {
+    cs := []constraint.Constraint{
+        {Kind: constraint.Ordering, Left: "created_at", Right: "updated_at"},
+        {Kind: constraint.SumEquals, Parts: []string{"subtotal", "tax"}, Whole: "total"},
+    }
+    rec := map[string]any{
+        "created_at": 100.0, "updated_at": 20.0, // violates ordering
+        "subtotal": 10.0, "tax": 1.0, "total": 999.0, // violates sum
+    }
+    constraint.Enforce(cs, rec)
+    for _, c := range cs {
+        if !c.Holds(rec) {
+            t.Fatalf("constraint %+v still violated after Enforce: %+v", c, rec)
+        }
+    }
+}
+```
+
+- [ ] **Step 2: Run and confirm it fails**
+
+Run: `go test ./constraint/ -v`
+Expected: FAIL — the package does not exist.
+
+- [ ] **Step 3: Implement mining**
+
+Mining is candidate generation plus falsification. For each ordered pair of
+numeric columns, assume `A <= B` and scan; drop the candidate on the first
+counterexample beyond the `minSupport` budget. For sums, test every pair and
+triple of numeric columns against every other numeric column using a relative
+epsilon (`1e-9 * max(|whole|, 1)`) so float noise does not hide a real
+invariant. For implications, group by each low-cardinality string column's
+values and check whether another column is non-null in every row of the group.
+
+Require a minimum group size (at least 20 rows, and at least 5% of the sample)
+before reporting an implication — otherwise a single row invents a rule. Record
+`Support` on every constraint so a human can judge it.
+
+- [ ] **Step 4: Implement enforcement**
+
+`Enforce` repairs rather than rejects, so generation stays O(1) per record:
+
+- `Ordering`: if `Left > Right`, swap the two values.
+- `SumEquals`: overwrite `Whole` with the sum of `Parts` — the parts are the
+  generated facts, the total is derived.
+- `Implication`: if the trigger matches and `Then` is null, fill it from the
+  field's own provider; if it does not match, leave the record alone.
+- `Range`: clamp.
+
+Apply constraints in declaration order and document that order matters, since
+a later repair can undo an earlier one.
+
+- [ ] **Step 5: Wire into profiling, YAML and the engine**
+
+`synth profile` appends a `constraints:` block to the inferred spec listing
+what it mined, with the support count as a comment on each line. `yamlfe`
+parses that block back. `gen.Engine` runs `Enforce` on each record just
+before returning it.
+
+- [ ] **Step 6: Round-trip test**
+
+```go
+// Mining a real sample, generating from the inferred spec, and re-mining the
+// generated data must yield the same invariants.
+func TestConstraintRoundTrip(t *testing.T) {
+    // profile sample.csv -> spec with constraints -> generate -> re-mine
+    // assert every originally mined constraint still holds on generated rows
+}
+```
+
+Run: `go test -race ./...`
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add constraint/ profileapi.go yamlfe/yamlfe.go gen/gen.go
+git commit -m "feat: mine cross-column invariants and enforce them during generation"
+```
+
+---
+
+### Task 7: `synth verify` — the inverse product
+
+The same knowledge that generates a coherent dataset can audit one. This is a
+second product from one codebase, and it reads files only: no database.
+
+**Files:**
+- Create: `verify/verify.go` — the `Report` type and the check runner
+- Create: `verify/checks.go` — individual checks
+- Create: `verify/verify_test.go`
+- Modify: `cmd/synth/main.go` (add the `verify` subcommand)
+
+**Interfaces:**
+- Consumes: one or more CSV/JSONL files plus an optional spec for FK relations
+- Produces:
+  ```go
+  type Severity string
+  const (SevError Severity = "error"; SevWarn Severity = "warn")
+  type Finding struct {
+      Check    string   // "luhn", "fk", "temporal", "distribution", "constraint"
+      Severity Severity
+      Column   string
+      Row      int      // -1 for dataset-wide findings
+      Detail   string
+      Sample   []string // up to 3 offending values
+  }
+  type Report struct {
+      Rows     int
+      Findings []Finding
+  }
+  func Run(rows []map[string]any, opts Options) Report
+  func (r Report) Text(w io.Writer) error
+  func (r Report) JSON(w io.Writer) error
+  ```
+
+- [ ] **Step 1: Write the failing test**
+
+```go
+// A card column with a broken check digit must be reported, and a valid one
+// must not be.
+func TestVerifyDetectsLuhnFailure(t *testing.T) {
+    rows := []map[string]any{
+        {"card": "4111111111111111"}, // valid
+        {"card": "4111111111111112"}, // invalid check digit
+    }
+    rep := verify.Run(rows, verify.Options{})
+    var got *verify.Finding
+    for i := range rep.Findings {
+        if rep.Findings[i].Check == "luhn" {
+            got = &rep.Findings[i]
+        }
+    }
+    if got == nil {
+        t.Fatal("did not flag the invalid card")
+    }
+    if got.Row != 1 {
+        t.Fatalf("flagged row %d, want row 1", got.Row)
+    }
+}
+
+// A child row pointing at a missing parent key must be reported.
+func TestVerifyDetectsBrokenForeignKey(t *testing.T) {
+    parents := []map[string]any{{"id": "a"}, {"id": "b"}}
+    children := []map[string]any{{"user_id": "a"}, {"user_id": "ghost"}}
+    rep := verify.Run(children, verify.Options{
+        Refs: []verify.Ref{{Column: "user_id", Parent: parents, ParentKey: "id"}},
+    })
+    if len(rep.Findings) == 0 {
+        t.Fatal("did not flag the dangling user_id")
+    }
+    if !strings.Contains(rep.Findings[0].Detail, "ghost") {
+        t.Fatalf("finding does not name the bad value: %+v", rep.Findings[0])
+    }
+}
+
+// An updated_at before created_at is a temporal anomaly.
+func TestVerifyDetectsTemporalAnomaly(t *testing.T) {
+    rows := []map[string]any{
+        {"created_at": "2026-01-02T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z"},
+    }
+    rep := verify.Run(rows, verify.Options{})
+    for _, f := range rep.Findings {
+        if f.Check == "temporal" {
+            return
+        }
+    }
+    t.Fatalf("did not flag updated_at before created_at; got %+v", rep.Findings)
+}
+
+// A column that is 99% one value is a distribution warning, not an error.
+func TestVerifyFlagsDegenerateDistribution(t *testing.T) {
+    var rows []map[string]any
+    for i := 0; i < 1000; i++ {
+        v := "same"
+        if i == 0 {
+            v = "different"
+        }
+        rows = append(rows, map[string]any{"status": v})
+    }
+    rep := verify.Run(rows, verify.Options{})
+    for _, f := range rep.Findings {
+        if f.Check == "distribution" && f.Severity == verify.SevWarn {
+            return
+        }
+    }
+    t.Fatal("did not warn about a degenerate status column")
+}
+
+// A clean dataset must produce an empty report — no false positives.
+func TestVerifyCleanDatasetIsSilent(t *testing.T) {
+    type Row struct {
+        ID   string `synth:"uuid"`
+        Card string `synth:"card"`
+        Mail string `synth:"email"`
+    }
+    recs := synth.Make[Row](500, synth.WithSeed(1))
+    // convert to []map[string]any, then:
+    rep := verify.Run(rows, verify.Options{})
+    if len(rep.Findings) != 0 {
+        t.Fatalf("clean Synth output produced findings: %+v", rep.Findings)
+    }
+}
+```
+
+- [ ] **Step 2: Run and confirm it fails**
+
+Run: `go test ./verify/ -v`
+Expected: FAIL — the package does not exist.
+
+- [ ] **Step 3: Implement the checks**
+
+Detect each column's semantic kind by reusing `infer` on the column name, then
+run the matching validator: `luhn` for cards and IMEI, `mod97` for IBAN, EAN-13
+and UPC check digits, RFC-shaped email and URL parsing, `netip` for addresses.
+Temporal checks compare any pair of parseable timestamp columns whose names
+suggest ordering (`created`/`updated`, `start`/`end`, `opened`/`closed`).
+Distribution checks flag a column where one value exceeds 95% of non-null rows,
+or where a numeric column has zero variance.
+
+The clean-dataset test is the important one: a check that fires on Synth's own
+correct output is a false positive and must be fixed, not tolerated.
+
+- [ ] **Step 4: Add the CLI subcommand**
+
+```bash
+synth verify -i orders.csv --ref user_id=users.csv:id --format text
+```
+
+Exit code 0 when there are no errors, 1 when any finding has `SevError`, so it
+drops into CI without a wrapper. Warnings alone do not fail the run.
+
+- [ ] **Step 5: Run the tests**
+
+Run: `go test -race ./... && go build ./cmd/synth`
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add verify/ cmd/synth/main.go
+git commit -m "feat: add synth verify, an auditor for existing datasets"
+```
+
+---
+
+### Task 8: Time-travel snapshots
+
+One seed already determines an entire dataset. Make time an explicit axis of
+that determinism: ask for the world as of any instant, and the CDC event log
+between two instants must reconstruct the difference exactly. That equivalence
+is what makes the feature trustworthy for migration and incremental-ETL tests.
+
+**Files:**
+- Create: `snapshot/snapshot.go`
+- Create: `snapshot/snapshot_test.go`
+- Modify: `cdc/cdc.go` (give each event a wall-clock time drawn from the same
+  timeline the snapshot uses)
+- Modify: `cmd/synth/main.go` (`synth snapshot --at`, `--from`, `--to`)
+
+**Interfaces:**
+- Produces:
+  ```go
+  type Config struct {
+      Table    string
+      Rows     int       // steady-state row count
+      Start    time.Time // when the table came into existence
+      Churn    float64   // updates+deletes per row per year
+  }
+  type Timeline[T any] struct{ ... }
+  func New[T any](cfg Config, opts ...synth.Option) *Timeline[T]
+  func (t *Timeline[T]) At(when time.Time) []map[string]any
+  func (t *Timeline[T]) Between(from, to time.Time) []cdc.Event
+  ```
+
+- [ ] **Step 1: Write the failing test — the equivalence that defines the feature**
+
+```go
+// Applying the CDC events between two instants to the earlier snapshot must
+// produce the later snapshot, exactly. This is the whole contract.
+func TestEventsReconstructLaterSnapshot(t *testing.T) {
+    t0 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+    t1 := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+
+    tl := snapshot.New[Order](snapshot.Config{
+        Table: "orders", Rows: 500, Start: t0.AddDate(-1, 0, 0), Churn: 2.0,
+    }, synth.WithSeed(42))
+
+    before := tl.At(t0)
+    after := tl.At(t1)
+    events := tl.Between(t0, t1)
+
+    got := apply(before, events) // insert/update/delete by primary key
+    if !equalByKey(got, after, "id") {
+        t.Fatalf("replaying %d events gave %d rows, want %d — the log and the "+
+            "snapshots disagree", len(events), len(got), len(after))
+    }
+}
+
+// The same instant and seed must always give byte-identical output.
+func TestSnapshotIsDeterministic(t *testing.T) {
+    at := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
+    a := snapshot.New[Order](cfg, synth.WithSeed(7)).At(at)
+    b := snapshot.New[Order](cfg, synth.WithSeed(7)).At(at)
+    if !reflect.DeepEqual(a, b) {
+        t.Fatal("two snapshots at the same instant differ")
+    }
+}
+
+// A snapshot before the table existed must be empty, not an error.
+func TestSnapshotBeforeStartIsEmpty(t *testing.T) {
+    tl := snapshot.New[Order](snapshot.Config{
+        Table: "orders", Rows: 100,
+        Start: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+    }, synth.WithSeed(1))
+    if got := tl.At(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)); len(got) != 0 {
+        t.Fatalf("got %d rows before the table existed", len(got))
+    }
+}
+
+// Rows created after the requested instant must not appear in it.
+func TestSnapshotExcludesFutureRows(t *testing.T) {
+    // assert every row's created_at <= the requested instant
+}
+```
+
+- [ ] **Step 2: Run and confirm it fails**
+
+Run: `go test ./snapshot/ -v`
+Expected: FAIL — the package does not exist.
+
+- [ ] **Step 3: Implement the timeline**
+
+Do not simulate forward — that would make `At` cost O(history). Instead give
+every row a deterministic life derived from its index: a birth instant from
+`Fork(i)`, then a sequence of mutation instants from the same forked stream at
+the configured churn rate, and possibly a death instant. `At(when)` walks each
+row's own event list — an O(events per row) operation independent of how far
+`when` is from `Start` — and returns the row's state as of that moment, or
+nothing if it was not yet born or already dead. `Between` emits the same events
+in timestamp order.
+
+Because both `At` and `Between` read the identical per-row event list, the
+equivalence in Step 1 holds by construction rather than by luck.
+
+- [ ] **Step 4: Add the CLI subcommand**
+
+```bash
+synth snapshot -s spec.yaml --at 2026-01-01 -o jan.csv
+synth snapshot -s spec.yaml --from 2026-01-01 --to 2026-07-01 -o changes.jsonl
+```
+
+- [ ] **Step 5: Run the tests**
+
+Run: `go test -race ./...`
+Expected: PASS — especially the reconstruction test.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add snapshot/ cdc/cdc.go cmd/synth/main.go
+git commit -m "feat: add time-travel snapshots with a matching CDC event log"
+```
+
+---
+
+### Task 9: Browser workbench (`synth ui`)
+
+Mockaroo's advantage is that you can see the data while you shape the schema.
+Match that: a local page listing field types, a schema builder, and a live
+preview that regenerates as you edit.
+
+**Security boundary (non-negotiable):** the server binds `127.0.0.1` only,
+never `0.0.0.0`. No telemetry, no CDN, no outbound request of any kind — the
+page is served from `embed.FS` with inline CSS and JS. It generates data and
+writes files on the user's own machine; nothing leaves it. This respects the
+project's no-network rule: the browser connects in, Synth never connects out.
+
+**Files:**
+- Create: `ui/ui.go` — handlers
+- Create: `ui/static/index.html`, `ui/static/app.js`, `ui/static/app.css`
+- Create: `ui/ui_test.go`
+- Modify: `cmd/synth/main.go` (`synth ui --port 8080`)
+
+**Interfaces:**
+- Produces:
+  ```go
+  func Handler() http.Handler // all routes, for testing without a listener
+  func Serve(addr string) error
+  ```
+  Routes: `GET /` (page), `GET /api/types` (catalog with locale coverage),
+  `GET /api/locales`, `POST /api/preview` (spec → 10 sample rows),
+  `POST /api/generate` (spec → file download).
+
+- [ ] **Step 1: Write the failing test**
+
+```go
+// The type catalog must be served from the real registry, not a copy that
+// can drift.
+func TestTypesEndpointListsEveryKind(t *testing.T) {
+    rec := httptest.NewRecorder()
+    ui.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/api/types", nil))
+    if rec.Code != 200 {
+        t.Fatalf("status %d", rec.Code)
+    }
+    var got []struct {
+        Kind string `json:"kind"`
+    }
+    json.NewDecoder(rec.Body).Decode(&got)
+    if len(got) < 150 {
+        t.Fatalf("only %d types exposed; the registry has more", len(got))
+    }
+}
+
+// Preview must return real generated rows for a posted spec.
+func TestPreviewReturnsRows(t *testing.T) {
+    body := `{"fields":{"name":{"kind":"name"},"email":{"kind":"email"}},"locale":"uz_UZ"}`
+    rec := httptest.NewRecorder()
+    req := httptest.NewRequest("POST", "/api/preview", strings.NewReader(body))
+    ui.Handler().ServeHTTP(rec, req)
+    if rec.Code != 200 {
+        t.Fatalf("status %d: %s", rec.Code, rec.Body)
+    }
+    var rows []map[string]any
+    json.NewDecoder(rec.Body).Decode(&rows)
+    if len(rows) != 10 {
+        t.Fatalf("got %d preview rows, want 10", len(rows))
+    }
+    if !strings.Contains(rows[0]["email"].(string), "@") {
+        t.Fatalf("preview email is not real: %v", rows[0])
+    }
+}
+
+// A malformed spec must return 400 with a readable message, not a panic.
+func TestPreviewRejectsBadSpec(t *testing.T) {
+    rec := httptest.NewRecorder()
+    req := httptest.NewRequest("POST", "/api/preview", strings.NewReader(`{"fields":{"x":{"kind":"nope"}}}`))
+    ui.Handler().ServeHTTP(rec, req)
+    if rec.Code != 400 {
+        t.Fatalf("status %d, want 400", rec.Code)
+    }
+    if !strings.Contains(rec.Body.String(), "nope") {
+        t.Fatalf("error does not name the bad kind: %s", rec.Body)
+    }
+}
+
+// Preview must be capped so a huge count cannot hang the browser.
+func TestPreviewCountIsCapped(t *testing.T) {
+    // post count: 1000000, assert at most 100 rows come back
+}
+
+// The page must not reference any external origin.
+func TestPageHasNoExternalResources(t *testing.T) {
+    rec := httptest.NewRecorder()
+    ui.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+    for _, bad := range []string{"http://", "https://", "//cdn", "fonts.googleapis"} {
+        if strings.Contains(rec.Body.String(), bad) {
+            t.Fatalf("page references an external origin: %q", bad)
+        }
+    }
+}
+```
+
+- [ ] **Step 2: Run and confirm it fails**
+
+Run: `go test ./ui/ -v`
+Expected: FAIL — the package does not exist.
+
+- [ ] **Step 3: Implement the handlers**
+
+`/api/types` iterates the provider registry so it can never drift from what
+the engine actually supports, and reports each type's locale coverage using
+the `localeCatalog` table from Task 3 — the UI shows honestly which types are
+English-only. `/api/preview` unmarshals the posted spec into the same YAML IR
+`yamlfe` produces, caps the count at 100, and returns generated rows.
+`/api/generate` streams a file with a `Content-Disposition` header, reusing the
+existing encoders, and offers csv/jsonl/sql.
+
+Return 400 with the offending value named for any unknown kind — the whole
+point of the UI is to make mistakes visible.
+
+- [ ] **Step 4: Build the page**
+
+Three panes: type palette on the left (searchable, grouped by category), the
+schema builder in the middle (add/remove/reorder fields, set params, locale,
+row count, seed), and a live preview table on the right that re-requests on
+change with a short debounce. Plain JavaScript, no framework, no build step —
+`go:embed` ships it inside the binary so `synth ui` is one command with no
+install.
+
+Show the seed prominently and make it editable: reproducibility is the feature
+Mockaroo does not have, so the UI should teach it rather than hide it.
+
+- [ ] **Step 5: Verify the binding is localhost-only**
+
+`Serve` must reject a non-loopback address:
+
+```go
+func Serve(addr string) error {
+    host, _, err := net.SplitHostPort(addr)
+    if err != nil {
+        return err
+    }
+    if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
+        return fmt.Errorf("ui: refusing to bind %q — the workbench is "+
+            "loopback-only by design", addr)
+    }
+    ...
+}
+```
+
+Add a test asserting `Serve("0.0.0.0:8080")` returns an error.
+
+- [ ] **Step 6: Run the tests**
+
+Run: `go test -race ./... && go build ./cmd/synth`
+Expected: PASS.
+
+- [ ] **Step 7: Document it**
+
+Add a README section with a screenshot-free description, the exact command,
+and an explicit statement that the server is loopback-only and sends nothing
+anywhere.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add ui/ cmd/synth/main.go README.md
+git commit -m "feat: add a local browser workbench for schema design and preview"
 ```
