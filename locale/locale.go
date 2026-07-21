@@ -38,6 +38,26 @@ type Locale struct {
 	Jobs []string
 	// Products are sample product names.
 	Products []string
+	// IPBlocks are representative first octets of IPv4 ranges allocated to the
+	// country, so a generated IP plausibly geolocates to the locale.
+	IPBlocks []int
+}
+
+// countryIPBlocks maps a locale to representative first-octet IPv4 blocks
+// allocated to that country (approximate, from RIR allocations). Used so a
+// generated IP plausibly geolocates to the record's locale.
+var countryIPBlocks = map[string][]int{
+	"en_US": {23, 24, 50, 63, 66, 72, 104, 174},
+	"uz_UZ": {84, 213, 195, 217},
+	"ru_RU": {5, 31, 46, 78, 95, 178, 188},
+	"de_DE": {46, 78, 88, 91, 178, 217},
+	"fr_FR": {80, 82, 90, 92, 176, 195},
+	"ja_JP": {27, 43, 106, 126, 133, 210, 219},
+	"zh_CN": {36, 39, 58, 101, 116, 122, 202, 218},
+	"ko_KR": {14, 27, 39, 175, 211, 220},
+	"tr_TR": {78, 88, 176, 178, 212},
+	"hi_IN": {14, 27, 49, 103, 117, 122, 182},
+	"pt_BR": {45, 177, 179, 189, 191, 200, 201},
 }
 
 // Colors and genders are locale-independent enough to share.
@@ -63,10 +83,18 @@ func Names() []string {
 
 // Get returns a locale by name, falling back to en_US.
 func Get(name string) *Locale {
-	if l, ok := registry[name]; ok {
-		return l
+	l, ok := registry[name]
+	if !ok {
+		return enUS
 	}
-	return enUS
+	if l.IPBlocks == nil {
+		if b, ok := countryIPBlocks[name]; ok {
+			l.IPBlocks = b
+		} else {
+			l.IPBlocks = countryIPBlocks["en_US"]
+		}
+	}
+	return l
 }
 
 var enUS = &Locale{

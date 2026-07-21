@@ -142,7 +142,13 @@ func username(c Ctx) any {
 }
 
 func ipv4(c Ctx) any {
-	return fmt.Sprintf("%d.%d.%d.%d", c.Rand.IntRange(1, 223), c.Rand.Intn(256), c.Rand.Intn(256), c.Rand.IntRange(1, 254))
+	// First octet from the locale's allocated blocks, so the IP plausibly
+	// geolocates to the record's country.
+	first := c.Rand.IntRange(1, 223)
+	if len(c.Locale.IPBlocks) > 0 {
+		first = c.Locale.IPBlocks[c.Rand.Pick(len(c.Locale.IPBlocks))]
+	}
+	return fmt.Sprintf("%d.%d.%d.%d", first, c.Rand.Intn(256), c.Rand.Intn(256), c.Rand.IntRange(1, 254))
 }
 
 func urlProvider(c Ctx) any {
