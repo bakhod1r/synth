@@ -202,6 +202,40 @@ same-seed output is byte-identical regardless of worker count.
 | Transactions | ledger entries, timestamps, statuses |
 | Business | companies, invoices, orders, inventory |
 
+## Learn from real data (profiling)
+
+Point Synth at an **export** of a real table and it learns the shape — column
+types, numeric ranges, null rates, and the real frequency of each category —
+then generates synthetic rows that behave the same. Synth never connects to
+your database; you produce the sample yourself:
+
+```bash
+psql -c "\copy (SELECT * FROM users LIMIT 10000) TO 'sample.csv' CSV HEADER"
+```
+
+```go
+p, _ := synth.Profile("sample.csv")
+rows, _ := p.Generate(1_000_000)   // same distribution, none of the real data
+```
+
+Low-cardinality columns keep their observed split (e.g. 80% active / 15%
+inactive / 5% banned). Identifier-like columns are never echoed back, so real
+values cannot leak into the output.
+
+## Input formats
+
+Synth builds its schema from whichever definition you already have:
+
+| Source | API |
+| --- | --- |
+| Go structs (tags optional) | `synth.Make[T]` |
+| YAML spec | `synth.LoadYAML` |
+| OpenAPI 3 | `synth.OpenAPI` |
+| SQL DDL (`CREATE TABLE`) | `synth.LoadDDL` |
+| JSON Schema | `synth.LoadSchema` |
+| Avro schema | `synth.LoadSchema` |
+| Real-data sample (CSV/JSONL) | `synth.Profile` |
+
 ## CLI & YAML specs
 
 Describe data declaratively and generate it without writing Go:
