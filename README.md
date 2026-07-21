@@ -252,6 +252,7 @@ Synth builds its schema from whichever definition you already have:
 | SQL DDL (`CREATE TABLE`) | `synth.LoadDDL` |
 | JSON Schema | `synth.LoadSchema` |
 | Avro schema | `synth.LoadSchema` |
+| Protobuf (`.proto`) | `synth.LoadProto` |
 | Real-data sample (CSV/JSONL) | `synth.Profile` |
 
 ## CLI & YAML specs
@@ -316,9 +317,8 @@ chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
 a SQL-DDL frontend, JSON Schema and Avro frontends, real-data profiling,
 gender-coherent names, and 173 field types across 52 locales.
 
-**Roadmap:** gendered name banks for the remaining locales (9 of 52 currently
-reach 1000+ name combinations), a Protobuf frontend, and a published benchmark
-comparison against other Go fakers.
+**Roadmap:** gendered name banks for the remaining locales (14 of 52 currently
+reach 1000+ name combinations); protobuf `map<k,v>` fields.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 
