@@ -188,3 +188,53 @@ func TestBadNumericFlagIsReported(t *testing.T) {
 		t.Fatalf("error does not name the bad value: %s", stderr.String())
 	}
 }
+
+// verify must audit a real file, resolve foreign keys across files, and use
+// its exit code so CI can gate on it.
+func TestVerifySubcommand(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+
+	users := filepath.Join(dir, "users.csv")
+	os.WriteFile(users, []byte("id,email\nu1,a@example.com\nu2,b@example.com\n"), 0o644)
+
+	// A clean child table: exit 0, and the report says so.
+	good := filepath.Join(dir, "good.csv")
+	os.WriteFile(good, []byte("order_id,user_id\no1,u1\no2,u2\n"), 0o644)
+	out := run(t, bin, "verify", "-i", good, "--ref", "user_id="+users+":id")
+	if !strings.Contains(out, "no problems") {
+		t.Fatalf("clean data did not report clean: %q", out)
+	}
+
+	// A dangling key: exit 1, and the bad value is named.
+	bad := filepath.Join(dir, "bad.csv")
+	os.WriteFile(bad, []byte("order_id,user_id\no1,u1\no2,ghost\n"), 0o644)
+	cmd := exec.Command(bin, "verify", "-i", bad, "--ref", "user_id="+users+":id")
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected exit 1 for a dangling foreign key")
+	}
+	if !strings.Contains(stdout.String(), "ghost") {
+		t.Fatalf("report does not name the dangling value:\n%s", stdout.String())
+	}
+}
+
+// A malformed --ref must be explained, not silently ignored.
+func TestVerifyRejectsMalformedRef(t *testing.T) {
+	bin := build(t)
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.csv")
+	os.WriteFile(in, []byte("a\n1\n"), 0o644)
+
+	cmd := exec.Command(bin, "verify", "-i", in, "--ref", "nonsense")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err == nil {
+		t.Fatal("expected an error for a malformed --ref")
+	}
+	if !strings.Contains(stderr.String(), "col=parent.csv:key") {
+		t.Fatalf("error does not show the expected form: %s", stderr.String())
+	}
+}

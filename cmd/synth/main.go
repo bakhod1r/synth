@@ -9,6 +9,7 @@
 //	synth profile -i export.csv -o inferred.yaml    # learn a spec from real data
 //	synth mask -i export.csv -o safe.csv --key K    # anonymize a real dump
 //	synth cdc -s users.yaml -o changes.jsonl -n 1000
+//	synth verify -i orders.csv --ref user_id=users.csv:id
 package main
 
 import (
@@ -21,6 +22,8 @@ import (
 	"strings"
 
 	"github.com/bakhodir/synth"
+	"github.com/bakhodir/synth/constraint"
+	"github.com/bakhodir/synth/verify"
 )
 
 func main() {
@@ -38,6 +41,8 @@ func main() {
 		err = runMask(os.Args[2:])
 	case "cdc":
 		err = runCDC(os.Args[2:])
+	case "verify":
+		err = runVerify(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -236,6 +241,7 @@ func runCDC(args []string) error {
 
 type flags struct {
 	spec, in, out, format, locale, key, name string
+	refs                                     []string
 	seed                                     uint64
 	n, snapshot                              int
 	chaos, updateRate, deleteRate            float64
@@ -275,6 +281,10 @@ func parseFlags(args []string) (flags, error) {
 			f.key, err = next(args, &i)
 		case "--name":
 			f.name, err = next(args, &i)
+		case "--ref":
+			var v string
+			v, err = next(args, &i)
+			f.refs = append(f.refs, v)
 		case "-n", "--rows":
 			err = scanInto(args, &i, &f.n)
 		case "--snapshot":
@@ -426,6 +436,7 @@ Usage:
   synth gen     -s <spec.yaml> [-o out] [-f csv|jsonl|sql] [-n rows] [-l locale] [--seed N] [--chaos p]
   synth profile -i <export.csv> [-o spec.yaml] [--name table] [-n rows]
   synth mask    -i <export.csv> -o <safe.csv> --key <secret> [-l locale]
+  synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]
 
 Flags:
@@ -439,5 +450,82 @@ Flags:
       --key        masking key; the same key keeps foreign keys joinable
       --seed       deterministic seed
       --chaos      fraction of edge-case values (0..1)
-      --update-rate, --delete-rate, --snapshot   CDC history shape`)
+      --ref        foreign key to resolve, as col=parent.csv:key (repeatable)
+      --update-rate, --delete-rate, --snapshot   CDC history shape
+
+synth verify exits 1 when it finds an error, 0 when it finds only warnings,
+so it drops into CI without a wrapper.`)
+}
+
+// runVerify audits an existing dataset. Both the data and any parent tables
+// are read from files; nothing is queried.
+func runVerify(args []string) error {
+	fs, err := parseFlags(args)
+	if err != nil {
+		return err
+	}
+	if fs.in == "" {
+		return fmt.Errorf("verify: -i <data.csv> is required")
+	}
+	rows, err := constraint.LoadSample(fs.in, 0)
+	if err != nil {
+		return err
+	}
+	opts := verify.Options{}
+	for _, spec := range fs.refs {
+		ref, err := parseRef(spec)
+		if err != nil {
+			return err
+		}
+		opts.Refs = append(opts.Refs, ref)
+	}
+	// A spec supplies the invariants to re-check against this dataset.
+	if fs.spec != "" {
+		y, err := synth.LoadYAML(fs.spec)
+		if err != nil {
+			return err
+		}
+		for _, c := range y.Constraints() {
+			opts.Constraints = append(opts.Constraints, c)
+		}
+	}
+
+	rep := verify.Run(rows, opts)
+	out, closeOut, err := output(fs.out)
+	if err != nil {
+		return err
+	}
+	defer closeOut()
+	if fs.format == "json" {
+		err = rep.JSON(out)
+	} else {
+		err = rep.Text(out)
+	}
+	if err != nil {
+		return err
+	}
+	if !rep.OK() {
+		// Close the report file before exiting: os.Exit skips deferred calls,
+		// and a truncated report is worse than none.
+		closeOut()
+		os.Exit(1)
+	}
+	return nil
+}
+
+// parseRef reads a foreign key written as col=parent.csv:key.
+func parseRef(spec string) (verify.Ref, error) {
+	col, rest, ok := strings.Cut(spec, "=")
+	if !ok {
+		return verify.Ref{}, fmt.Errorf("--ref %q: want col=parent.csv:key", spec)
+	}
+	file, key, ok := strings.Cut(rest, ":")
+	if !ok {
+		return verify.Ref{}, fmt.Errorf("--ref %q: missing :key after the parent file", spec)
+	}
+	parent, err := constraint.LoadSample(file, 0)
+	if err != nil {
+		return verify.Ref{}, fmt.Errorf("--ref %q: %w", spec, err)
+	}
+	return verify.Ref{Column: col, Parent: parent, ParentKey: key}, nil
 }
