@@ -218,7 +218,8 @@ synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 
 **Implemented:** struct frontend with tagless inference, referential integrity
 (`Ref`), temporal causality (`after=`/`gap=` lifecycle ordering), unique
-constraints (`unique` tag, PKs), locale coherence (country → region → city → postcode → phone),
+constraints (`unique` tag, PKs), nested structs and slices (objects and arrays,
+generated recursively), locale coherence (country → region → city → postcode → phone),
 Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
 parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
 

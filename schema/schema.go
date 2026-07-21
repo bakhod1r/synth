@@ -57,6 +57,10 @@ const (
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""
+	// KindObject is a nested struct; its shape is in Field.Nested.
+	KindObject Kind = "object"
+	// KindArray is a slice; its element shape is in Field.Elem.
+	KindArray Kind = "array"
 )
 
 // Field is one column of a record.
@@ -90,6 +94,13 @@ type Field struct {
 	// If empty, Choices are picked uniformly (or by Zipf if Params["dist"]
 	// == "zipf").
 	Weights []float64
+	// Nested is the sub-schema for a KindObject field.
+	Nested *Schema
+	// Elem describes the element of a KindArray field (its Kind, and for
+	// arrays of structs, its own Nested schema).
+	Elem *Field
+	// ArrMin/ArrMax bound the length of a KindArray field (default 1..3).
+	ArrMin, ArrMax int
 }
 
 // Schema is an ordered list of fields describing one record type.

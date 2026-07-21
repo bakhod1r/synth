@@ -199,7 +199,7 @@ func assign(fv reflect.Value, val any) {
 	vv := reflect.ValueOf(val)
 	ft := fv.Type()
 	// Direct assignability (same type, incl. uuid.UUID, time.Time).
-	if vv.Type().AssignableTo(ft) {
+	if vv.IsValid() && vv.Type().AssignableTo(ft) {
 		fv.Set(vv)
 		return
 	}
@@ -209,6 +209,32 @@ func assign(fv reflect.Value, val any) {
 		assign(p.Elem(), val)
 		fv.Set(p)
 		return
+	}
+	// Nested object: a generated map[string]any scattered into a struct.
+	if ft.Kind() == reflect.Struct {
+		if m, ok := val.(map[string]any); ok {
+			for i := 0; i < ft.NumField(); i++ {
+				sub := fv.Field(i)
+				if !sub.CanSet() {
+					continue
+				}
+				if ev, ok := m[ft.Field(i).Name]; ok && ev != nil {
+					assign(sub, ev)
+				}
+			}
+			return
+		}
+	}
+	// Array/slice: a generated []any scattered element-by-element.
+	if ft.Kind() == reflect.Slice {
+		if arr, ok := val.([]any); ok {
+			s := reflect.MakeSlice(ft, len(arr), len(arr))
+			for i, ev := range arr {
+				assign(s.Index(i), ev)
+			}
+			fv.Set(s)
+			return
+		}
 	}
 	// Numeric coercion (int provider → int64 field, etc.).
 	switch ft.Kind() {

@@ -22,6 +22,9 @@ type Engine struct {
 	Chaos float64
 	// seen tracks generated values per unique field, to enforce distinctness.
 	seen map[string]map[any]bool
+	// sub holds compiled engines for nested object schemas, keyed by the
+	// nested *schema.Schema pointer.
+	sub map[*schema.Schema]*Engine
 }
 
 // Compile validates the schema (unknown kinds, from= cycles) and computes the
@@ -38,11 +41,34 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 		if f.FromRef != nil {
 			continue // filled from a parent slice, no provider needed
 		}
+		if f.Kind == schema.KindObject || f.Kind == schema.KindArray {
+			continue // handled by recursive sub-engines, not a provider
+		}
 		if providers.Get(f.Kind) == nil {
 			return nil, fmt.Errorf("synth: field %q has unknown kind %q", f.Name, f.Kind)
 		}
 	}
 	e := &Engine{schema: s, loc: locale.Get(localeName), order: order}
+	// Compile nested object schemas recursively (sharing the same locale).
+	for i := range s.Fields {
+		f := &s.Fields[i]
+		var nested *schema.Schema
+		if f.Kind == schema.KindObject {
+			nested = f.Nested
+		} else if f.Kind == schema.KindArray && f.Elem != nil && f.Elem.Kind == schema.KindObject {
+			nested = f.Elem.Nested
+		}
+		if nested != nil {
+			sub, err := Compile(nested, localeName)
+			if err != nil {
+				return nil, err
+			}
+			if e.sub == nil {
+				e.sub = map[*schema.Schema]*Engine{}
+			}
+			e.sub[nested] = sub
+		}
+	}
 	for _, f := range s.Fields {
 		// UUIDs are unique by construction — no stateful tracking needed, which
 		// also keeps them safe for parallel generation.
@@ -108,10 +134,16 @@ func topoOrder(s *schema.Schema) ([]int, error) {
 func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 	r := base.Fork(uint64(seq))
 	place := e.loc.Places[r.Pick(len(e.loc.Places))]
+	return e.generate(r, &place)
+}
+
+// generate fills one record using the given rng and locale place (shared so
+// nested objects stay locale-coherent with their parent).
+func (e *Engine) generate(r *rng.Rand, place *locale.Place) map[string]any {
 	values := make(map[string]any, len(e.schema.Fields))
 	for _, i := range e.order {
 		f := &e.schema.Fields[i]
-		v := e.field(r, f, &place, values)
+		v := e.field(r, f, place, values)
 		if e.Chaos > 0 && f.FromRef == nil && r.Bool(e.Chaos) {
 			v = chaosValue(r, v)
 		}
@@ -120,7 +152,7 @@ func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 		// ensure the field's space exceeds the row count).
 		if seen := e.seen[f.Name]; seen != nil {
 			for attempt := 0; seen[v] && attempt < 1000; attempt++ {
-				v = e.field(r, f, &place, values)
+				v = e.field(r, f, place, values)
 			}
 			seen[v] = true
 		}
@@ -136,6 +168,17 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 	}
 	if f.Kind == schema.KindUnknown {
 		return nil
+	}
+	// Nested object: generate a sub-record with the same rng and place.
+	if f.Kind == schema.KindObject {
+		if sub := e.sub[f.Nested]; sub != nil {
+			return sub.generate(r, place)
+		}
+		return nil
+	}
+	// Array: generate a slice of elements (scalars or nested objects).
+	if f.Kind == schema.KindArray {
+		return e.array(r, f, place, values)
 	}
 	p := providers.Get(f.Kind)
 	c := providers.Ctx{
@@ -155,6 +198,31 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, values
 		},
 	}
 	return p(c)
+}
+
+// array generates a slice value for a KindArray field.
+func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, values map[string]any) []any {
+	min, max := f.ArrMin, f.ArrMax
+	if max < min {
+		max = min
+	}
+	if max == 0 {
+		min, max = 1, 3
+	}
+	n := r.IntRange(min, max)
+	out := make([]any, n)
+	for i := 0; i < n; i++ {
+		if f.Elem.Kind == schema.KindObject {
+			if sub := e.sub[f.Elem.Nested]; sub != nil {
+				out[i] = sub.generate(r, place)
+				continue
+			}
+			out[i] = nil
+			continue
+		}
+		out[i] = e.field(r, f.Elem, place, values)
+	}
+	return out
 }
 
 // Schema exposes the underlying schema (for encoders needing column order).

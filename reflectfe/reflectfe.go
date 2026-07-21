@@ -43,17 +43,96 @@ func build(t reflect.Type) *built {
 		tag := sf.Tag.Get("synth")
 		if tag != "" && tag != "-" {
 			parseTag(&f, tag)
+		} else if isStructural(sf.Type) {
+			// Nested struct or slice: structure wins over any name synonym
+			// (a field named "Address" of struct type is an object, not a street).
+			enrichStructural(&f, sf.Type)
 		} else {
 			k, _ := infer.Kind(sf.Name, f.GoType)
 			f.Kind = k
-			if k == schema.KindUnknown {
-				warns = append(warns, schema.Warning{Field: sf.Name, Reason: "no synonym or type match; left as zero value"})
-			}
+		}
+		if f.Kind == schema.KindUnknown {
+			warns = append(warns, schema.Warning{Field: sf.Name, Reason: "no synonym or type match; left as zero value"})
 		}
 		s.Fields = append(s.Fields, f)
 	}
 	infer.LinkDependencies(s)
 	return &built{schema: s, warnings: warns}
+}
+
+// isStructural reports whether t is a nested struct or slice that should be
+// generated recursively (not a scalar, and not time.Time/uuid.UUID).
+func isStructural(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		return !isScalarStruct(t)
+	case reflect.Slice, reflect.Array:
+		return true
+	}
+	return false
+}
+
+// enrichStructural handles nested structs and slices. Pointers are unwrapped.
+// time.Time and uuid.UUID are treated as scalars, not structs.
+func enrichStructural(f *schema.Field, t reflect.Type) {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		if isScalarStruct(t) {
+			return
+		}
+		f.Kind = schema.KindObject
+		f.Nested = build(t).schema
+	case reflect.Slice, reflect.Array:
+		elem := t.Elem()
+		for elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		ef := &schema.Field{Name: f.Name, GoType: goTypeName(elem), Params: map[string]string{}}
+		if elem.Kind() == reflect.Struct && !isScalarStruct(elem) {
+			ef.Kind = schema.KindObject
+			ef.Nested = build(elem).schema
+		} else {
+			k, _ := infer.Kind(f.Name, goTypeName(elem))
+			if k == schema.KindUnknown {
+				k = scalarKind(elem)
+			}
+			ef.Kind = k
+		}
+		if ef.Kind == schema.KindUnknown {
+			return
+		}
+		f.Kind = schema.KindArray
+		f.Elem = ef
+		f.ArrMin, f.ArrMax = 1, 3
+	}
+}
+
+// isScalarStruct reports types we generate as single values, not sub-objects.
+func isScalarStruct(t reflect.Type) bool {
+	s := t.String()
+	return s == "time.Time" || s == "uuid.UUID"
+}
+
+// scalarKind maps a slice element's Go kind to a default scalar Synth kind.
+func scalarKind(t reflect.Type) schema.Kind {
+	switch t.Kind() {
+	case reflect.String:
+		return schema.KindLorem
+	case reflect.Bool:
+		return schema.KindBool
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return schema.KindInt
+	case reflect.Float32, reflect.Float64:
+		return schema.KindFloat
+	}
+	return schema.KindUnknown
 }
 
 // parseTag reads `synth:"kind,opt=val,flag"`.
