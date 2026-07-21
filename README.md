@@ -57,6 +57,17 @@ Tests enforce the cardinality, the script and the inflection — each is the kin
 of error that is invisible to a reader who does not speak the language and
 glaring to one who does.
 
+Ten locales also carry their own **catalog** datasets — weekdays, months,
+seasons, weather, colours, dishes, fruit, vegetables, drinks and animals — in
+the local language, and with local content rather than translations: `uz_UZ`
+returns osh and somsa, `pl_PL` returns pierogi and żurek. Types with no dataset
+for the chosen locale fall back to English rather than returning nothing.
+
+That fallback is stated, not hidden. `providers.LocalesFor(kind)` reports
+exactly which locales a type has data for, the workbench shows it on every
+type in the palette, and a test asserts that a type like `superhero` — the
+same word everywhere — never claims coverage it does not have.
+
 ### Statistical shape
 Real data isn't uniform. Synth draws from distributions so your test data stresses the same paths production does.
 
@@ -518,9 +529,8 @@ chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
 a SQL-DDL frontend, JSON Schema and Avro frontends, real-data profiling,
 gender-coherent names, and 173 field types across 52 locales.
 
-**Roadmap:** locale-specific datasets for the culturally-specific catalog types
-(food, colour and similar still return English values outside en_US — the UI
-marks which types are actually localized); protobuf `map<k,v>` fields.
+**Roadmap:** locale datasets for the culturally-specific catalog types beyond
+the ten locales currently covered; protobuf `map<k,v>` fields.
 Network sinks (Kafka, Postgres) are intentionally **out of scope** — Synth stays
 a pure provider; feed its output to your own loader.
 

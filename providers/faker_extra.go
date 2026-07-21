@@ -55,8 +55,8 @@ func init() {
 	registry[schema.KindLatitude] = func(c Ctx) any { return -90 + c.Rand.Float64()*180 }
 	registry[schema.KindLongitude] = func(c Ctx) any { return -180 + c.Rand.Float64()*360 }
 	registry[schema.KindUnixTime] = func(c Ctx) any { return int(timeProvider(c).(time.Time).Unix()) }
-	registry[schema.KindMonth] = func(c Ctx) any { return pick(c.Rand, months) }
-	registry[schema.KindWeekday] = func(c Ctx) any { return pick(c.Rand, weekdays) }
+	registry[schema.KindMonth] = func(c Ctx) any { return localized(c, schema.KindMonth, months) }
+	registry[schema.KindWeekday] = func(c Ctx) any { return localized(c, schema.KindWeekday, weekdays) }
 	registry[schema.KindYear] = func(c Ctx) any { return c.Rand.IntRange(1970, 2030) }
 	registry[schema.KindBloodType] = func(c Ctx) any { return pick(c.Rand, bloodTypes) }
 	registry[schema.KindUserAgent] = func(c Ctx) any { return pick(c.Rand, userAgents) }

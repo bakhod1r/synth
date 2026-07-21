@@ -1,0 +1,211 @@
+package providers
+
+import "github.com/bakhodir/synth/schema"
+
+// Locale datasets for the culturally-specific catalog types.
+//
+// Dishes are the local dish, not a translation of an American one: uz_UZ gets
+// osh and somsa, not "hamburger" spelled differently. That is the point — the
+// data should look like it came from that country's database.
+
+func init() {
+	localeCatalog["uz_UZ"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba", "yakshanba"},
+		schema.KindMonth: {"yanvar", "fevral", "mart", "aprel", "may", "iyun",
+			"iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"},
+		schema.KindSeason:  {"bahor", "yoz", "kuz", "qish"},
+		schema.KindWeather: {"quyoshli", "bulutli", "yomg'irli", "qorli", "shamolli", "tumanli", "issiq", "sovuq"},
+		schema.KindColor: {"qizil", "ko'k", "yashil", "sariq", "oq", "qora", "jigarrang", "kulrang",
+			"pushti", "binafsha", "to'q sariq", "moviy", "zangori", "olcha", "bej", "kumushrang"},
+		schema.KindFood: {"osh", "somsa", "manti", "lag'mon", "shashlik", "norin", "dimlama", "mastava",
+			"chuchvara", "qozon kabob", "hasip", "sho'rva", "moshxo'rda", "shivit oshi", "tuxum barak", "beshbarmoq"},
+		schema.KindFruit: {"olma", "uzum", "shaftoli", "o'rik", "anor", "qovun", "tarvuz", "nok",
+			"gilos", "olcha", "anjir", "xurmo", "behi", "yong'oq", "bodom", "limon"},
+		schema.KindVegetable: {"sabzi", "kartoshka", "pomidor", "bodring", "piyoz", "qalampir", "karam", "baqlajon",
+			"turp", "sholg'om", "qovoq", "loviya", "no'xat", "ismaloq", "rediska", "sarimsoq"},
+		schema.KindDrink: {"choy", "ko'k choy", "qahva", "ayron", "kompot", "sharbat", "suv", "qatiq",
+			"limonad", "shinni", "chakka", "namatak choyi"},
+		schema.KindAnimal: {"ot", "tuya", "qo'y", "echki", "sigir", "eshak", "it", "mushuk",
+			"bo'ri", "tulki", "quyon", "ayiq", "burgut", "laylak", "kaklik", "chumchuq"},
+	}
+
+	localeCatalog["ru_RU"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"},
+		schema.KindMonth: {"январь", "февраль", "март", "апрель", "май", "июнь",
+			"июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"},
+		schema.KindSeason:  {"весна", "лето", "осень", "зима"},
+		schema.KindWeather: {"солнечно", "облачно", "дождливо", "снежно", "ветрено", "туманно", "жарко", "морозно"},
+		schema.KindColor: {"красный", "синий", "зелёный", "жёлтый", "белый", "чёрный", "коричневый", "серый",
+			"розовый", "фиолетовый", "оранжевый", "голубой", "бирюзовый", "бордовый", "бежевый", "золотой"},
+		schema.KindFood: {"борщ", "пельмени", "блины", "окрошка", "щи", "солянка", "оливье", "сырники",
+			"голубцы", "бефстроганов", "каша", "винегрет", "холодец", "расстегай", "котлеты", "шашлык"},
+		schema.KindFruit: {"яблоко", "груша", "слива", "вишня", "малина", "клубника", "смородина", "виноград",
+			"персик", "абрикос", "арбуз", "дыня", "апельсин", "лимон", "банан", "крыжовник"},
+		schema.KindVegetable: {"морковь", "картофель", "помидор", "огурец", "лук", "перец", "капуста", "баклажан",
+			"свёкла", "редис", "тыква", "кабачок", "горох", "фасоль", "чеснок", "укроп"},
+		schema.KindDrink: {"чай", "кофе", "квас", "компот", "морс", "кефир", "сок", "вода",
+			"молоко", "лимонад", "сбитень", "какао"},
+		schema.KindAnimal: {"медведь", "волк", "лиса", "заяц", "лось", "олень", "кабан", "рысь",
+			"белка", "ёж", "бобр", "барсук", "соболь", "журавль", "аист", "сова"},
+	}
+
+	localeCatalog["tr_TR"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"pazartesi", "salı", "çarşamba", "perşembe", "cuma", "cumartesi", "pazar"},
+		schema.KindMonth: {"ocak", "şubat", "mart", "nisan", "mayıs", "haziran",
+			"temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık"},
+		schema.KindSeason:  {"ilkbahar", "yaz", "sonbahar", "kış"},
+		schema.KindWeather: {"güneşli", "bulutlu", "yağmurlu", "karlı", "rüzgârlı", "sisli", "sıcak", "soğuk"},
+		schema.KindColor: {"kırmızı", "mavi", "yeşil", "sarı", "beyaz", "siyah", "kahverengi", "gri",
+			"pembe", "mor", "turuncu", "lacivert", "turkuaz", "bordo", "bej", "altın"},
+		schema.KindFood: {"kebap", "lahmacun", "pide", "mantı", "dolma", "börek", "köfte", "menemen",
+			"iskender", "kumpir", "simit", "çiğ köfte", "imam bayıldı", "karnıyarık", "pilav", "baklava"},
+		schema.KindFruit: {"elma", "armut", "üzüm", "kayısı", "şeftali", "nar", "incir", "karpuz",
+			"kavun", "kiraz", "vişne", "erik", "portakal", "limon", "muz", "çilek"},
+		schema.KindVegetable: {"havuç", "patates", "domates", "salatalık", "soğan", "biber", "lahana", "patlıcan",
+			"kabak", "ıspanak", "pırasa", "bezelye", "fasulye", "turp", "sarımsak", "maydanoz"},
+		schema.KindDrink: {"çay", "kahve", "ayran", "şalgam", "boza", "şerbet", "su", "limonata",
+			"salep", "sahlep", "meyve suyu", "soda"},
+		schema.KindAnimal: {"at", "koyun", "keçi", "inek", "eşek", "köpek", "kedi", "kurt",
+			"tilki", "tavşan", "ayı", "kartal", "leylek", "keklik", "serçe", "geyik"},
+	}
+
+	localeCatalog["de_DE"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"},
+		schema.KindMonth: {"Januar", "Februar", "März", "April", "Mai", "Juni",
+			"Juli", "August", "September", "Oktober", "November", "Dezember"},
+		schema.KindSeason:  {"Frühling", "Sommer", "Herbst", "Winter"},
+		schema.KindWeather: {"sonnig", "bewölkt", "regnerisch", "verschneit", "windig", "neblig", "heiß", "kalt"},
+		schema.KindColor: {"Rot", "Blau", "Grün", "Gelb", "Weiß", "Schwarz", "Braun", "Grau",
+			"Rosa", "Violett", "Orange", "Türkis", "Beige", "Gold", "Silber", "Bordeaux"},
+		schema.KindFood: {"Schnitzel", "Bratwurst", "Sauerbraten", "Currywurst", "Spätzle", "Rouladen", "Eisbein", "Maultaschen",
+			"Kartoffelsalat", "Sauerkraut", "Leberkäse", "Frikadelle", "Knödel", "Gulasch", "Brezel", "Apfelstrudel"},
+		schema.KindFruit: {"Apfel", "Birne", "Pflaume", "Kirsche", "Erdbeere", "Himbeere", "Johannisbeere", "Traube",
+			"Pfirsich", "Aprikose", "Wassermelone", "Melone", "Orange", "Zitrone", "Banane", "Stachelbeere"},
+		schema.KindVegetable: {"Karotte", "Kartoffel", "Tomate", "Gurke", "Zwiebel", "Paprika", "Kohl", "Aubergine",
+			"Rote Bete", "Radieschen", "Kürbis", "Zucchini", "Erbse", "Bohne", "Knoblauch", "Spinat"},
+		schema.KindDrink: {"Bier", "Wein", "Apfelschorle", "Kaffee", "Tee", "Wasser", "Limonade", "Saft",
+			"Radler", "Glühwein", "Kakao", "Sprudel"},
+		schema.KindAnimal: {"Bär", "Wolf", "Fuchs", "Hase", "Hirsch", "Reh", "Wildschwein", "Luchs",
+			"Eichhörnchen", "Igel", "Biber", "Dachs", "Adler", "Storch", "Eule", "Kranich"},
+	}
+
+	localeCatalog["fr_FR"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"},
+		schema.KindMonth: {"janvier", "février", "mars", "avril", "mai", "juin",
+			"juillet", "août", "septembre", "octobre", "novembre", "décembre"},
+		schema.KindSeason:  {"printemps", "été", "automne", "hiver"},
+		schema.KindWeather: {"ensoleillé", "nuageux", "pluvieux", "neigeux", "venteux", "brumeux", "chaud", "froid"},
+		schema.KindColor: {"rouge", "bleu", "vert", "jaune", "blanc", "noir", "marron", "gris",
+			"rose", "violet", "orange", "turquoise", "beige", "doré", "argenté", "bordeaux"},
+		schema.KindFood: {"cassoulet", "ratatouille", "bouillabaisse", "coq au vin", "quiche lorraine", "blanquette", "gratin dauphinois", "pot-au-feu",
+			"croque-monsieur", "tartiflette", "confit de canard", "steak frites", "soupe à l'oignon", "crêpe", "baguette", "crème brûlée"},
+		schema.KindFruit: {"pomme", "poire", "prune", "cerise", "fraise", "framboise", "cassis", "raisin",
+			"pêche", "abricot", "pastèque", "melon", "orange", "citron", "banane", "myrtille"},
+		schema.KindVegetable: {"carotte", "pomme de terre", "tomate", "concombre", "oignon", "poivron", "chou", "aubergine",
+			"betterave", "radis", "courge", "courgette", "petit pois", "haricot", "ail", "épinard"},
+		schema.KindDrink: {"vin", "cidre", "café", "thé", "eau", "jus", "limonade", "bière",
+			"kir", "pastis", "chocolat chaud", "diabolo"},
+		schema.KindAnimal: {"ours", "loup", "renard", "lièvre", "cerf", "chevreuil", "sanglier", "lynx",
+			"écureuil", "hérisson", "castor", "blaireau", "aigle", "cigogne", "hibou", "grue"},
+	}
+
+	localeCatalog["es_ES"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"},
+		schema.KindMonth: {"enero", "febrero", "marzo", "abril", "mayo", "junio",
+			"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"},
+		schema.KindSeason:  {"primavera", "verano", "otoño", "invierno"},
+		schema.KindWeather: {"soleado", "nublado", "lluvioso", "nevado", "ventoso", "neblinoso", "caluroso", "frío"},
+		schema.KindColor: {"rojo", "azul", "verde", "amarillo", "blanco", "negro", "marrón", "gris",
+			"rosa", "morado", "naranja", "turquesa", "beige", "dorado", "plateado", "granate"},
+		schema.KindFood: {"paella", "tortilla española", "gazpacho", "cocido", "fabada", "pulpo a la gallega", "jamón ibérico", "croquetas",
+			"pisto", "salmorejo", "callos", "bacalao al pil pil", "empanada", "churros", "migas", "escalivada"},
+		schema.KindFruit: {"manzana", "pera", "ciruela", "cereza", "fresa", "frambuesa", "uva", "melocotón",
+			"albaricoque", "sandía", "melón", "naranja", "limón", "plátano", "granada", "higo"},
+		schema.KindVegetable: {"zanahoria", "patata", "tomate", "pepino", "cebolla", "pimiento", "col", "berenjena",
+			"remolacha", "rábano", "calabaza", "calabacín", "guisante", "judía", "ajo", "espinaca"},
+		schema.KindDrink: {"vino", "sangría", "cerveza", "café", "té", "agua", "zumo", "horchata",
+			"vermut", "sidra", "chocolate", "gaseosa"},
+		schema.KindAnimal: {"oso", "lobo", "zorro", "liebre", "ciervo", "corzo", "jabalí", "lince",
+			"ardilla", "erizo", "castor", "tejón", "águila", "cigüeña", "búho", "grulla"},
+	}
+
+	localeCatalog["it_IT"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"},
+		schema.KindMonth: {"gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+			"luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"},
+		schema.KindSeason:  {"primavera", "estate", "autunno", "inverno"},
+		schema.KindWeather: {"soleggiato", "nuvoloso", "piovoso", "nevoso", "ventoso", "nebbioso", "caldo", "freddo"},
+		schema.KindColor: {"rosso", "blu", "verde", "giallo", "bianco", "nero", "marrone", "grigio",
+			"rosa", "viola", "arancione", "turchese", "beige", "oro", "argento", "bordeaux"},
+		schema.KindFood: {"pasta alla carbonara", "lasagne", "risotto", "ossobuco", "parmigiana", "cacio e pepe", "amatriciana", "pizza margherita",
+			"minestrone", "polenta", "saltimbocca", "vitello tonnato", "gnocchi", "arancini", "tiramisù", "focaccia"},
+		schema.KindFruit: {"mela", "pera", "prugna", "ciliegia", "fragola", "lampone", "uva", "pesca",
+			"albicocca", "anguria", "melone", "arancia", "limone", "banana", "fico", "melograno"},
+		schema.KindVegetable: {"carota", "patata", "pomodoro", "cetriolo", "cipolla", "peperone", "cavolo", "melanzana",
+			"barbabietola", "ravanello", "zucca", "zucchina", "pisello", "fagiolo", "aglio", "spinaci"},
+		schema.KindDrink: {"vino", "espresso", "cappuccino", "acqua", "birra", "spritz", "limoncello", "succo",
+			"aranciata", "chinotto", "grappa", "tè"},
+		schema.KindAnimal: {"orso", "lupo", "volpe", "lepre", "cervo", "capriolo", "cinghiale", "lince",
+			"scoiattolo", "riccio", "castoro", "tasso", "aquila", "cicogna", "gufo", "gru"},
+	}
+
+	localeCatalog["pt_BR"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"},
+		schema.KindMonth: {"janeiro", "fevereiro", "março", "abril", "maio", "junho",
+			"julho", "agosto", "setembro", "outubro", "novembro", "dezembro"},
+		schema.KindSeason:  {"primavera", "verão", "outono", "inverno"},
+		schema.KindWeather: {"ensolarado", "nublado", "chuvoso", "ventoso", "neblina", "abafado", "quente", "frio"},
+		schema.KindColor: {"vermelho", "azul", "verde", "amarelo", "branco", "preto", "marrom", "cinza",
+			"rosa", "roxo", "laranja", "turquesa", "bege", "dourado", "prateado", "vinho"},
+		schema.KindFood: {"feijoada", "pão de queijo", "coxinha", "moqueca", "acarajé", "vatapá", "brigadeiro", "farofa",
+			"churrasco", "baião de dois", "escondidinho", "bobó de camarão", "tapioca", "canjica", "pastel", "açaí"},
+		schema.KindFruit: {"maçã", "pera", "manga", "goiaba", "maracujá", "abacaxi", "banana", "laranja",
+			"limão", "caju", "açaí", "jabuticaba", "melancia", "mamão", "uva", "morango"},
+		schema.KindVegetable: {"cenoura", "batata", "tomate", "pepino", "cebola", "pimentão", "repolho", "berinjela",
+			"beterraba", "rabanete", "abóbora", "chuchu", "quiabo", "feijão", "alho", "couve"},
+		schema.KindDrink: {"cafezinho", "caipirinha", "guaraná", "chimarrão", "água de coco", "suco", "cerveja", "água",
+			"cachaça", "vitamina", "mate", "refrigerante"},
+		schema.KindAnimal: {"onça", "tatu", "capivara", "tucano", "arara", "jaguatirica", "lobo-guará", "quati",
+			"preguiça", "tamanduá", "boto", "jacaré", "sagui", "bugio", "ema", "jaburu"},
+	}
+
+	localeCatalog["ja_JP"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"},
+		schema.KindMonth: {"一月", "二月", "三月", "四月", "五月", "六月",
+			"七月", "八月", "九月", "十月", "十一月", "十二月"},
+		schema.KindSeason:  {"春", "夏", "秋", "冬"},
+		schema.KindWeather: {"晴れ", "曇り", "雨", "雪", "風", "霧", "暑い", "寒い"},
+		schema.KindColor: {"赤", "青", "緑", "黄色", "白", "黒", "茶色", "灰色",
+			"ピンク", "紫", "オレンジ", "水色", "金色", "銀色", "紺", "藍色"},
+		schema.KindFood: {"寿司", "ラーメン", "天ぷら", "うどん", "そば", "カレー", "とんかつ", "お好み焼き",
+			"焼き鳥", "牛丼", "餃子", "おにぎり", "味噌汁", "すき焼き", "たこ焼き", "親子丼"},
+		schema.KindFruit: {"りんご", "梨", "桃", "ぶどう", "みかん", "柿", "苺", "西瓜",
+			"メロン", "さくらんぼ", "びわ", "栗", "柚子", "梅", "バナナ", "キウイ"},
+		schema.KindVegetable: {"人参", "じゃがいも", "トマト", "きゅうり", "玉ねぎ", "ピーマン", "キャベツ", "茄子",
+			"大根", "白菜", "かぼちゃ", "ごぼう", "ほうれん草", "ねぎ", "にんにく", "しいたけ"},
+		schema.KindDrink: {"緑茶", "麦茶", "ほうじ茶", "日本酒", "焼酎", "コーヒー", "水", "ジュース",
+			"ビール", "梅酒", "抹茶", "サイダー"},
+		schema.KindAnimal: {"熊", "狼", "狐", "兎", "鹿", "猪", "狸", "猿",
+			"栗鼠", "鶴", "鷹", "梟", "雀", "猫", "犬", "馬"},
+	}
+
+	localeCatalog["pl_PL"] = map[schema.Kind][]string{
+		schema.KindWeekday: {"poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"},
+		schema.KindMonth: {"styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec",
+			"lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień"},
+		schema.KindSeason:  {"wiosna", "lato", "jesień", "zima"},
+		schema.KindWeather: {"słonecznie", "pochmurno", "deszczowo", "śnieżnie", "wietrznie", "mgliście", "gorąco", "zimno"},
+		schema.KindColor: {"czerwony", "niebieski", "zielony", "żółty", "biały", "czarny", "brązowy", "szary",
+			"różowy", "fioletowy", "pomarańczowy", "turkusowy", "beżowy", "złoty", "srebrny", "bordowy"},
+		schema.KindFood: {"pierogi", "bigos", "żurek", "kotlet schabowy", "gołąbki", "barszcz", "placki ziemniaczane", "rosół",
+			"kaszanka", "flaki", "zapiekanka", "kopytka", "sernik", "makowiec", "oscypek", "pyzy"},
+		schema.KindFruit: {"jabłko", "gruszka", "śliwka", "wiśnia", "truskawka", "malina", "porzeczka", "winogrono",
+			"brzoskwinia", "morela", "arbuz", "melon", "pomarańcza", "cytryna", "banan", "agrest"},
+		schema.KindVegetable: {"marchew", "ziemniak", "pomidor", "ogórek", "cebula", "papryka", "kapusta", "bakłażan",
+			"burak", "rzodkiewka", "dynia", "cukinia", "groch", "fasola", "czosnek", "szpinak"},
+		schema.KindDrink: {"herbata", "kawa", "kompot", "kefir", "sok", "woda", "piwo", "lemoniada",
+			"kwas chlebowy", "mleko", "nalewka", "oranżada"},
+		schema.KindAnimal: {"niedźwiedź", "wilk", "lis", "zając", "jeleń", "sarna", "dzik", "ryś",
+			"wiewiórka", "jeż", "bóbr", "borsuk", "orzeł", "bocian", "sowa", "żuraw"},
+	}
+}

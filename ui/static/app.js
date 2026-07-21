@@ -60,9 +60,11 @@ function renderTypes(query) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = t.localized ? 'type localized' : 'type';
-      b.title = t.localized
-        ? 'Values follow the selected locale'
-        : 'Same values in every locale';
+      b.title = t.locales && t.locales.length
+        ? `Localized in ${t.locales.length} locales: ${t.locales.join(', ')}`
+        : t.localized
+          ? 'Values follow the selected locale'
+          : 'Same values in every locale';
 
       const dot = document.createElement('span');
       dot.className = 'dot';

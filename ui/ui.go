@@ -99,6 +99,10 @@ type typeInfo struct {
 	// Localized reports whether this type's values change with the locale.
 	// The UI shows this honestly rather than implying every type is localized.
 	Localized bool `json:"localized"`
+	// Locales lists the locales that have their own dataset for this type,
+	// empty when the type is the same everywhere or is localized structurally
+	// (a name or an address) rather than through a per-locale word list.
+	Locales []string `json:"locales,omitempty"`
 }
 
 func handleTypes(w http.ResponseWriter, r *http.Request) {
@@ -108,10 +112,12 @@ func handleTypes(w http.ResponseWriter, r *http.Request) {
 		if k == schema.KindObject || k == schema.KindArray || k == schema.KindUnknown {
 			continue // structural, not a value type
 		}
+		covered := providers.LocalesFor(k)
 		out = append(out, typeInfo{
 			Kind:      string(k),
 			Category:  categoryOf(k),
-			Localized: localizedKinds[k],
+			Localized: structurallyLocalized[k] || len(covered) > 0,
+			Locales:   covered,
 		})
 	}
 	writeJSON(w, out)
@@ -287,10 +293,12 @@ var categories = []struct {
 		"languagename", "university", "emoji"}},
 }
 
-// localizedKinds are the kinds whose values actually change with the locale.
-// Everything else returns the same values in every locale, and the UI says so
-// rather than letting a user assume otherwise.
-var localizedKinds = map[schema.Kind]bool{
+// structurallyLocalized are the kinds whose values follow the locale through
+// its own data — a name bank, an address, a phone prefix, a bank's BIN ranges
+// — rather than through the word lists in providers.LocalesFor. Everything
+// else is reported as localized only where a real dataset exists, so the UI
+// never implies coverage the engine does not have.
+var structurallyLocalized = map[schema.Kind]bool{
 	schema.KindName: true, schema.KindFirstName: true, schema.KindLastName: true,
 	schema.KindMiddleName: true, schema.KindCity: true, schema.KindRegion: true,
 	schema.KindCountry: true, schema.KindPostcode: true, schema.KindStreet: true,

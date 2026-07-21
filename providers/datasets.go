@@ -130,8 +130,8 @@ func init() {
 	registry[schema.KindBand] = func(c Ctx) any { return pick(c.Rand, bands) }
 	registry[schema.KindBrand] = func(c Ctx) any { return pick(c.Rand, brands) }
 	registry[schema.KindCountryName] = func(c Ctx) any { return pick(c.Rand, countriesList) }
-	registry[schema.KindFood] = func(c Ctx) any { return pick(c.Rand, foods) }
-	registry[schema.KindAnimal] = func(c Ctx) any { return pick(c.Rand, animals) }
+	registry[schema.KindFood] = func(c Ctx) any { return localized(c, schema.KindFood, foods) }
+	registry[schema.KindAnimal] = func(c Ctx) any { return localized(c, schema.KindAnimal, animals) }
 	registry[schema.KindSport] = func(c Ctx) any { return pick(c.Rand, sports) }
 	registry[schema.KindPlanet] = func(c Ctx) any { return pick(c.Rand, planets) }
 	registry[schema.KindUniversity] = func(c Ctx) any { return pick(c.Rand, universities) }
