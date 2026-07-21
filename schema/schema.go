@@ -176,16 +176,25 @@ const (
 	KindPriority       Kind = "priority"
 
 	// Regulated-domain identifiers: healthcare, finance, networking.
-	KindICD10         Kind = "icd10"
-	KindNDC           Kind = "ndc"
-	KindDrugName      Kind = "drugname"
-	KindISIN          Kind = "isin"
-	KindLEI           Kind = "lei"
-	KindCUSIP         Kind = "cusip"
-	KindCIDR          Kind = "cidr"
-	KindASN           Kind = "asn"
-	KindMACVendor     Kind = "macvendor"
-	KindGeoJSONPoint  Kind = "geojsonpoint"
+	KindICD10        Kind = "icd10"
+	KindNDC          Kind = "ndc"
+	KindDrugName     Kind = "drugname"
+	KindISIN         Kind = "isin"
+	KindLEI          Kind = "lei"
+	KindCUSIP        Kind = "cusip"
+	KindCIDR         Kind = "cidr"
+	KindASN          Kind = "asn"
+	KindMACVendor    Kind = "macvendor"
+	KindGeoJSONPoint Kind = "geojsonpoint"
+
+	// KindProgrammingLanguage and KindHumanLanguage are the clear names for
+	// what "language" and "languagename" mean. The old names stay valid, but
+	// they were easy to mix up: one gives Go or Rust, the other Uzbek or
+	// Japanese.
+	KindProgrammingLanguage Kind = "programminglanguage"
+	KindHumanLanguage       Kind = "humanlanguage"
+	// KindBodyPart is anatomy in the record's own language.
+	KindBodyPart      Kind = "bodypart"
 	KindIMEI          Kind = "imei"
 	KindUPC           Kind = "upc"
 	KindRoutingNumber Kind = "routingnumber"

@@ -38,23 +38,59 @@ header {
 .tag { color: var(--muted); font-size: 12px; }
 
 .lang { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.head-right { display: flex; align-items: center; gap: 12px; }
+
+.rail-btn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 5px 11px;
+  font-size: 12px;
+}
+.rail-btn:hover { color: var(--text); }
+.rail-btn.on { background: var(--accent-dim); border-color: #3c5580; color: #dbe7ff; }
 
 /* ---------------------------------------------------------------- layout */
 
-main {
+/* Two collapsible rails around a single vertical column: the schema and its
+   settings on top, the generated data underneath at full width. Reading down
+   the page matches the order of the work. */
+#shell {
   display: grid;
-  grid-template-columns: 230px minmax(420px, 1fr) minmax(320px, 1.1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 1px;
   background: var(--line);
   min-height: calc(100vh - 53px);
+  align-items: stretch;
+}
+
+#palette, #tools {
+  background: var(--panel);
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 53px);
+  position: sticky;
+  top: 0;
+}
+#palette { width: 232px; }
+#tools { width: 320px; }
+#palette[hidden], #tools[hidden] { display: none; }
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+  min-width: 0;
 }
 
 main > section {
   background: var(--panel);
-  padding: 16px;
-  overflow: auto;
-  max-height: calc(100vh - 53px);
+  padding: 16px 20px;
+  min-width: 0;
 }
+
+#preview-pane { flex: 1; }
 
 h2 {
   margin: 0 0 10px;
@@ -213,7 +249,9 @@ button.icon:hover { color: var(--text); background: var(--raised); }
   margin-bottom: 6px;
 }
 .settings label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.settings { align-items: flex-end; }
 .settings input, .settings select { width: 132px; }
+.settings-actions { display: flex; gap: 8px; margin-left: auto; }
 .settings .seed input { width: 96px; border-color: var(--accent-dim); }
 .seed-row { display: flex; gap: 4px; align-items: center; }
 
@@ -238,17 +276,6 @@ button.icon:hover { color: var(--text); background: var(--raised); }
 .opts input { min-width: 0; }
 
 #add { margin-top: 10px; }
-
-.actions {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  flex-wrap: wrap;
-}
-.actions label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
 
 /* ---------------------------------------------------------------- preview */
 
@@ -345,4 +372,47 @@ pre.yaml {
 @media (max-width: 1000px) {
   main { grid-template-columns: 1fr; }
   main > section { max-height: none; }
+}
+
+/* ---------------------------------------------------------------- tools */
+
+#tools .pane-head { margin-bottom: 6px; }
+#tools .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+#tools .stack input, #tools .stack select, #tools textarea { width: 100%; }
+#tools .row { display: flex; gap: 8px; }
+#tools .row .stack { flex: 1; min-width: 0; }
+#tools .toggle { margin-bottom: 10px; }
+#tools button.primary { width: 100%; margin-bottom: 12px; }
+#tools #toolCopy { width: 100%; }
+
+#tools textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  background: #0f1218;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: inherit;
+  padding: 8px 9px;
+}
+#tools #toolOutput { color: #b9c6dd; }
+
+.warn {
+  color: #f0b46b;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: -4px 0 10px;
+}
+
+@media (max-width: 1100px) {
+  #shell { grid-template-columns: 1fr; }
+  #palette, #tools { width: auto; position: static; max-height: none; }
 }

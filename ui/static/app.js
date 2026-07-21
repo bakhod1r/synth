@@ -6,7 +6,7 @@ const state = {
   byKind: new Map(),
   fields: [],         // [{name, kind, params, auto}]
   lang: 'en',
-  view: 'stacked',    // 'stacked' | 'table'
+  view: 'table',      // 'table' | 'stacked'
   lastRows: [],
   lastOrder: [],
 };
@@ -68,10 +68,14 @@ async function boot() {
     el(id).addEventListener('input', schedulePreview);
   }
   el('download').addEventListener('click', download);
-  el('copyYaml').addEventListener('click', copyYaml);
+  el('copySpec').addEventListener('click', copySpec);
+  el('togglePalette').addEventListener('click', () => togglePane('palette'));
+  el('toggleTools').addEventListener('click', () => togglePane('tools'));
+  el('closeTools').addEventListener('click', () => togglePane('tools', false));
+  await bootTools();
   el('viewStacked').addEventListener('click', () => setView('stacked'));
   el('viewTable').addEventListener('click', () => setView('table'));
-  setView(localStorage.getItem('synth.view') || 'stacked');
+  setView(localStorage.getItem('synth.view') || 'table');
 }
 
 function navigatorLang() {
@@ -520,7 +524,7 @@ function yamlOf(spec) {
   return lines.join('\n') + '\n';
 }
 
-async function copyYaml() {
+async function copySpec() {
   const spec = currentSpec();
   if (spec.order.length === 0) {
     showError(t('addFieldFirst'));
@@ -569,3 +573,139 @@ async function download() {
 }
 
 boot();
+
+
+// ---------------------------------------------------------------- panes
+
+// togglePane shows or hides a side panel. Both rails collapse so the schema
+// and its output can use the full width when neither is needed.
+function togglePane(id, force) {
+  const pane = el(id);
+  const show = force === undefined ? pane.hidden : force;
+  pane.hidden = !show;
+  localStorage.setItem(`synth.pane.${id}`, show ? 'open' : 'closed');
+  const btn = id === 'tools' ? el('toggleTools') : el('togglePalette');
+  btn.classList.toggle('on', show);
+}
+
+function restorePanes() {
+  togglePane('palette', localStorage.getItem('synth.pane.palette') !== 'closed');
+  togglePane('tools', localStorage.getItem('synth.pane.tools') === 'open');
+}
+
+// ---------------------------------------------------------------- tools
+
+const toolState = { catalog: [], decode: false };
+
+async function bootTools() {
+  toolState.catalog = await fetch('/api/tools').then((r) => r.json());
+  renderToolOptions();
+
+  el('toolOp').addEventListener('change', onToolChange);
+  el('dirEncode').addEventListener('click', () => setDirection(false));
+  el('dirDecode').addEventListener('click', () => setDirection(true));
+  el('toolRun').addEventListener('click', runTool);
+  el('toolCopy').addEventListener('click', async () => {
+    const text = el('toolOutput').value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(t('copiedOutput'));
+    } catch { /* clipboard refused; the value is already on screen */ }
+  });
+  onToolChange();
+  restorePanes();
+}
+
+function groupLabel(group) {
+  return { hash: t('groupHash'), password: t('groupPassword'), encoding: t('groupEncoding') }[group] || group;
+}
+
+function renderToolOptions() {
+  const sel = el('toolOp');
+  const previous = sel.value;
+  sel.textContent = '';
+  const groups = new Map();
+  for (const tool of toolState.catalog) {
+    if (!groups.has(tool.group)) groups.set(tool.group, []);
+    groups.get(tool.group).push(tool);
+  }
+  for (const [group, items] of groups) {
+    const og = document.createElement('optgroup');
+    og.label = groupLabel(group);
+    for (const tool of items) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = tool.op;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  }
+  if (previous) sel.value = previous;
+}
+
+function currentTool() {
+  return toolState.catalog.find((tool) => tool.op === el('toolOp').value);
+}
+
+// onToolChange shows only the inputs the chosen operation actually uses, and
+// hides the encode/decode switch for one-way hashes rather than offering a
+// decode that cannot exist.
+function onToolChange() {
+  const tool = currentTool();
+  if (!tool) return;
+
+  el('toolDirection').hidden = !tool.reversible;
+  if (!tool.reversible) setDirection(false);
+  el('toolKeyRow').hidden = !tool.needsKey;
+  el('toolSaltRow').hidden = !tool.needsSalt;
+
+  const warn = el('toolWarn');
+  warn.hidden = !tool.warn;
+  warn.textContent = tool.warn || '';
+
+  el('toolOutput').value = '';
+  el('toolNote').hidden = true;
+}
+
+function setDirection(decode) {
+  toolState.decode = decode;
+  el('dirEncode').classList.toggle('on', !decode);
+  el('dirDecode').classList.toggle('on', decode);
+}
+
+async function runTool() {
+  const tool = currentTool();
+  if (!tool) return;
+  const input = el('toolInput').value;
+  if (!input.trim()) {
+    showToolResult('', t('needInput'), true);
+    return;
+  }
+  const op = tool.reversible ? `${tool.op}-${toolState.decode ? 'decode' : 'encode'}` : tool.op;
+  const res = await fetch('/api/tools', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      op,
+      input,
+      key: el('toolKey').value,
+      salt: el('toolSalt').value,
+      iterations: Number(el('toolIter').value || 0),
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    showToolResult('', text, true);
+    return;
+  }
+  const data = JSON.parse(text);
+  showToolResult(data.output, data.note || '', false);
+}
+
+function showToolResult(output, note, isError) {
+  el('toolOutput').value = output;
+  const box = el('toolNote');
+  box.hidden = !note;
+  box.textContent = note;
+  box.classList.toggle('warn', Boolean(isError));
+}

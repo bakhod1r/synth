@@ -10,6 +10,14 @@ import "github.com/bakhodir/synth/schema"
 
 func init() {
 	localeCatalog["uz_UZ"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"bosh", "soch", "peshona", "ko'z", "qosh", "kiprik",
+			"quloq", "burun", "yuz", "og'iz", "lab", "tish",
+			"til", "iyak", "bo'yin", "tomoq", "yelka", "qo'l",
+			"tirsak", "bilak", "kaft", "barmoq", "tirnoq", "ko'krak",
+			"yelka suyagi", "bel", "qorin", "son", "tizza", "boldir",
+			"to'piq", "oyoq", "tovon", "teri", "suyak", "mushak",
+			"yurak", "o'pka", "jigar", "buyrak", "miya"},
 		schema.KindWeekday: {"dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba", "yakshanba"},
 		schema.KindMonth: {"yanvar", "fevral", "mart", "aprel", "may", "iyun",
 			"iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"},
@@ -30,6 +38,14 @@ func init() {
 	}
 
 	localeCatalog["ru_RU"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"голова", "волосы", "лоб", "глаз", "бровь", "ресница",
+			"ухо", "нос", "щека", "рот", "губа", "зуб",
+			"язык", "подбородок", "шея", "горло", "плечо", "рука",
+			"локоть", "запястье", "ладонь", "палец", "ноготь", "грудь",
+			"спина", "талия", "бедро", "живот", "нога", "колено",
+			"голень", "лодыжка", "стопа", "пятка", "кожа", "кость",
+			"мышца", "сердце", "лёгкое", "печень", "почка", "мозг"},
 		schema.KindWeekday: {"понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"},
 		schema.KindMonth: {"январь", "февраль", "март", "апрель", "май", "июнь",
 			"июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"},
@@ -50,6 +66,14 @@ func init() {
 	}
 
 	localeCatalog["tr_TR"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"baş", "saç", "alın", "göz", "kaş", "kirpik",
+			"kulak", "burun", "yanak", "ağız", "dudak", "diş",
+			"dil", "çene", "boyun", "boğaz", "omuz", "kol",
+			"dirsek", "bilek", "avuç", "parmak", "tırnak", "göğüs",
+			"sırt", "bel", "karın", "kalça", "bacak", "diz",
+			"baldır", "ayak bileği", "ayak", "topuk", "deri", "kemik",
+			"kas", "kalp", "akciğer", "karaciğer", "böbrek", "beyin"},
 		schema.KindWeekday: {"pazartesi", "salı", "çarşamba", "perşembe", "cuma", "cumartesi", "pazar"},
 		schema.KindMonth: {"ocak", "şubat", "mart", "nisan", "mayıs", "haziran",
 			"temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık"},
@@ -70,6 +94,14 @@ func init() {
 	}
 
 	localeCatalog["de_DE"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"Kopf", "Haar", "Stirn", "Auge", "Augenbraue", "Wimper",
+			"Ohr", "Nase", "Wange", "Mund", "Lippe", "Zahn",
+			"Zunge", "Kinn", "Hals", "Kehle", "Schulter", "Arm",
+			"Ellbogen", "Handgelenk", "Handfläche", "Finger", "Nagel", "Brust",
+			"Rücken", "Taille", "Hüfte", "Bauch", "Bein", "Knie",
+			"Wade", "Knöchel", "Fuß", "Ferse", "Haut", "Knochen",
+			"Muskel", "Herz", "Lunge", "Leber", "Niere", "Gehirn"},
 		schema.KindWeekday: {"Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"},
 		schema.KindMonth: {"Januar", "Februar", "März", "April", "Mai", "Juni",
 			"Juli", "August", "September", "Oktober", "November", "Dezember"},
@@ -90,6 +122,14 @@ func init() {
 	}
 
 	localeCatalog["fr_FR"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"tête", "cheveux", "front", "œil", "sourcil", "cil",
+			"oreille", "nez", "joue", "bouche", "lèvre", "dent",
+			"langue", "menton", "cou", "gorge", "épaule", "bras",
+			"coude", "poignet", "paume", "doigt", "ongle", "poitrine",
+			"dos", "taille", "hanche", "ventre", "jambe", "genou",
+			"mollet", "cheville", "pied", "talon", "peau", "os",
+			"muscle", "cœur", "poumon", "foie", "rein", "cerveau"},
 		schema.KindWeekday: {"lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"},
 		schema.KindMonth: {"janvier", "février", "mars", "avril", "mai", "juin",
 			"juillet", "août", "septembre", "octobre", "novembre", "décembre"},
@@ -110,6 +150,14 @@ func init() {
 	}
 
 	localeCatalog["es_ES"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"cabeza", "pelo", "frente", "ojo", "ceja", "pestaña",
+			"oreja", "nariz", "mejilla", "boca", "labio", "diente",
+			"lengua", "barbilla", "cuello", "garganta", "hombro", "brazo",
+			"codo", "muñeca", "palma", "dedo", "uña", "pecho",
+			"espalda", "cintura", "cadera", "vientre", "pierna", "rodilla",
+			"pantorrilla", "tobillo", "pie", "talón", "piel", "hueso",
+			"músculo", "corazón", "pulmón", "hígado", "riñón", "cerebro"},
 		schema.KindWeekday: {"lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"},
 		schema.KindMonth: {"enero", "febrero", "marzo", "abril", "mayo", "junio",
 			"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"},
@@ -130,6 +178,14 @@ func init() {
 	}
 
 	localeCatalog["it_IT"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"testa", "capelli", "fronte", "occhio", "sopracciglio", "ciglio",
+			"orecchio", "naso", "guancia", "bocca", "labbro", "dente",
+			"lingua", "mento", "collo", "gola", "spalla", "braccio",
+			"gomito", "polso", "palmo", "dito", "unghia", "petto",
+			"schiena", "vita", "anca", "pancia", "gamba", "ginocchio",
+			"polpaccio", "caviglia", "piede", "tallone", "pelle", "osso",
+			"muscolo", "cuore", "polmone", "fegato", "rene", "cervello"},
 		schema.KindWeekday: {"lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"},
 		schema.KindMonth: {"gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
 			"luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"},
@@ -150,6 +206,14 @@ func init() {
 	}
 
 	localeCatalog["pt_BR"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"cabeça", "cabelo", "testa", "olho", "sobrancelha", "cílio",
+			"orelha", "nariz", "bochecha", "boca", "lábio", "dente",
+			"língua", "queixo", "pescoço", "garganta", "ombro", "braço",
+			"cotovelo", "pulso", "palma", "dedo", "unha", "peito",
+			"costas", "cintura", "quadril", "barriga", "perna", "joelho",
+			"panturrilha", "tornozelo", "pé", "calcanhar", "pele", "osso",
+			"músculo", "coração", "pulmão", "fígado", "rim", "cérebro"},
 		schema.KindWeekday: {"segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"},
 		schema.KindMonth: {"janeiro", "fevereiro", "março", "abril", "maio", "junho",
 			"julho", "agosto", "setembro", "outubro", "novembro", "dezembro"},
@@ -170,6 +234,14 @@ func init() {
 	}
 
 	localeCatalog["ja_JP"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"頭", "髪", "額", "目", "眉", "まつげ",
+			"耳", "鼻", "頬", "口", "唇", "歯",
+			"舌", "あご", "首", "喉", "肩", "腕",
+			"肘", "手首", "手のひら", "指", "爪", "胸",
+			"背中", "腰", "尻", "腹", "脚", "膝",
+			"ふくらはぎ", "足首", "足", "かかと", "皮膚", "骨",
+			"筋肉", "心臓", "肺", "肝臓", "腎臓", "脳"},
 		schema.KindWeekday: {"月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"},
 		schema.KindMonth: {"一月", "二月", "三月", "四月", "五月", "六月",
 			"七月", "八月", "九月", "十月", "十一月", "十二月"},
@@ -190,6 +262,14 @@ func init() {
 	}
 
 	localeCatalog["pl_PL"] = map[schema.Kind][]string{
+		schema.KindBodyPart: {
+			"głowa", "włosy", "czoło", "oko", "brew", "rzęsa",
+			"ucho", "nos", "policzek", "usta", "warga", "ząb",
+			"język", "broda", "szyja", "gardło", "ramię", "ręka",
+			"łokieć", "nadgarstek", "dłoń", "palec", "paznokieć", "klatka piersiowa",
+			"plecy", "talia", "biodro", "brzuch", "noga", "kolano",
+			"łydka", "kostka", "stopa", "pięta", "skóra", "kość",
+			"mięsień", "serce", "płuco", "wątroba", "nerka", "mózg"},
 		schema.KindWeekday: {"poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"},
 		schema.KindMonth: {"styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec",
 			"lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień"},

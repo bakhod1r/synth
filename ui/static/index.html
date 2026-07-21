@@ -9,22 +9,27 @@
 <body>
 
 <header>
+  <button id="togglePalette" class="rail-btn" type="button" data-i18n-title="types">☰</button>
   <div class="brand">
     <span class="logo">Synth</span>
     <span class="tag" data-i18n="tagline"></span>
   </div>
-  <label class="lang">
-    <span data-i18n="language"></span>
-    <select id="lang">
-      <option value="en">English</option>
-      <option value="uz">O‘zbekcha</option>
-      <option value="ru">Русский</option>
-    </select>
-  </label>
+  <div class="head-right">
+    <label class="lang">
+      <span data-i18n="language"></span>
+      <select id="lang">
+        <option value="en">English</option>
+        <option value="uz">O‘zbekcha</option>
+        <option value="ru">Русский</option>
+      </select>
+    </label>
+    <button id="toggleTools" class="rail-btn" type="button" data-i18n="tools"></button>
+  </div>
 </header>
 
-<main>
-  <section id="palette">
+<div id="shell">
+
+  <aside id="palette">
     <h2 data-i18n="types"></h2>
     <input id="search" type="search" autocomplete="off" data-i18n-placeholder="searchTypes">
     <p class="legend">
@@ -32,72 +37,124 @@
       <span class="dot"></span><span data-i18n="legendGlobal"></span>
     </p>
     <div id="types"></div>
-  </section>
+  </aside>
 
-  <section id="builder">
-    <h2 data-i18n="schema"></h2>
+  <main>
+    <section id="builder">
+      <h2 data-i18n="schema"></h2>
 
-    <div class="settings">
-      <label><span data-i18n="tableName"></span><input id="name" value="users"></label>
-      <label><span data-i18n="rows"></span><input id="count" type="number" value="10" min="1"></label>
-      <label><span data-i18n="locale"></span><select id="locale"></select></label>
-      <label class="seed">
-        <span data-i18n="seed"></span>
-        <span class="seed-row">
-          <input id="seed" type="number" value="42">
-          <button id="reseed" type="button" title="" data-i18n-title="reseedHint">⟳</button>
-        </span>
-      </label>
-    </div>
-    <p class="hint" data-i18n="seedHint"></p>
-
-    <table id="fields">
-      <thead>
-        <tr>
-          <th></th>
-          <th data-i18n="colName"></th>
-          <th data-i18n="colType"></th>
-          <th data-i18n="colOptions"></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <p id="empty" class="hint" data-i18n="emptySchema"></p>
-
-    <button id="add" type="button" class="primary">
-      <span aria-hidden="true">＋</span> <span data-i18n="addField"></span>
-    </button>
-
-    <div class="actions">
-      <label><span data-i18n="downloadAs"></span>
-        <select id="format">
-          <option value="csv">CSV</option>
-          <option value="jsonl">JSONL</option>
-          <option value="sql">SQL</option>
-        </select>
-      </label>
-      <button id="download" type="button" class="primary" data-i18n="download"></button>
-      <button id="copyYaml" type="button" data-i18n="copyYaml"></button>
-    </div>
-  </section>
-
-  <section id="preview-pane">
-    <div class="pane-head">
-      <h2 data-i18n="preview"></h2>
-      <div class="pane-tools">
-        <span id="previewNote" class="hint"></span>
-        <div class="toggle" role="group">
-          <button id="viewStacked" type="button" data-i18n="viewStacked"></button>
-          <button id="viewTable" type="button" data-i18n="viewTable"></button>
+      <div class="settings">
+        <label><span data-i18n="tableName"></span><input id="name" value="users"></label>
+        <label><span data-i18n="rows"></span><input id="count" type="number" value="1000" min="1"></label>
+        <label><span data-i18n="locale"></span><select id="locale"></select></label>
+        <label class="seed">
+          <span data-i18n="seed"></span>
+          <span class="seed-row">
+            <input id="seed" type="number" value="42">
+            <button id="reseed" type="button" data-i18n-title="reseedHint">⟳</button>
+          </span>
+        </label>
+        <label><span data-i18n="downloadAs"></span>
+          <select id="format">
+            <option value="csv">CSV</option>
+            <option value="jsonl">JSONL</option>
+            <option value="sql">SQL</option>
+          </select>
+        </label>
+        <div class="settings-actions">
+          <button id="download" type="button" class="primary" data-i18n="download"></button>
+          <button id="copySpec" type="button" data-i18n="copySpec" data-i18n-title="copySpecHint"></button>
         </div>
       </div>
+      <p class="hint" data-i18n="seedHint"></p>
+
+      <table id="fields">
+        <thead>
+          <tr>
+            <th></th>
+            <th data-i18n="colName"></th>
+            <th data-i18n="colType"></th>
+            <th data-i18n="colOptions"></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <p id="empty" class="hint" data-i18n="emptySchema"></p>
+
+      <button id="add" type="button" class="primary">
+        <span aria-hidden="true">＋</span> <span data-i18n="addField"></span>
+      </button>
+    </section>
+
+    <section id="preview-pane">
+      <div class="pane-head">
+        <h2 data-i18n="preview"></h2>
+        <div class="pane-tools">
+          <span id="previewNote" class="hint"></span>
+          <div class="toggle" role="group">
+            <button id="viewTable" type="button" data-i18n="viewTable"></button>
+            <button id="viewStacked" type="button" data-i18n="viewStacked"></button>
+          </div>
+        </div>
+      </div>
+      <p id="error" role="alert" hidden></p>
+      <div id="preview"></div>
+    </section>
+  </main>
+
+  <aside id="tools" hidden>
+    <div class="pane-head">
+      <h2 data-i18n="tools"></h2>
+      <button id="closeTools" class="icon" type="button" data-i18n-title="close">×</button>
     </div>
-    <p id="error" role="alert" hidden></p>
-    <div id="preview"></div>
-  </section>
-</main>
+
+    <p class="hint" data-i18n="toolsHint"></p>
+
+    <label class="stack">
+      <span data-i18n="operation"></span>
+      <select id="toolOp"></select>
+    </label>
+    <p id="toolWarn" class="warn" hidden></p>
+
+    <div id="toolDirection" class="toggle" role="group" hidden>
+      <button id="dirEncode" type="button" data-i18n="encode"></button>
+      <button id="dirDecode" type="button" data-i18n="decode"></button>
+    </div>
+
+    <label class="stack" id="toolKeyRow" hidden>
+      <span data-i18n="secretKey"></span>
+      <input id="toolKey" type="text" autocomplete="off">
+    </label>
+
+    <div class="row" id="toolSaltRow" hidden>
+      <label class="stack">
+        <span data-i18n="salt"></span>
+        <input id="toolSalt" type="text" autocomplete="off">
+      </label>
+      <label class="stack">
+        <span data-i18n="iterations"></span>
+        <input id="toolIter" type="number" value="600000" min="1">
+      </label>
+    </div>
+
+    <label class="stack">
+      <span data-i18n="input"></span>
+      <textarea id="toolInput" rows="4" spellcheck="false"></textarea>
+    </label>
+
+    <button id="toolRun" type="button" class="primary" data-i18n="run"></button>
+
+    <label class="stack">
+      <span data-i18n="output"></span>
+      <textarea id="toolOutput" rows="6" spellcheck="false" readonly></textarea>
+    </label>
+    <p id="toolNote" class="hint" hidden></p>
+    <button id="toolCopy" type="button" data-i18n="copyOutput"></button>
+  </aside>
+
+</div>
 
 <div id="toast" role="status" hidden></div>
 
