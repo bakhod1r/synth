@@ -12,3 +12,8 @@
 /dist
 ./docs
 ./scripts/node_modules
+# Built by scripts/build-npm.sh from the Go source; not committed, so a stale
+# binary cannot ship while the source it came from has moved on.
+/npm/synth.wasm
+/npm/wasm_exec.js
+/npm/*.tgz

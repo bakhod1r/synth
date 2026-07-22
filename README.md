@@ -269,7 +269,9 @@ library has two.
 ## Install
 
 ```bash
-go get github.com/bakhod1r/synth
+go get github.com/bakhod1r/synth              # library
+go install github.com/bakhod1r/synth/cmd/synth@latest   # CLI
+npm install @bakhod1r/synth                   # JavaScript, via WebAssembly
 ```
 
 ## Quick start
