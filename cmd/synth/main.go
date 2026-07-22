@@ -6,6 +6,8 @@
 //
 //	synth gen -s users.yaml -o users.csv            # format from extension
 //	synth gen -s users.yaml -f sql -o users.sql -n 100000
+//	synth gen -s users.yaml -o users.pgbin           # Postgres COPY + CREATE TABLE
+//	synth gen -s users.yaml -o users.jsonl.zst       # compressed by extension
 //	synth profile -i export.csv -o inferred.yaml    # learn a spec from real data
 //	synth mask -i export.csv -o safe.csv --key K    # anonymize a real dump
 //	synth cdc -s users.yaml -o changes.jsonl -n 1000
@@ -145,8 +147,13 @@ func runGen(args []string) error {
 		writeSQL(w, table, spec.Columns(), recs)
 	case "csv":
 		writeCSV(w, spec.Columns(), recs)
+	case "pgcopy", "pgcopy-binary":
+		if err := writePgCopy(w, format, table, spec, recs, fs.out); err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("gen: unknown format %q (want csv, jsonl or sql)", format)
+		return fmt.Errorf("gen: unknown format %q "+
+			"(want csv, jsonl, sql, pgcopy or pgcopy-binary)", format)
 	}
 	if err := w.Flush(); err != nil {
 		return err
@@ -441,6 +448,10 @@ func formatFromExt(path string) string {
 		return "sql"
 	case "parquet":
 		return "parquet"
+	case "pgcopy":
+		return "pgcopy"
+	case "pgbin":
+		return "pgcopy-binary"
 	default:
 		return "csv"
 	}
@@ -514,7 +525,7 @@ Flags:
   -s, --spec       YAML data-definition file
   -i, --in         input file to profile or mask
   -o, --out        output file (default: stdout)
-  -f, --format     csv | jsonl | sql
+  -f, --format     csv | jsonl | sql | pgcopy | pgcopy-binary
   -n, --rows       number of rows or events
   -l, --locale     locale (e.g. uz_UZ)
       --name       table name for a profiled spec

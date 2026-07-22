@@ -6,6 +6,8 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var wantHeader = append(
@@ -125,5 +127,18 @@ func TestBinaryMissingKeyIsNull(t *testing.T) {
 	want := []byte{0, 1, 0xFF, 0xFF, 0xFF, 0xFF}
 	if !bytes.Equal(body, want) {
 		t.Errorf("row = % x, want % x", body, want)
+	}
+}
+
+// A uuid.UUID and anything else with a String method lands in a varchar column
+// (that is what goTypeFor says it is), so it must encode as its text bytes.
+func TestBinaryEncodesStringers(t *testing.T) {
+	id := uuid.New()
+	got, err := encodeBinary(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != id.String() {
+		t.Errorf("uuid encoded as %q, want %q", got, id.String())
 	}
 }

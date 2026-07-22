@@ -109,6 +109,10 @@ func encodeBinary(v any) ([]byte, error) {
 		return be64(math.Float64bits(float64(x))), nil
 	case time.Time:
 		return be64(uint64(pgTimestamp(x))), nil
+	case fmt.Stringer:
+		// uuid.UUID and its kin. goTypeFor puts these in a varchar column, so
+		// the bytes Postgres expects there are the text ones.
+		return []byte(x.String()), nil
 	default:
 		return nil, fmt.Errorf("cannot encode %T in binary COPY (use --format pgcopy)", v)
 	}

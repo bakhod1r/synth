@@ -201,9 +201,35 @@ Point Synth at a schema instead of hand-writing generators:
 - **Go structs** — generate from your existing domain types via tags
 
 ### Test-ready outputs
-CSV, JSONL, SQL `INSERT` files, Parquet, and Debezium-shaped CDC events — every
-one of them a file. Synth never opens a database or network connection; handing
-the file to your loader is the last step, and it is yours.
+CSV, JSONL, SQL `INSERT` files, Parquet, Postgres `COPY` files, and
+Debezium-shaped CDC events — every one of them a file. Synth never opens a
+database or network connection; handing the file to your loader is the last
+step, and it is yours.
+
+For bulk loading, `COPY` is what Postgres wants — an `INSERT` per row is the
+slowest path the server offers:
+
+```sh
+synth gen -s users.yaml -n 100000000 -o users.pgbin   # binary COPY
+synth gen -s users.yaml -n 100000000 -o users.pgcopy  # text COPY
+```
+
+Both write a matching `CREATE TABLE` next to the data as `users.pgbin.sql`.
+That pairing is not a convenience: binary `COPY` carries no type names, so the
+table's column types are what the server decodes the bytes as, and a table
+built by hand that differs in one column means a rejected file. Synth generates
+the DDL and the encoding from the same type table, so they cannot disagree.
+
+```sh
+psql -f users.pgbin.sql
+```
+
+Large outputs compress on the way out — name the file and Synth does the rest:
+
+```sh
+synth gen -s users.yaml -n 100000000 -o users.jsonl.zst
+synth gen -s users.yaml -n 100000000 -o users.csv.gz
+```
 
 ### Edge-case injection
 Testing the happy path is the easy part. Ask for the values that break parsers: unicode names, emoji, RTL text, empty strings, boundary numerics, nulls in nullable columns.

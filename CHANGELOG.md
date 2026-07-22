@@ -8,6 +8,26 @@ accident.
 
 ## [Unreleased]
 
+### Added
+
+- Postgres `COPY` output: `--format pgcopy` (text) and `--format pgcopy-binary`,
+  or the `.pgcopy` / `.pgbin` extensions. An `INSERT` per row is the slowest way
+  to load Postgres; `COPY` is what the server wants for bulk data.
+- A matching `CREATE TABLE` is written alongside as `<out>.sql`. Binary `COPY`
+  carries no type names — the table's column types are what the bytes are
+  decoded as — so both come from one type table and cannot disagree.
+- gzip and zstd output, chosen by the filename: `-o users.jsonl.gz`,
+  `-o users.csv.zst`. Applies to `gen`, `cdc` and `snapshot`, with the format
+  still read from the extension underneath.
+- String length limits from the source schema are honoured. `varchar(n)`,
+  `char(n)` and JSON Schema / OpenAPI `maxLength` now reach the generator as
+  `maxlen`, which truncates to them in runes; previously the length was parsed
+  and discarded.
+
+### Dependencies
+
+- `github.com/klauspost/compress` for zstd.
+
 ## [1.0.0] — 2026-07-22
 
 First release. Everything below already existed; the tag is what makes it
