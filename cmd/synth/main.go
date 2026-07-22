@@ -132,11 +132,11 @@ func runGen(args []string) error {
 		table = "data"
 	}
 
-	out, closeOut, err := output(fs.out)
+	out, err := openSink(fs.out)
 	if err != nil {
 		return err
 	}
-	defer closeOut()
+	defer out.Close()
 	w := bufio.NewWriter(out)
 	switch format {
 	case "jsonl":
@@ -149,6 +149,12 @@ func runGen(args []string) error {
 		return fmt.Errorf("gen: unknown format %q (want csv, jsonl or sql)", format)
 	}
 	if err := w.Flush(); err != nil {
+		return err
+	}
+	// Closed explicitly, not by the defer: with a compressor in the way, Close
+	// is what writes the final block, and its error is the difference between
+	// a complete file and a truncated one.
+	if err := out.Close(); err != nil {
 		return err
 	}
 	if fs.out != "" {
@@ -262,16 +268,19 @@ func runCDC(args []string) error {
 	if err != nil {
 		return err
 	}
-	out, closeOut, err := output(fs.out)
+	out, err := openSink(fs.out)
 	if err != nil {
 		return err
 	}
-	defer closeOut()
+	defer out.Close()
 	w := bufio.NewWriter(out)
 	if err := stream.WriteJSONL(w, n); err != nil {
 		return err
 	}
 	if err := w.Flush(); err != nil {
+		return err
+	}
+	if err := out.Close(); err != nil {
 		return err
 	}
 	if fs.out != "" {
@@ -425,7 +434,7 @@ func output(path string) (*os.File, func(), error) {
 }
 
 func formatFromExt(path string) string {
-	switch strings.TrimPrefix(filepath.Ext(path), ".") {
+	switch strings.TrimPrefix(filepath.Ext(stripCompressionExt(path)), ".") {
 	case "jsonl", "json":
 		return "jsonl"
 	case "sql":
@@ -627,11 +636,13 @@ func runSnapshot(args []string) error {
 		return err
 	}
 
-	out, closeOut, err := output(fs.out)
+	out, err := openSink(fs.out)
 	if err != nil {
 		return err
 	}
-	defer closeOut()
+	// LIFO: the buffer flushes, then the compressor writes its final block,
+	// then the file closes.
+	defer out.Close()
 	w := bufio.NewWriter(out)
 	defer w.Flush()
 
