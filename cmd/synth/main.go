@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -29,6 +31,24 @@ import (
 	"github.com/bakhodir/synth/ui"
 	"github.com/bakhodir/synth/verify"
 )
+
+// version is stamped at build time with -ldflags "-X main.version=v1.2.3".
+//
+// It falls back to the module version the binary was built from, so a copy
+// installed with `go install` still reports something true rather than
+// "unknown" — the answer matters most when someone is reporting a bug against a
+// build nobody can identify.
+var version = ""
+
+func versionString() string {
+	if version != "" {
+		return version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		return info.Main.Version
+	}
+	return "(devel)"
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -53,6 +73,10 @@ func main() {
 		err = runUI(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
+		return
+	case "-v", "--version", "version":
+		fmt.Printf("synth %s %s/%s %s\n",
+			versionString(), runtime.GOOS, runtime.GOARCH, runtime.Version())
 		return
 	default:
 		fmt.Fprintf(os.Stderr, "unknown subcommand: %s\n\n", os.Args[1])
@@ -472,6 +496,7 @@ Usage:
   synth snapshot -s <spec.yaml> --at <date> [-o out]        # the table at an instant
   synth snapshot -s <spec.yaml> --from <date> --to <date>   # what changed between two
   synth gen     --preset <name> -n 100 -o out.csv           # built-in schema
+  synth --version
   synth ui      [--port 8080]                               # browser workbench (loopback only)
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]

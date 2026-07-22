@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Nightly, for the fuzzing job only.
+    - cron: '0 3 * * *'
 
 # A second push to the same branch cancels the first: a queue of runs on stale
 # commits tells you nothing and delays the one that matters.
@@ -50,6 +53,11 @@ jobs:
             echo "::error::the core library must depend on google/uuid and yaml.v3 only"
             exit 1
           fi
+
+      # Seed corpora only: enough to catch a regression on an input that already
+      # broke something once. Real fuzzing runs nightly, below.
+      - name: Fuzz seed corpus
+        run: go test -run='^Fuzz' ./...
 
       - name: Build CLI
         run: go build ./cmd/synth
@@ -102,6 +110,32 @@ jobs:
       - name: Render every diagram in the README
         run: npm run check-diagrams
         working-directory: scripts
+
+  # Fuzzing finds what tests do not, but only if it runs for longer than a pull
+  # request should wait. So it runs nightly, and a crasher is uploaded for
+  # someone to commit as a seed rather than failing anyone's merge.
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [FuzzYAMLSpec, FuzzDDL, FuzzOpenAPI, FuzzJSONSchema, FuzzReadSample, FuzzProfile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - name: Fuzz
+        run: go test -run='^$' -fuzz=${{ matrix.target }} -fuzztime=5m .
+      - name: Keep any crasher
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crasher-${{ matrix.target }}
+          path: testdata/fuzz/
 
   benchmark:
     name: Benchmarks

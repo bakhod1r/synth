@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -331,5 +332,40 @@ func TestSnapshotRejectsBadDate(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "2026-01-01") {
 		t.Fatalf("error does not show the expected form: %s", stderr.String())
+	}
+}
+
+// A released binary must be able to say what it is. When someone reports a bug,
+// the first question is which build they were running, and a binary that cannot
+// answer ends the conversation.
+func TestVersionFlag(t *testing.T) {
+	bin := build(t)
+	for _, flag := range []string{"--version", "-v", "version"} {
+		out := run(t, bin, flag)
+		if !strings.HasPrefix(out, "synth ") {
+			t.Fatalf("%s printed %q", flag, out)
+		}
+		// The line must carry enough to identify a build: a version, the
+		// platform it was built for, and the Go toolchain.
+		for _, want := range []string{runtime.GOOS, runtime.GOARCH, "go1."} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s output %q does not mention %q", flag, strings.TrimSpace(out), want)
+			}
+		}
+	}
+}
+
+// The version stamped by the release workflow must actually reach the binary.
+// -ldflags pointing at a variable that does not exist fails silently, which is
+// how a release ships reporting "(devel)".
+func TestVersionIsStampable(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "synth")
+	out, err := exec.Command("go", "build",
+		"-ldflags", "-X main.version=v9.9.9-test", "-o", bin, ".").CombinedOutput()
+	if err != nil {
+		t.Fatalf("build failed: %v\n%s", err, out)
+	}
+	if got := run(t, bin, "--version"); !strings.Contains(got, "v9.9.9-test") {
+		t.Fatalf("the stamped version did not reach the binary: %q", strings.TrimSpace(got))
 	}
 }

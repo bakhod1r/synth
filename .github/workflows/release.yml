@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  # Nothing ships that has not passed. A tag pushed on a broken commit is worse
+  # than no release: it is a version number people can depend on.
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Modules
+        run: |
+          for dir in mcp ui/stats sink/parquet; do
+            echo "== $dir"
+            (cd "$dir" && go vet ./... && go test ./...)
+          done
+
+  build:
+    name: ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME}"
+          out="dist/synth_${version}_${GOOS}_${GOARCH}"
+          mkdir -p "$out"
+          ext=""
+          [ "$GOOS" = windows ] && ext=".exe"
+
+          # -s -w strip the symbol table and DWARF: a fixture generator is not
+          # something anyone debugs from a release binary, and it halves the
+          # download.
+          flags="-s -w -X main.version=${version}"
+          go build -trimpath -ldflags "$flags" -o "$out/synth$ext" ./cmd/synth
+          (cd mcp && go build -trimpath -ldflags "-s -w" -o "../$out/synth-mcp$ext" ./cmd/synth-mcp)
+
+          cp README.md LICENSE "$out/"
+
+      - name: Package
+        run: |
+          set -eu
+          cd dist
+          name=$(ls -d synth_*)
+          if [ "${{ matrix.goos }}" = windows ]; then
+            zip -qr "$name.zip" "$name"
+          else
+            tar -czf "$name.tar.gz" "$name"
+          fi
+          rm -rf "$name"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          retention-days: 1
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # One checksum file for the whole release, so a download can be verified
+      # without trusting the page it came from.
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          # A tag with a suffix — v1.0.0-rc1 — is a pre-release, and marking it
+          # keeps it out of "latest" for anyone installing without a version.
+          prerelease: ${{ contains(github.ref_name, '-') }}
