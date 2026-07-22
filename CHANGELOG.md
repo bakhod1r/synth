@@ -2,15 +2,16 @@
 
 Notable changes to Synth. Versions follow [semantic versioning](https://semver.org).
 
-While the major version is `0`, the API may change in a minor release. Pin an
-exact version if that matters to you; `v1.0.0` is where the surface freezes.
+The public API is frozen at `v1`. A breaking change means `v2`, and `v2` means a
+new import path — so anything that would break your build cannot reach you by
+accident.
 
 ## [Unreleased]
 
-## [0.1.0] — 2026-07-22
+## [1.0.0] — 2026-07-22
 
-First tagged release. Everything below already existed; the tag is what makes it
-depend-able.
+First release. Everything below already existed; the tag is what makes it
+depend-able, and the commitment is that it will keep working.
 
 ### Generation
 
@@ -91,5 +92,5 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/bakhod1r/synth/releases/tag/v0.1.0
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/bakhod1r/synth/releases/tag/v1.0.0

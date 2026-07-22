@@ -695,9 +695,10 @@ MinIO or a warehouse is your loader's job.
 
 ## Versioning and stability
 
-Synth follows [semantic versioning](https://semver.org). While the major version
-is `0` the API may change in a minor release, so pin an exact version if that
-matters; `v1.0.0` is where the surface freezes. See [CHANGELOG.md](CHANGELOG.md).
+Synth follows [semantic versioning](https://semver.org). The public API is
+frozen at `v1`: a breaking change means `v2`, and in Go `v2` is a different
+import path — so nothing that would break your build can arrive by accident.
+See [CHANGELOG.md](CHANGELOG.md).
 
 What is already enforced rather than promised:
 
