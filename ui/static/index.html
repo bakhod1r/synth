@@ -102,11 +102,19 @@
           </select>
         </label>
         <div class="settings-actions">
-          <button id="download" type="button" class="primary" data-i18n="download"></button>
+          <button id="generate" type="button" class="primary">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="generateLabel" data-i18n="generate"></span>
+          </button>
+          <!-- Hidden until there is something to download. A button that
+               silently regenerates on every click makes it impossible to tell
+               whether you are saving what you just looked at. -->
+          <button id="download" type="button" hidden data-i18n="download"></button>
           <button id="copySpec" type="button" data-i18n="copySpec" data-i18n-title="copySpecHint"></button>
         </div>
       </div>
       <p class="hint" data-i18n="seedHint"></p>
+      <p id="genStatus" class="hint gen-status" hidden></p>
 
       <table id="fields">
         <thead>

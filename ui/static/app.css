@@ -300,6 +300,28 @@ button.icon:hover { color: var(--text); background: var(--raised); }
 
 #add { margin-top: 10px; }
 
+/* Generate button: the spinner takes up its space even when idle, so the label
+   does not jump sideways the moment the run starts. */
+#generate { display: inline-flex; align-items: center; gap: 7px; }
+#generate .spinner {
+  width: 12px; height: 12px; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0;
+}
+#generate.busy .spinner { opacity: .8; animation: spin .7s linear infinite; }
+#generate:disabled { opacity: .7; cursor: progress; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Someone who set prefers-reduced-motion asked not to be spun at. The button
+   still reads "Generating…" and stays disabled, so nothing is lost. */
+@media (prefers-reduced-motion: reduce) {
+  #generate.busy .spinner { animation: none; }
+}
+
+.gen-status { margin-top: 8px; color: #9fb8ff; }
+
 /* ---------------------------------------------------------------- preview */
 
 #error {

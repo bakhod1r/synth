@@ -17,6 +17,11 @@ const state = {
   view: 'table',      // 'table' | 'stacked'
   lastRows: [],
   lastOrder: [],
+  // The generated file, held so Download saves exactly what Generate produced.
+  // Regenerating on the download click would be wasted work and, worse, would
+  // make it impossible to tell whether you are saving what you just looked at.
+  generated: null,
+  generating: false,
 };
 
 const el = (id) => document.getElementById(id);
@@ -72,7 +77,8 @@ async function boot() {
   for (const id of ['name', 'count', 'locale', 'seed']) {
     el(id).addEventListener('input', schedulePreview);
   }
-  el('download').addEventListener('click', download);
+  el('generate').addEventListener('click', generate);
+  el('download').addEventListener('click', saveGenerated);
   el('copySpec').addEventListener('click', copySpec);
   el('togglePalette').addEventListener('click', () => togglePane('palette'));
   el('viewStacked').addEventListener('click', () => setView('stacked'));
@@ -534,6 +540,9 @@ function currentSpec() {
 let pending;
 
 function schedulePreview() {
+  // Any edit invalidates an earlier run: the file it produced no longer matches
+  // the schema on screen.
+  clearGenerated();
   clearTimeout(pending);
   pending = setTimeout(preview, 150);
 }
@@ -707,30 +716,97 @@ async function copySpec() {
   }
 }
 
-async function download() {
+// generate produces the full dataset the settings ask for.
+//
+// It is a separate step from the preview on purpose. The preview is a hundred
+// rows that redraw as you type; a million-row run is a decision, and running it
+// on every keystroke would be absurd. Splitting them also gives the row count
+// somewhere honest to appear.
+async function generate() {
+  if (state.generating) return; // a second click would start a second run
+
   const spec = currentSpec();
   if (spec.order.length === 0) {
     showError(t('addFieldFirst'));
     return;
   }
-  const res = await fetch('/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(spec),
-  });
-  if (!res.ok) {
-    showError(await res.text());
-    return;
-  }
-  showError(null);
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+  setGenerating(true);
+  const started = performance.now();
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(spec),
+    });
+    if (!res.ok) {
+      showError(await res.text());
+      clearGenerated();
+      return;
+    }
+    showError(null);
+    const blob = await res.blob();
+    state.generated = {
+      blob,
+      name: `${nonEmpty(spec.name, 'data')}.${spec.format}`,
+      rows: spec.count,
+      bytes: blob.size,
+      ms: Math.round(performance.now() - started),
+    };
+    el('download').hidden = false;
+    setStatus(t('generated', state.generated.rows, humanBytes(blob.size), state.generated.ms));
+  } catch (err) {
+    showError(String(err));
+    clearGenerated();
+  } finally {
+    setGenerating(false);
+  }
+}
+
+// saveGenerated writes the blob Generate already produced. No second request:
+// the bytes on disk are the bytes that were measured and reported.
+function saveGenerated() {
+  if (!state.generated) return;
+  const url = URL.createObjectURL(state.generated.blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${spec.name}.${spec.format}`;
+  a.download = state.generated.name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// clearGenerated is called whenever the schema or settings change. A download
+// button left over from an earlier schema would hand you a file that does not
+// match what is on screen, and nothing about the page would say so.
+function clearGenerated() {
+  state.generated = null;
+  el('download').hidden = true;
+  setStatus(null);
+}
+
+function setGenerating(on) {
+  state.generating = on;
+  const button = el('generate');
+  button.disabled = on;
+  button.classList.toggle('busy', on);
+  el('generateLabel').textContent = on ? t('generating') : t('generate');
+  if (on) setStatus(t('generatingRows', Number(el('count').value) || 0));
+}
+
+function setStatus(text) {
+  const box = el('genStatus');
+  box.hidden = !text;
+  box.textContent = text || '';
+}
+
+function nonEmpty(s, fallback) {
+  return s && s.trim() ? s.trim() : fallback;
+}
+
+function humanBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
 boot();

@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Development checks. Nothing in the Go library or its tests needs these.",
   "scripts": {
-    "check-diagrams": "node check-diagrams.mjs ../README.md"
+    "check-diagrams": "node check-diagrams.mjs ../README.md",
+    "check-workbench": "node check-workbench.mjs"
   },
   "devDependencies": {
     "jsdom": "^24.0.0",
