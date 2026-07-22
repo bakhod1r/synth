@@ -198,6 +198,17 @@ func Load(path string) (*Table, error) {
 	if err != nil {
 		return nil, err
 	}
+	return Parse(data)
+}
+
+// Parse reads either dialect, choosing by content rather than by file name.
+//
+// It exists separately from Load because detection used to live inside Load,
+// which meant a caller holding the bytes — the MCP server, or anything that
+// received a schema over the wire — had to guess the dialect itself and got it
+// wrong half the time. The two formats arrive in files named alike, and a JSON
+// Schema read as Avro produces an empty table rather than an error.
+func Parse(data []byte) (*Table, error) {
 	var probe struct {
 		Type string `json:"type"`
 	}
