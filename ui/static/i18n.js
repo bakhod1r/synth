@@ -7,6 +7,12 @@
 const I18N = {
   en: {
     blank: 'blank %',
+    mask: 'mask',
+    maskNone: 'none',
+    mask_partial: 'partial',
+    mask_hash: 'hash',
+    mask_redact: 'redact',
+    mask_token: 'token',
     sentences: 'sentences',
     strength: 'strength',
     length: 'length',
@@ -78,6 +84,12 @@ const I18N = {
 
   uz: {
     blank: 'bo‘sh %',
+    mask: 'maska',
+    maskNone: 'yo‘q',
+    mask_partial: 'qisman',
+    mask_hash: 'hash',
+    mask_redact: 'olib tashlash',
+    mask_token: 'token',
     sentences: 'gaplar',
     strength: 'daraja',
     length: 'uzunlik',
@@ -149,6 +161,12 @@ const I18N = {
 
   ru: {
     blank: 'пустых %',
+    mask: 'маска',
+    maskNone: 'нет',
+    mask_partial: 'частично',
+    mask_hash: 'хеш',
+    mask_redact: 'скрыть',
+    mask_token: 'токен',
     sentences: 'предложений',
     strength: 'сложность',
     length: 'длина',

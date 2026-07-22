@@ -97,17 +97,6 @@ var (
 		"Rowing", "Karate", "Taekwondo", "Skiing", "Snowboarding", "Surfing",
 		"Climbing", "Marathon", "Handball", "Water Polo", "Gymnastics", "Weightlifting",
 	}
-	planets = []string{
-		"Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune",
-		"Pluto", "Kepler-452b", "Proxima Centauri b", "TRAPPIST-1e",
-	}
-	universities = []string{
-		"MIT", "Stanford", "Harvard", "Oxford", "Cambridge", "ETH Zurich",
-		"Caltech", "Tokyo University", "NUS", "Tsinghua",
-		"Princeton", "Yale", "Columbia", "UC Berkeley", "Imperial College London",
-		"University of Chicago", "Peking University", "EPFL", "University of Toronto", "TU Munich",
-		"KAIST", "Seoul National University", "Sorbonne", "Delft", "Melbourne",
-	}
 	langs = []string{
 		"Go", "Rust", "Python", "JavaScript", "TypeScript", "Java", "C++",
 		"Kotlin", "Swift", "Ruby", "Elixir", "Zig",

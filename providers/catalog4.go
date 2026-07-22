@@ -394,6 +394,22 @@ var religions = []string{
 	"Jainism", "Taoism", "Confucianism", "Shinto", "Zoroastrianism",
 	"Baháʼí Faith", "Rastafari", "Paganism", "Animism", "Agnosticism",
 	"Atheism", "Humanism", "Unitarian Universalism", "Quakerism",
+	"Eastern Orthodoxy", "Oriental Orthodoxy", "Coptic Christianity",
+	"Armenian Apostolic Church", "Georgian Orthodox Church", "Assyrian Church of the East",
+	"Maronite Church", "Greek Catholic Church", "Pentecostalism", "Evangelicalism",
+	"Adventism", "Mormonism", "Jehovah's Witnesses", "Amish", "Mennonitism",
+	"Ibadi Islam", "Alevism", "Ahmadiyya", "Druze", "Yazidism", "Alawism",
+	"Naqshbandi Sufism", "Yasawi Sufism", "Conservative Judaism", "Karaite Judaism",
+	"Hasidic Judaism", "Vaishnavism", "Shaivism", "Shaktism", "Smartism",
+	"Vajrayana Buddhism", "Tibetan Buddhism", "Pure Land Buddhism",
+	"Nichiren Buddhism", "Tendai", "Shingon", "Cao Dai", "Hoa Hao",
+	"Tenrikyo", "Cheondoism", "Chondogyo", "Falun Gong", "Wicca", "Druidry",
+	"Ásatrú", "Tengrism", "Shamanism", "Candomblé", "Santería", "Vodou",
+	"Sikh Khalsa", "Ravidassia", "Meivazhi", "Ayyavazhi", "Manichaeism",
+	"Mandaeism", "Samaritanism", "Deism", "Pantheism", "Spiritualism",
+	"New Age", "Scientology", "Raëlism", "Eckankar", "Theosophy",
+	"Traditional African religions", "Native American Church", "Bon",
+	"Irreligion", "Secular Humanism", "Agnostic Atheism",
 }
 
 var holidays = []string{

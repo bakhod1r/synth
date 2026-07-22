@@ -389,6 +389,27 @@ function renderFields() {
     });
     blankCell.append(blank, document.createTextNode('%'));
 
+    // Masking belongs to every column too. A card number or a national id in
+    // a fixture reaches a ticket or a screenshot sooner or later, so the safe
+    // form has to be one click away rather than a documentation lookup.
+    const maskCell = document.createElement('td');
+    maskCell.className = 'mask';
+    const mask = document.createElement('select');
+    mask.setAttribute('aria-label', `${f.name} ${t('mask')}`);
+    for (const mode of ['', 'partial', 'hash', 'redact', 'token']) {
+      const o = document.createElement('option');
+      o.value = mode;
+      o.textContent = mode === '' ? t('maskNone') : t('mask_' + mode);
+      mask.appendChild(o);
+    }
+    mask.value = f.params.mask ?? '';
+    mask.addEventListener('change', () => {
+      if (!mask.value) delete state.fields[i].params.mask;
+      else state.fields[i].params.mask = mask.value;
+      schedulePreview();
+    });
+    maskCell.appendChild(mask);
+
     const removeCell = document.createElement('td');
     removeCell.appendChild(iconButton(t('remove'), '×', () => {
       state.fields.splice(i, 1);
@@ -396,7 +417,7 @@ function renderFields() {
       schedulePreview();
     }));
 
-    tr.append(orderCell, nameCell, kindCell, optCell, blankCell, removeCell);
+    tr.append(orderCell, nameCell, kindCell, optCell, blankCell, maskCell, removeCell);
     body.appendChild(tr);
   }
   el('empty').hidden = state.fields.length > 0;
