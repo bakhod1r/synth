@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // An unquoted date in YAML is parsed by yaml.v3 as a time.Time, not a string.

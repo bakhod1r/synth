@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bakhodir/synth/locale"
+	"github.com/bakhod1r/synth/locale"
 )
 
 func TestGapReport(t *testing.T) {

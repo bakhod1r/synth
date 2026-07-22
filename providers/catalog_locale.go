@@ -3,7 +3,7 @@ package providers
 import (
 	"sort"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Locale-aware catalog types.

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth/cdc"
-	"github.com/bakhodir/synth/schema"
-	"github.com/bakhodir/synth/snapshot"
+	"github.com/bakhod1r/synth/cdc"
+	"github.com/bakhod1r/synth/schema"
+	"github.com/bakhod1r/synth/snapshot"
 )
 
 func orderSchema() *schema.Schema {

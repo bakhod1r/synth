@@ -3,7 +3,7 @@ package constraint_test
 import (
 	"testing"
 
-	"github.com/bakhodir/synth/constraint"
+	"github.com/bakhod1r/synth/constraint"
 )
 
 // Mining must find an ordering that genuinely holds, and must not report one

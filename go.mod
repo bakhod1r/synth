@@ -1,4 +1,4 @@
-module github.com/bakhodir/synth
+module github.com/bakhod1r/synth
 
 go 1.25
 

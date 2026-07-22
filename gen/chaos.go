@@ -4,7 +4,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/bakhodir/synth/internal/rng"
+	"github.com/bakhod1r/synth/internal/rng"
 )
 
 // nastyStrings are values that routinely break parsers, validators, encoders

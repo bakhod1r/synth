@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/verify"
 )
 
 // verifyArgs takes the dataset itself, never a path. See the package comment

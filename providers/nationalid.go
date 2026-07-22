@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // National identifiers are not one format. A PINFL is fourteen digits, a US

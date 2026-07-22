@@ -20,8 +20,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/bakhodir/synth/ui"
-	"github.com/bakhodir/synth/ui/stats"
+	"github.com/bakhod1r/synth/ui"
+	"github.com/bakhod1r/synth/ui/stats"
 )
 
 func main() {

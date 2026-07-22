@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 var icd10Re = regexp.MustCompile(`^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-TV-Z]{1,4})?$`)

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/schema"
-	"github.com/bakhodir/synth/yamlfe"
+	"github.com/bakhod1r/synth/schema"
+	"github.com/bakhod1r/synth/yamlfe"
 )
 
 // Render must produce a spec Parse reads back to the same schema. Profiling

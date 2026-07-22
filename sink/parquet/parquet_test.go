@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
-	synthparquet "github.com/bakhodir/synth/sink/parquet"
+	"github.com/bakhod1r/synth"
+	synthparquet "github.com/bakhod1r/synth/sink/parquet"
 	pq "github.com/parquet-go/parquet-go"
 )
 

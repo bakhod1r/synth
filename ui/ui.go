@@ -23,10 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/locale"
-	"github.com/bakhodir/synth/providers"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/locale"
+	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/schema"
 )
 
 //go:embed static

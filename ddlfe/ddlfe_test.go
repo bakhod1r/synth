@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 func parse(t *testing.T, sql string) []*Table {

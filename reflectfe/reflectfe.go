@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bakhodir/synth/infer"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/infer"
+	"github.com/bakhod1r/synth/schema"
 )
 
 var cache sync.Map // reflect.Type -> *built

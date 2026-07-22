@@ -91,5 +91,5 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhodir/synth/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/bakhodir/synth/releases/tag/v0.1.0
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/bakhod1r/synth/releases/tag/v0.1.0

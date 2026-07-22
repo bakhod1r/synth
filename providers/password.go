@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Password generation.

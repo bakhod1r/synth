@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/mask"
+	"github.com/bakhod1r/synth/mask"
 )
 
 type maskArgs struct {

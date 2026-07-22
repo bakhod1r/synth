@@ -3,11 +3,11 @@ package synth
 import (
 	"fmt"
 
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/gen"
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
-	"github.com/bakhodir/synth/yamlfe"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/gen"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
+	"github.com/bakhod1r/synth/yamlfe"
 )
 
 // YAMLSpec is a parsed declarative data definition (see the yamlfe package).

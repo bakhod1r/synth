@@ -3,7 +3,7 @@ package synth_test
 import (
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // Open-ended types must reach at least ~1000 distinct values with low

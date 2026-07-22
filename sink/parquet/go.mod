@@ -1,11 +1,11 @@
 // Separate module: the Parquet writer pulls a sizeable dependency, so only
 // users who need Parquet take it on. The core synth library keeps its two.
-module github.com/bakhodir/synth/sink/parquet
+module github.com/bakhod1r/synth/sink/parquet
 
 go 1.25
 
 require (
-	github.com/bakhodir/synth v0.0.0
+	github.com/bakhod1r/synth v0.0.0
 	github.com/parquet-go/parquet-go v0.30.1
 )
 
@@ -22,4 +22,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/bakhodir/synth => ../..
+replace github.com/bakhod1r/synth => ../..

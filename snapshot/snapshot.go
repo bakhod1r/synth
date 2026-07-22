@@ -19,10 +19,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bakhodir/synth/cdc"
-	"github.com/bakhodir/synth/gen"
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/cdc"
+	"github.com/bakhod1r/synth/gen"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // maxVersions caps how many times a row may change. The cap keeps each row's

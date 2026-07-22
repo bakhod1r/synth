@@ -1,6 +1,6 @@
 package providers
 
-import "github.com/bakhodir/synth/schema"
+import "github.com/bakhod1r/synth/schema"
 
 // Real-world reference datasets: actual book titles, films, famous people,
 // bands and brands. These make generated data recognizable ("realniy dummy")

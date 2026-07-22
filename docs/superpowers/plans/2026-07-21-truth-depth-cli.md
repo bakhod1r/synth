@@ -96,7 +96,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // ISIN check digits must validate under the Luhn-on-expanded-alphanumeric rule.
@@ -633,7 +633,7 @@ producing something else:
 ```go
 	case "parquet":
 		return fmt.Errorf("parquet output lives in the optional submodule: " +
-			"go get github.com/bakhodir/synth/sink/parquet")
+			"go get github.com/bakhod1r/synth/sink/parquet")
 ```
 
 - [x] **Step 5: Run the tests**

@@ -3,8 +3,8 @@ package synth_test
 import (
 	"testing"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/locale"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/locale"
 )
 
 // set turns a name list into a lookup.

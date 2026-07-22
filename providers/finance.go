@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Card expiry, security codes and account balances.

@@ -3,7 +3,7 @@ package synth
 import (
 	"fmt"
 
-	"github.com/bakhodir/synth/yamlfe"
+	"github.com/bakhod1r/synth/yamlfe"
 )
 
 // Presets: ready-made schemas for the tables almost every project needs.

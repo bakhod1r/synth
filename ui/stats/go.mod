@@ -1,9 +1,9 @@
-module github.com/bakhodir/synth/ui/stats
+module github.com/bakhod1r/synth/ui/stats
 
 go 1.25.3
 
 require (
-	github.com/bakhodir/synth v0.0.0
+	github.com/bakhod1r/synth v0.0.0
 	modernc.org/sqlite v1.54.0
 )
 
@@ -20,4 +20,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/bakhodir/synth => ../../
+replace github.com/bakhod1r/synth => ../../

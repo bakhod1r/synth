@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // anchor is the fixed "today" the birthdate provider measures ages from.

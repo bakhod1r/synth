@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bakhodir/synth/mcp"
+	"github.com/bakhod1r/synth/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 

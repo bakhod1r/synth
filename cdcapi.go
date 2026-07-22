@@ -4,9 +4,9 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/bakhodir/synth/cdc"
-	"github.com/bakhodir/synth/reflectfe"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/cdc"
+	"github.com/bakhod1r/synth/reflectfe"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // CDCConfig controls a generated change-event history.

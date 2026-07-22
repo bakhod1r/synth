@@ -3,7 +3,7 @@ package providers
 import (
 	"time"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Birth dates and ages.

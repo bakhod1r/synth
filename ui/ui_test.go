@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/providers"
-	"github.com/bakhodir/synth/ui"
+	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/ui"
 )
 
 func post(t *testing.T, path, body string) *httptest.ResponseRecorder {

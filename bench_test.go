@@ -3,7 +3,7 @@ package synth_test
 import (
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 func BenchmarkFluentName(b *testing.B) {

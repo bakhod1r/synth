@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/cdc"
-	"github.com/bakhodir/synth/snapshot"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/cdc"
+	"github.com/bakhod1r/synth/snapshot"
 )
 
 // snapshotArgs asks one of two questions: what did the table look like at an

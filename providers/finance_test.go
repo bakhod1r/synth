@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // An expiry date is in the future unless a lapsed card was asked for. Getting

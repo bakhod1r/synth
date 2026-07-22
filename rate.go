@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/bakhodir/synth/internal/rng"
+	"github.com/bakhod1r/synth/internal/rng"
 )
 
 // RateConfig paces a generated stream so it arrives over wall-clock time,

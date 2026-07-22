@@ -221,7 +221,7 @@ Synth speaks MCP, so an assistant can generate and check data without shelling
 out to the CLI:
 
 ```bash
-go install github.com/bakhodir/synth/mcp/cmd/synth-mcp@latest
+go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest
 claude mcp add synth -- synth-mcp
 ```
 
@@ -256,7 +256,7 @@ library has two.
 ## Install
 
 ```bash
-go get github.com/bakhodir/synth
+go get github.com/bakhod1r/synth
 ```
 
 ## Quick start
@@ -271,7 +271,7 @@ package main
 import (
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 	"github.com/google/uuid"
 )
 
@@ -640,7 +640,7 @@ fields:
 ```
 
 ```bash
-go install github.com/bakhodir/synth/cmd/synth@latest
+go install github.com/bakhod1r/synth/cmd/synth@latest
 synth gen -s users.yaml -o users.csv          # or -f jsonl | sql
 synth gen -s users.yaml -f sql -n 100000 --seed 42
 ```
@@ -681,7 +681,7 @@ Parquet lives in its own module, so its dependency stays optional — the core
 library still needs only `google/uuid` and `yaml.v3`:
 
 ```bash
-go get github.com/bakhodir/synth/sink/parquet
+go get github.com/bakhod1r/synth/sink/parquet
 ```
 
 ```go

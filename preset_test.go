@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // "Give me 100 fake transactions" must be one call.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Additional atomic types matching common go-faker tags, so Synth is a drop-in

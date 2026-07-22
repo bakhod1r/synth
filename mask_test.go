@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 const dump = `id,full_name,email,phone,card,city,order_total,notes

@@ -4,7 +4,7 @@
 // This lives in its own module so its dependency stays optional: the core
 // synth library still needs only google/uuid and yaml.v3.
 //
-//	go get github.com/bakhodir/synth/sink/parquet
+//	go get github.com/bakhod1r/synth/sink/parquet
 //
 // Like every Synth output, this writes a FILE. Uploading it to S3, MinIO or a
 // warehouse is your loader's job.

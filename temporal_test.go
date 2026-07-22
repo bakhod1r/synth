@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 func TestTemporalCausality(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // Build a "real" export, profile it, and check the synthetic data reproduces

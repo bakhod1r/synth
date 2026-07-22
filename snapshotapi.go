@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/bakhodir/synth/reflectfe"
-	"github.com/bakhodir/synth/schema"
-	"github.com/bakhodir/synth/snapshot"
+	"github.com/bakhod1r/synth/reflectfe"
+	"github.com/bakhod1r/synth/schema"
+	"github.com/bakhod1r/synth/snapshot"
 )
 
 // SnapshotConfig describes a table's life across time.

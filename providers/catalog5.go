@@ -1,6 +1,6 @@
 package providers
 
-import "github.com/bakhodir/synth/schema"
+import "github.com/bakhod1r/synth/schema"
 
 // Catalog batch 5. Real lists only, for the same reason as batch 4: a fabricated
 // programming language or university name is spotted instantly by the people who

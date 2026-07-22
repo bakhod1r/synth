@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/bakhodir/synth/locale"
+	"github.com/bakhod1r/synth/locale"
 )
 
 // Every locale must reach at least 1000 distinct full-name combinations for

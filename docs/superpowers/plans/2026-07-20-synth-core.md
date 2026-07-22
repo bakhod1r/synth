@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Modul: `github.com/bakhodir/synth`, Go 1.25.
+- Modul: `github.com/bakhod1r/synth`, Go 1.25.
 - Tarmoqqa chiqmaydi, DB ulanmaydi, INSERT/DDL yo'q.
 - Sof determinizm: seed + schema → bir xil natija.
 - Har paket mustaqil test qilinadi.

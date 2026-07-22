@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 	"github.com/google/uuid"
 )
 

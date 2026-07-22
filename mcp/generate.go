@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/providers"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // generateArgs is the `generate` tool's input.

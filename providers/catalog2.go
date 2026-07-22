@@ -3,8 +3,8 @@ package providers
 import (
 	"fmt"
 
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Second catalog batch: more real/valid types (identity, finance, tech, misc).

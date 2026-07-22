@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/locale"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/locale"
+	"github.com/bakhod1r/synth/schema"
 )
 
 func ctx(seed uint64, loc string) Ctx {

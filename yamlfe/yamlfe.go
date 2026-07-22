@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/infer"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/infer"
+	"github.com/bakhod1r/synth/schema"
 	"gopkg.in/yaml.v3"
 )
 

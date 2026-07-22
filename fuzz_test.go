@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/constraint"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/constraint"
 )
 
 // Fuzzing the parsers.

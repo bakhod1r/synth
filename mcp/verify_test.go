@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth/verify"
 )
 
 // Real Luhn-valid numbers.

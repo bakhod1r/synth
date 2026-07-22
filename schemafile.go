@@ -3,10 +3,10 @@ package synth
 import (
 	"time"
 
-	"github.com/bakhodir/synth/gen"
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
-	"github.com/bakhodir/synth/schemafe"
+	"github.com/bakhod1r/synth/gen"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
+	"github.com/bakhod1r/synth/schemafe"
 )
 
 // SchemaFile is a record definition parsed from a JSON Schema or Avro schema.

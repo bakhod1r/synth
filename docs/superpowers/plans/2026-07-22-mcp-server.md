@@ -28,7 +28,7 @@
 - **The MCP module pulls 20 transitive dependencies** — jsonschema-go, testify,
   spf13/cast and golang.org/x/tools among them. That number is the entire reason
   this is a separate module. It must never reach the core.
-- Module path: `github.com/bakhodir/synth/mcp`.
+- Module path: `github.com/bakhod1r/synth/mcp`.
 - Binary name: `synth-mcp`.
 - Tool names are snake_case and prefixed nothing: `generate`, `list_types`, `list_presets`, `verify`, `profile`, `mask`, `snapshot`.
 - Every tool description must state what the tool does NOT do (no files, no network), because that is what a calling model needs to know to plan around it.
@@ -90,9 +90,9 @@ back into the generator. Run the **core** module's tests after each.
 ```bash
 mkdir -p mcp/cmd/synth-mcp
 cd mcp
-go mod init github.com/bakhodir/synth/mcp
-go mod edit -require=github.com/bakhodir/synth@v0.0.0
-go mod edit -replace=github.com/bakhodir/synth=../
+go mod init github.com/bakhod1r/synth/mcp
+go mod edit -require=github.com/bakhod1r/synth@v0.0.0
+go mod edit -replace=github.com/bakhod1r/synth=../
 go get github.com/mark3labs/mcp-go@v0.56.0
 ```
 
@@ -181,7 +181,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bakhodir/synth/mcp"
+	"github.com/bakhod1r/synth/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -491,9 +491,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/providers"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // generateArgs is the `generate` tool's input. Exactly one of Preset and Spec
@@ -709,7 +709,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth/verify"
 )
 
 const goodCSV = "id,card\n1,4539578763621486\n2,4556737586899855\n"
@@ -779,8 +779,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/verify"
 )
 
 // verifyArgs takes the dataset itself, never a path. See the package comment
@@ -1017,8 +1017,8 @@ package mcp
 import (
 	"strings"
 
-	"github.com/bakhodir/synth/profile"
-	"github.com/bakhodir/synth/yamlfe"
+	"github.com/bakhod1r/synth/profile"
+	"github.com/bakhod1r/synth/yamlfe"
 )
 
 type profileArgs struct {
@@ -1110,7 +1110,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/mask"
+	"github.com/bakhod1r/synth/mask"
 )
 
 type maskArgs struct {
@@ -1317,9 +1317,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/cdc"
-	"github.com/bakhodir/synth/snapshot"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/cdc"
+	"github.com/bakhod1r/synth/snapshot"
 )
 
 // snapshotArgs asks one of two questions: what did the table look like at an
@@ -1573,7 +1573,7 @@ client.
 ## Install
 
 ```bash
-go install github.com/bakhodir/synth/mcp/cmd/synth-mcp@latest
+go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest
 ```
 
 ## Configure
@@ -1637,7 +1637,7 @@ Place it after the CLI section:
 Synth speaks MCP, so an assistant can generate and check data directly:
 
 ```bash
-go install github.com/bakhodir/synth/mcp/cmd/synth-mcp@latest
+go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest
 claude mcp add synth -- synth-mcp
 ```
 

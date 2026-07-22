@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 func TestCatalog2Types(t *testing.T) {

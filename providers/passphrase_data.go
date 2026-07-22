@@ -1,6 +1,6 @@
 package providers
 
-import "github.com/bakhodir/synth/schema"
+import "github.com/bakhod1r/synth/schema"
 
 // Passphrase word banks.
 //

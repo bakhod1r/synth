@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 	gofaker "github.com/go-faker/faker/v4"
 	jaswdr "github.com/jaswdr/faker/v2"
 )

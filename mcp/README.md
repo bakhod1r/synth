@@ -6,7 +6,7 @@ client.
 ## Install
 
 ```bash
-go install github.com/bakhodir/synth/mcp/cmd/synth-mcp@latest
+go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest
 ```
 
 ## Configure

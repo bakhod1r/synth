@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/providers"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/providers"
 )
 
 // A brand column sitting next to a card column must describe that card. A

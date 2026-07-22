@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bakhodir/synth/infer"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/infer"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Table is a parsed record definition.

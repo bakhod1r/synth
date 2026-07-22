@@ -4,10 +4,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/bakhodir/synth/ddlfe"
-	"github.com/bakhodir/synth/gen"
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/ddlfe"
+	"github.com/bakhod1r/synth/gen"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // DDLTable is a table parsed from SQL DDL, ready to generate rows.

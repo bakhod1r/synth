@@ -5,7 +5,7 @@ how many values. `synth ui` counts those in memory and forgets on exit. This
 module keeps them in SQLite instead.
 
 ```bash
-go install github.com/bakhodir/synth/ui/stats/cmd/synth-ui@latest
+go install github.com/bakhod1r/synth/ui/stats/cmd/synth-ui@latest
 synth-ui                      # same page, counters at ~/.config/synth/stats.db
 synth-ui --db ./project.db    # counters for one project
 synth-ui --recent 20          # print the last runs and exit

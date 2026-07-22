@@ -1,8 +1,8 @@
 package mcp
 
 import (
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/profile"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/profile"
 )
 
 type profileArgs struct {

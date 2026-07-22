@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
+	"github.com/bakhod1r/synth"
 )
 
 // A blank share must land close to what was asked for. Real tables have

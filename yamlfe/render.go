@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Render writes a schema back out as a YAML spec in the dialect Parse reads.

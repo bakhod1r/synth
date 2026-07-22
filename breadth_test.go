@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/locale"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/locale"
 )
 
 func TestNewFieldTypes(t *testing.T) {

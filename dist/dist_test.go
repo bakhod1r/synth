@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/bakhodir/synth/internal/rng"
+	"github.com/bakhod1r/synth/internal/rng"
 )
 
 // A wrong distribution is the quietest bug in a data generator: the values look

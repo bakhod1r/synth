@@ -6,7 +6,7 @@ package infer
 import (
 	"strings"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // synonyms maps normalized field-name aliases to a Kind. Extendable via Alias.

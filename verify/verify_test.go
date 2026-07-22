@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth/verify"
 )
 
 // pad repeats a row often enough to clear the checks' minimum-sample guards.

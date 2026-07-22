@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bakhodir/synth/gen"
-	"github.com/bakhodir/synth/internal/rng"
-	"github.com/bakhodir/synth/reflectfe"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/gen"
+	"github.com/bakhod1r/synth/internal/rng"
+	"github.com/bakhod1r/synth/reflectfe"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // MakeParallel generates n records across `workers` goroutines. Each worker

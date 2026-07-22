@@ -7,7 +7,7 @@ package dist
 import (
 	"math"
 
-	"github.com/bakhodir/synth/internal/rng"
+	"github.com/bakhod1r/synth/internal/rng"
 )
 
 // Dist samples a float64 from an underlying distribution.

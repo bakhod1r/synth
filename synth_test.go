@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/locale"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/locale"
 	"github.com/google/uuid"
 )
 

@@ -3,7 +3,7 @@ package providers
 import (
 	"fmt"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // This catalog adds many real-world "pick from a curated set" types, pushing

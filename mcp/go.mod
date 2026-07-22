@@ -1,9 +1,9 @@
-module github.com/bakhodir/synth/mcp
+module github.com/bakhod1r/synth/mcp
 
 go 1.25.5
 
 require (
-	github.com/bakhodir/synth v0.0.0-00010101000000-000000000000
+	github.com/bakhod1r/synth v0.0.0-00010101000000-000000000000
 	github.com/mark3labs/mcp-go v0.56.0
 )
 
@@ -17,4 +17,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/bakhodir/synth => ../
+replace github.com/bakhod1r/synth => ../

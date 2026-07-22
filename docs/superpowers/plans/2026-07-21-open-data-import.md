@@ -22,7 +22,7 @@ Go 1.25, `cmd/synthdata` (a separate module, so its HTTP and archive dependencie
 
 ## Global Constraints
 
-- **The library never touches the network.** The importer is a developer tool run by hand; its output is committed Go source. `go get github.com/bakhodir/synth` must remain offline, and the core module keeps exactly two dependencies: `google/uuid`, `yaml.v3`.
+- **The library never touches the network.** The importer is a developer tool run by hand; its output is committed Go source. `go get github.com/bakhod1r/synth` must remain offline, and the core module keeps exactly two dependencies: `google/uuid`, `yaml.v3`.
 - **Every dataset carries provenance.** Source URL, licence, retrieval date and content checksum, recorded in the manifest and reproduced in `NOTICE`. A dataset with no recorded source does not ship.
 - **Only licences that permit redistribution.** Public domain, CC0, CC BY, Unicode-3.0, MIT/BSD. **Explicitly excluded:** OpenStreetMap (ODbL is share-alike over derived databases and would encumber every user of Synth), anything scraped from a site whose terms forbid it, and anything without a clear licence.
 - **Imports are reproducible.** Pinned release versions plus a checksum per file. An import that produces different bytes from the same manifest is a bug.

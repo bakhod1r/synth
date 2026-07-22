@@ -1,9 +1,9 @@
 package synth
 
 import (
-	"github.com/bakhodir/synth/infer"
-	"github.com/bakhodir/synth/providers"
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/infer"
+	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // R is the minimal randomness surface handed to a custom provider. It keeps

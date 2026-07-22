@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bakhodir/synth/ui"
+	"github.com/bakhod1r/synth/ui"
 	_ "modernc.org/sqlite" // pure Go, so no cgo and no C toolchain
 )
 

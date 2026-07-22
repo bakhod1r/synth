@@ -1,6 +1,6 @@
 package synth
 
-import "github.com/bakhodir/synth/mask"
+import "github.com/bakhod1r/synth/mask"
 
 // Masker anonymizes a real data export, replacing personal data with synthetic
 // values of the same format. See the mask package for the guarantees.

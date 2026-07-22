@@ -3,7 +3,7 @@ package providers
 import (
 	"fmt"
 
-	"github.com/bakhodir/synth/schema"
+	"github.com/bakhod1r/synth/schema"
 )
 
 // Third catalog batch: e-commerce, DevOps, finance and media types.

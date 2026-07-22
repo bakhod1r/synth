@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bakhodir/synth/ui"
+	"github.com/bakhod1r/synth/ui"
 )
 
 func open(t *testing.T) *DB {

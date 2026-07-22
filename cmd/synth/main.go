@@ -26,10 +26,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bakhodir/synth"
-	"github.com/bakhodir/synth/constraint"
-	"github.com/bakhodir/synth/ui"
-	"github.com/bakhodir/synth/verify"
+	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/constraint"
+	"github.com/bakhod1r/synth/ui"
+	"github.com/bakhod1r/synth/verify"
 )
 
 // version is stamped at build time with -ldflags "-X main.version=v1.2.3".
@@ -125,7 +125,7 @@ func runGen(args []string) error {
 	}
 	if format == "parquet" {
 		return fmt.Errorf("parquet output lives in an optional submodule so the " +
-			"core stays dependency-light: go get github.com/bakhodir/synth/sink/parquet")
+			"core stays dependency-light: go get github.com/bakhod1r/synth/sink/parquet")
 	}
 	table := spec.Name()
 	if table == "" {
