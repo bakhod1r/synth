@@ -61,6 +61,15 @@ func New() *server.MCPServer {
 		mcp.WithDescription("List the built-in schemas with their YAML, as a starting point to edit."),
 	), nullary(handleListPresets))
 
+	s.AddTool(mcp.NewTool("verify",
+		mcp.WithDescription("Check a dataset for broken checksums (Luhn, IBAN, EAN, UPC), "+
+			"malformed emails, URLs, UUIDs and IPs, and time anomalies. Pass the rows "+
+			"themselves — this tool reads no files."),
+		mcp.WithString("data", mcp.Required(), mcp.Description(
+			"The dataset itself, as text. Not a path.")),
+		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
+	), typed(handleVerify))
+
 	return s
 }
 

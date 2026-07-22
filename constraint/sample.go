@@ -16,23 +16,48 @@ import (
 // of memory for nothing.
 const DefaultSample = 50_000
 
-// LoadSample reads up to max rows from a CSV or JSONL export. Synth reads the
-// file only — it never connects to whatever produced it.
+// LoadSample reads up to max rows from a CSV or JSONL export, picking the
+// format from the file extension. Synth reads the file only — it never connects
+// to whatever produced it.
 func LoadSample(path string, max int) ([]map[string]any, error) {
-	if max <= 0 {
-		max = DefaultSample
-	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+	return ReadSample(f, formatOf(path), max)
+}
 
-	switch strings.ToLower(filepath.Ext(path)) {
+// formatOf reads the format from a file extension, falling back to CSV. The
+// fallback is deliberate: an export named .dat or .txt is almost always CSV,
+// and refusing it would break callers that worked before ReadSample existed.
+func formatOf(path string) string {
+	switch ext := strings.ToLower(filepath.Ext(path)); ext {
 	case ".jsonl", ".ndjson", ".json":
-		return sampleJSONL(f, max)
+		return "jsonl"
 	default:
-		return sampleCSV(f, max)
+		return "csv"
+	}
+}
+
+// ReadSample is LoadSample for an already-open reader, with the format named
+// rather than inferred. Callers that must not touch the filesystem — the MCP
+// server is one — use this; LoadSample delegates to it so the two cannot drift
+// apart.
+//
+// format is "csv" (the default) or "jsonl"/"ndjson", with or without a leading
+// dot, so a file extension can be passed straight through.
+func ReadSample(r io.Reader, format string, max int) ([]map[string]any, error) {
+	if max <= 0 {
+		max = DefaultSample
+	}
+	switch strings.ToLower(strings.TrimPrefix(format, ".")) {
+	case "jsonl", "ndjson", "json":
+		return sampleJSONL(r, max)
+	case "", "csv":
+		return sampleCSV(r, max)
+	default:
+		return nil, fmt.Errorf("unknown format %q — use csv or jsonl", format)
 	}
 }
 
