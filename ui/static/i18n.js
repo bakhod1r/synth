@@ -8,6 +8,9 @@ const I18N = {
   en: {
     blank: 'blank %',
     mask: 'mask',
+    lower: 'lowercase', upper: 'uppercase', digits: 'digits', symbols: 'symbols',
+    ambiguous: 'ambiguous', min: 'min', max: 'max', length: 'length',
+    toggleAuto: 'auto', toggleOn: 'on', toggleOff: 'off',
     maskNone: 'none',
     mask_partial: 'partial',
     mask_hash: 'hash',
@@ -85,6 +88,9 @@ const I18N = {
   uz: {
     blank: 'bo‘sh %',
     mask: 'maska',
+    lower: 'kichik harf', upper: 'katta harf', digits: 'raqam', symbols: 'belgi',
+    ambiguous: 'chalkash', min: 'min', max: 'maks', length: 'uzunlik',
+    toggleAuto: 'avto', toggleOn: 'bor', toggleOff: 'yo‘q',
     maskNone: 'yo‘q',
     mask_partial: 'qisman',
     mask_hash: 'hash',
@@ -162,6 +168,9 @@ const I18N = {
   ru: {
     blank: 'пустых %',
     mask: 'маска',
+    lower: 'строчные', upper: 'прописные', digits: 'цифры', symbols: 'символы',
+    ambiguous: 'похожие', min: 'мин', max: 'макс', length: 'длина',
+    toggleAuto: 'авто', toggleOn: 'да', toggleOff: 'нет',
     maskNone: 'нет',
     mask_partial: 'частично',
     mask_hash: 'хеш',

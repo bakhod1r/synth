@@ -254,9 +254,20 @@ function kindSelect(field, index) {
 // PARAM_SPECS declares the controls each kind offers. Showing a type's real
 // knobs beats a generic min/max that means nothing for a password.
 const PARAM_SPECS = {
+  // A named strength sets the six toggles at once; anything set explicitly
+  // still wins, so the policy is a starting point rather than a cage.
   password:     [{ key: 'strength', type: 'select', options: ['', 'pin', 'weak', 'medium', 'strong', 'very-strong'] },
-                 { key: 'length', type: 'number' }],
-  passwordhash: [{ key: 'strength', type: 'select', options: ['', 'pin', 'weak', 'medium', 'strong', 'very-strong'] }],
+                 { key: 'length', type: 'number' },
+                 { key: 'min', type: 'number' }, { key: 'max', type: 'number' },
+                 { key: 'lower', type: 'toggle' }, { key: 'upper', type: 'toggle' },
+                 { key: 'digits', type: 'toggle' }, { key: 'symbols', type: 'toggle' },
+                 { key: 'ambiguous', type: 'toggle' }],
+  passwordhash: [{ key: 'strength', type: 'select', options: ['', 'pin', 'weak', 'medium', 'strong', 'very-strong'] },
+                 { key: 'length', type: 'number' },
+                 { key: 'min', type: 'number' }, { key: 'max', type: 'number' },
+                 { key: 'lower', type: 'toggle' }, { key: 'upper', type: 'toggle' },
+                 { key: 'digits', type: 'toggle' }, { key: 'symbols', type: 'toggle' },
+                 { key: 'ambiguous', type: 'toggle' }],
   passphrase:   [{ key: 'words', type: 'number' }, { key: 'sep', type: 'text' }],
   cardexpiry:   [{ key: 'format', type: 'select', options: ['', 'MM/YYYY', 'YYYY-MM'] },
                  { key: 'expired', type: 'select', options: ['', 'true'] }],
@@ -292,7 +303,18 @@ function optionInputs(field, index) {
   for (const spec of specFor(field.kind)) {
     const label = t(spec.key);
     let control;
-    if (spec.type === 'select') {
+    if (spec.type === 'toggle') {
+      // Three states, not a checkbox: unset lets the strength policy decide,
+      // which is different from explicitly turning the class off.
+      control = document.createElement('select');
+      for (const [value, key] of [['', 'toggleAuto'], ['true', 'toggleOn'], ['false', 'toggleOff']]) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value === '' ? `${label}: ${t(key)}` : `${label}: ${t(key)}`;
+        control.appendChild(opt);
+      }
+      control.value = field.params[spec.key] ?? '';
+    } else if (spec.type === 'select') {
       control = document.createElement('select');
       for (const value of spec.options) {
         const opt = document.createElement('option');
