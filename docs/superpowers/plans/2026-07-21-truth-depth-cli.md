@@ -27,7 +27,7 @@ The README advertises sinks that do not exist and contradicts itself. `README.md
 **Files:**
 - Modify: `README.md:9`, `README.md:19`, `README.md:98`, `README.md:265`
 
-- [ ] **Step 1: Fix the opening claim (`README.md:9`)**
+- [x] **Step 1: Fix the opening claim (`README.md:9`)**
 
 Replace "It streams millions of records straight to Kafka, Postgres, CSV, or JSONL with minimal memory usage" with:
 
@@ -37,7 +37,7 @@ with minimal memory usage, and can produce valid request payloads from OpenAPI
 schemas.
 ```
 
-- [ ] **Step 2: Fix the comparison table row (`README.md:19`)**
+- [x] **Step 2: Fix the comparison table row (`README.md:19`)**
 
 Change the Output row's right-hand cell from `Kafka, Postgres, CSV, JSONL sinks` to:
 
@@ -45,7 +45,7 @@ Change the Output row's right-hand cell from `Kafka, Postgres, CSV, JSONL sinks`
 CSV, JSONL, SQL, Parquet, CDC files
 ```
 
-- [ ] **Step 3: Rewrite the sinks section (`README.md:98`)**
+- [x] **Step 3: Rewrite the sinks section (`README.md:98`)**
 
 Replace the "Kafka, Postgres (batched `COPY`), CSV, and JSONL out of the box, behind one interface" sentence with:
 
@@ -56,14 +56,14 @@ handing the file to your loader is the last step, and it is yours. See
 [Scope](#scope) for why.
 ```
 
-- [ ] **Step 4: Verify no contradiction remains**
+- [x] **Step 4: Verify no contradiction remains**
 
 Run: `grep -n "Kafka\|COPY\|Postgres" README.md`
 Expected: only the `:265` line ("no database, no Kafka, just a file") and the
 `:385` scope paragraph — both of which *deny* network sinks. No line may claim
 Synth writes to Kafka or Postgres.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md
@@ -87,7 +87,7 @@ The catalog is broad but shallow in regulated domains. Add four groups of real, 
 - Consumes: `providers.Ctx{Rand, Locale, Params, Field, Place, Gender, Sibling}`
 - Produces: providers registered under `schema.KindICD10`, `KindNDC`, `KindDrugName`, `KindISIN`, `KindLEI`, `KindCUSIP`, `KindCIDR`, `KindASN`, `KindMACVendor`, `KindTimezoneCoord`, `KindGeoJSONPoint`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 package providers_test
@@ -201,12 +201,12 @@ func validISIN(s string) bool {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it fails**
+- [x] **Step 2: Run the test and confirm it fails**
 
 Run: `go test ./providers/ -run 'ISIN|ICD10|CIDR|Timezone' -v`
 Expected: FAIL — the fields come back empty because the kinds are not registered.
 
-- [ ] **Step 3: Add the Kind constants**
+- [x] **Step 3: Add the Kind constants**
 
 In `schema/schema.go`, extend the `Kind` block following the existing style:
 
@@ -224,7 +224,7 @@ In `schema/schema.go`, extend the `Kind` block following the existing style:
 	KindGeoJSONPoint
 ```
 
-- [ ] **Step 4: Implement the providers**
+- [x] **Step 4: Implement the providers**
 
 Create `providers/domains.go`. Datasets are curated real values; check digits are computed, never hardcoded.
 
@@ -293,7 +293,7 @@ and `geoJSONPoint` in the same file, in the same style. `timezoneCoord` must dra
 the timezone and the coordinates from a single shared table row so they agree;
 store the chosen row on `Ctx.Sibling` the way `locale.Place` is shared.
 
-- [ ] **Step 5: Register the providers and name synonyms**
+- [x] **Step 5: Register the providers and name synonyms**
 
 In `providers/providers.go`, add to the dispatch table:
 
@@ -308,7 +308,7 @@ In `register.go`, add field-name synonyms so untagged structs infer correctly:
 `"icd10"`, `"diagnosiscode"` → `KindICD10`; `"isin"` → `KindISIN`;
 `"cidr"`, `"subnet"` → `KindCIDR`; `"asn"` → `KindASN`.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `go test ./providers/ -run 'ISIN|ICD10|CIDR|Timezone' -v`
 Expected: PASS.
@@ -317,7 +317,7 @@ Then run the full suite: `go test -race ./...`
 Expected: PASS — in particular `TestParallelMatchesSerial` and the cardinality
 tests, which will now cover the new kinds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add schema/schema.go providers/domains.go providers/domains_test.go providers/providers.go register.go
@@ -338,7 +338,7 @@ Entries such as Superhero and Cocktail return English strings regardless of loca
 **Interfaces:**
 - Produces: `func localized(c Ctx, key string, fallback []string) string` — returns a locale-specific dataset when one exists for `c.Locale.Code`, otherwise `fallback`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // Locale-aware catalog types must return locale-specific values where a
@@ -383,12 +383,12 @@ func TestUnlocalizedTypeWarns(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `go test ./providers/ -run Catalog -v`
 Expected: FAIL — `uz_UZ` food equals `en_US` food on every row, and no warning is emitted.
 
-- [ ] **Step 3: Implement the lookup and the warning**
+- [x] **Step 3: Implement the lookup and the warning**
 
 Create `providers/catalog_locale.go`:
 
@@ -436,18 +436,18 @@ through `localized`, e.g.:
 	schema.KindFood: func(c Ctx) any { return localized(c, "food", enFoods) },
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `go test ./providers/ -run Catalog -v`
 Expected: PASS.
 
-- [ ] **Step 5: Document the coverage honestly**
+- [x] **Step 5: Document the coverage honestly**
 
 In `README.md`, add a row to the locale table stating which locales have
 localized catalog datasets versus name/address data only. Do not claim
 coverage the code does not have.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add providers/catalog_locale.go providers/catalog_locale_test.go providers/catalog2.go providers/catalog3.go README.md
@@ -464,7 +464,7 @@ git commit -m "feat: localize culturally specific catalog types and warn on gaps
 - Modify: `locale/locales_ext.go`
 - Modify: `locale/locale_test.go`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // Every locale must reach at least 1000 distinct full-name combinations with
@@ -483,12 +483,12 @@ func TestAllLocalesReachThousandNames(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it and record the gap**
+- [x] **Step 2: Run it and record the gap**
 
 Run: `go test ./locale/ -run Thousand -v`
 Expected: FAIL, listing each locale still short. That list is this task's worklist.
 
-- [ ] **Step 3: Fill each locale's banks**
+- [x] **Step 3: Fill each locale's banks**
 
 For every failing locale, extend its `seed` entry in `locales_ext.go` to at
 least 24 male first names, 24 female first names, and 24 surnames per gender —
@@ -508,7 +508,7 @@ Czech, Slovak, Latvian, Lithuanian), supply both forms:
 Work through the list in batches, re-running the test after each batch so the
 remaining worklist stays visible.
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `go test ./locale/ -run Thousand -v`
 Expected: PASS with no locale reported.
@@ -516,7 +516,7 @@ Expected: PASS with no locale reported.
 Run: `go test -race ./...`
 Expected: PASS — the gender-coherence and cardinality suites must still hold.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add locale/locales_ext.go locale/locale_test.go
@@ -537,7 +537,7 @@ git commit -m "feat: complete gendered 1k name banks for all locales"
 - Consumes: `synth.YAMLFile`, `synth.Profile`, `synth.MaskFile`, `synth.CDC`, `synth.ProtoFile`, `synth.DDLFile`
 - Produces: subcommands `gen`, `profile`, `mask`, `cdc`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 package main_test
@@ -579,12 +579,12 @@ func TestUnknownSubcommand(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `go test ./cmd/synth/ -v`
 Expected: FAIL — `profile`, `mask` and `cdc` are not recognized.
 
-- [ ] **Step 3: Restructure main into subcommands**
+- [x] **Step 3: Restructure main into subcommands**
 
 In `cmd/synth/main.go`, dispatch on `os.Args[1]`:
 
@@ -624,7 +624,7 @@ by extension — the frontends already exist.
 `runMask` reads a file and writes a masked copy, requiring `--key`. `runCDC`
 writes a Debezium-shaped JSONL event stream. None of them opens a connection.
 
-- [ ] **Step 4: Add Parquet to the format list — as an error with a pointer**
+- [x] **Step 4: Add Parquet to the format list — as an error with a pointer**
 
 Parquet lives in a submodule, so the core CLI cannot link it. When
 `-f parquet` is passed, fail with a clear message rather than silently
@@ -636,7 +636,7 @@ producing something else:
 			"go get github.com/bakhodir/synth/sink/parquet")
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `go test ./cmd/synth/ -v`
 Expected: PASS.
@@ -644,12 +644,12 @@ Expected: PASS.
 Run: `go test -race ./... && go build ./cmd/synth`
 Expected: PASS.
 
-- [ ] **Step 6: Document the CLI**
+- [x] **Step 6: Document the CLI**
 
 Add a CLI section to `README.md` showing one worked example per subcommand,
 with real flags copied from the implementation.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add cmd/synth/main.go cmd/synth/main_test.go README.md
@@ -704,7 +704,7 @@ and enforces them at generation time. It is the strongest evidence for the
   func (c Constraint) Holds(rec map[string]any) bool
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 package constraint_test
@@ -793,12 +793,12 @@ func TestEnforceRepairsRecords(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `go test ./constraint/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement mining**
+- [x] **Step 3: Implement mining**
 
 Mining is candidate generation plus falsification. For each ordered pair of
 numeric columns, assume `A <= B` and scan; drop the candidate on the first
@@ -812,7 +812,7 @@ Require a minimum group size (at least 20 rows, and at least 5% of the sample)
 before reporting an implication — otherwise a single row invents a rule. Record
 `Support` on every constraint so a human can judge it.
 
-- [ ] **Step 4: Implement enforcement**
+- [x] **Step 4: Implement enforcement**
 
 `Enforce` repairs rather than rejects, so generation stays O(1) per record:
 
@@ -826,14 +826,14 @@ before reporting an implication — otherwise a single row invents a rule. Recor
 Apply constraints in declaration order and document that order matters, since
 a later repair can undo an earlier one.
 
-- [ ] **Step 5: Wire into profiling, YAML and the engine**
+- [x] **Step 5: Wire into profiling, YAML and the engine**
 
 `synth profile` appends a `constraints:` block to the inferred spec listing
 what it mined, with the support count as a comment on each line. `yamlfe`
 parses that block back. `gen.Engine` runs `Enforce` on each record just
 before returning it.
 
-- [ ] **Step 6: Round-trip test**
+- [x] **Step 6: Round-trip test**
 
 ```go
 // Mining a real sample, generating from the inferred spec, and re-mining the
@@ -847,7 +847,7 @@ func TestConstraintRoundTrip(t *testing.T) {
 Run: `go test -race ./...`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add constraint/ profileapi.go yamlfe/yamlfe.go gen/gen.go
@@ -890,7 +890,7 @@ second product from one codebase, and it reads files only: no database.
   func (r Report) JSON(w io.Writer) error
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // A card column with a broken check digit must be reported, and a valid one
@@ -979,12 +979,12 @@ func TestVerifyCleanDatasetIsSilent(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `go test ./verify/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the checks**
+- [x] **Step 3: Implement the checks**
 
 Detect each column's semantic kind by reusing `infer` on the column name, then
 run the matching validator: `luhn` for cards and IMEI, `mod97` for IBAN, EAN-13
@@ -997,7 +997,7 @@ or where a numeric column has zero variance.
 The clean-dataset test is the important one: a check that fires on Synth's own
 correct output is a false positive and must be fixed, not tolerated.
 
-- [ ] **Step 4: Add the CLI subcommand**
+- [x] **Step 4: Add the CLI subcommand**
 
 ```bash
 synth verify -i orders.csv --ref user_id=users.csv:id --format text
@@ -1006,12 +1006,12 @@ synth verify -i orders.csv --ref user_id=users.csv:id --format text
 Exit code 0 when there are no errors, 1 when any finding has `SevError`, so it
 drops into CI without a wrapper. Warnings alone do not fail the run.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `go test -race ./... && go build ./cmd/synth`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add verify/ cmd/synth/main.go
@@ -1049,7 +1049,7 @@ is what makes the feature trustworthy for migration and incremental-ETL tests.
   func (t *Timeline[T]) Between(from, to time.Time) []cdc.Event
   ```
 
-- [ ] **Step 1: Write the failing test — the equivalence that defines the feature**
+- [x] **Step 1: Write the failing test — the equivalence that defines the feature**
 
 ```go
 // Applying the CDC events between two instants to the earlier snapshot must
@@ -1100,12 +1100,12 @@ func TestSnapshotExcludesFutureRows(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `go test ./snapshot/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the timeline**
+- [x] **Step 3: Implement the timeline**
 
 Do not simulate forward — that would make `At` cost O(history). Instead give
 every row a deterministic life derived from its index: a birth instant from
@@ -1119,19 +1119,19 @@ in timestamp order.
 Because both `At` and `Between` read the identical per-row event list, the
 equivalence in Step 1 holds by construction rather than by luck.
 
-- [ ] **Step 4: Add the CLI subcommand**
+- [x] **Step 4: Add the CLI subcommand**
 
 ```bash
 synth snapshot -s spec.yaml --at 2026-01-01 -o jan.csv
 synth snapshot -s spec.yaml --from 2026-01-01 --to 2026-07-01 -o changes.jsonl
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `go test -race ./...`
 Expected: PASS — especially the reconstruction test.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add snapshot/ cdc/cdc.go cmd/synth/main.go
@@ -1168,7 +1168,7 @@ project's no-network rule: the browser connects in, Synth never connects out.
   `GET /api/locales`, `POST /api/preview` (spec → 10 sample rows),
   `POST /api/generate` (spec → file download).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // The type catalog must be served from the real registry, not a copy that
@@ -1237,12 +1237,12 @@ func TestPageHasNoExternalResources(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `go test ./ui/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the handlers**
+- [x] **Step 3: Implement the handlers**
 
 `/api/types` iterates the provider registry so it can never drift from what
 the engine actually supports, and reports each type's locale coverage using
@@ -1255,7 +1255,7 @@ existing encoders, and offers csv/jsonl/sql.
 Return 400 with the offending value named for any unknown kind — the whole
 point of the UI is to make mistakes visible.
 
-- [ ] **Step 4: Build the page**
+- [x] **Step 4: Build the page**
 
 Three panes: type palette on the left (searchable, grouped by category), the
 schema builder in the middle (add/remove/reorder fields, set params, locale,
@@ -1267,7 +1267,7 @@ install.
 Show the seed prominently and make it editable: reproducibility is the feature
 Mockaroo does not have, so the UI should teach it rather than hide it.
 
-- [ ] **Step 5: Verify the binding is localhost-only**
+- [x] **Step 5: Verify the binding is localhost-only**
 
 `Serve` must reject a non-loopback address:
 
@@ -1287,18 +1287,18 @@ func Serve(addr string) error {
 
 Add a test asserting `Serve("0.0.0.0:8080")` returns an error.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `go test -race ./... && go build ./cmd/synth`
 Expected: PASS.
 
-- [ ] **Step 7: Document it**
+- [x] **Step 7: Document it**
 
 Add a README section with a screenshot-free description, the exact command,
 and an explicit statement that the server is loopback-only and sends nothing
 anywhere.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add ui/ cmd/synth/main.go README.md

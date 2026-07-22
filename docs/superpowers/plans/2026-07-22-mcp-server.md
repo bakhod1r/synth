@@ -85,7 +85,7 @@ back into the generator. Run the **core** module's tests after each.
 - Consumes: nothing.
 - Produces: `func New() *server.MCPServer` — the server with every tool registered. Later tasks add registrations inside it.
 
-- [ ] **Step 1: Create the module**
+- [x] **Step 1: Create the module**
 
 ```bash
 mkdir -p mcp/cmd/synth-mcp
@@ -102,7 +102,7 @@ cause is not obvious.
 
 Expected: `mcp/go.mod` exists and names `github.com/mark3labs/mcp-go`.
 
-- [ ] **Step 2: Verify the core module did not gain a dependency**
+- [x] **Step 2: Verify the core module did not gain a dependency**
 
 ```bash
 cd .. && go list -m all | grep -c mark3labs
@@ -110,7 +110,7 @@ cd .. && go list -m all | grep -c mark3labs
 
 Expected: `0`. If this prints anything else, the module boundary is broken — stop and fix it before continuing.
 
-- [ ] **Step 3: Write the failing test**
+- [x] **Step 3: Write the failing test**
 
 `mcp/server_test.go`:
 
@@ -128,7 +128,7 @@ func TestNewServerIsUsable(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: Run it to see it fail**
+- [x] **Step 4: Run it to see it fail**
 
 ```bash
 cd mcp && go test ./... -run TestNewServerIsUsable
@@ -136,7 +136,7 @@ cd mcp && go test ./... -run TestNewServerIsUsable
 
 Expected: FAIL, `undefined: New`.
 
-- [ ] **Step 5: Write `mcp/server.go`**
+- [x] **Step 5: Write `mcp/server.go`**
 
 ```go
 // Package mcp exposes Synth to MCP clients.
@@ -168,7 +168,7 @@ func New() *server.MCPServer {
 }
 ```
 
-- [ ] **Step 6: Write `mcp/cmd/synth-mcp/main.go`**
+- [x] **Step 6: Write `mcp/cmd/synth-mcp/main.go`**
 
 ```go
 // Command synth-mcp serves Synth over MCP on stdio.
@@ -193,7 +193,7 @@ func main() {
 }
 ```
 
-- [ ] **Step 7: Run the test and build**
+- [x] **Step 7: Run the test and build**
 
 ```bash
 cd mcp && go test ./... && go build ./... && go vet ./...
@@ -201,7 +201,7 @@ cd mcp && go test ./... && go build ./... && go vet ./...
 
 Expected: PASS, no output from build or vet.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add mcp/
@@ -228,7 +228,7 @@ never call.
   - `func rowsWithin(n int) (int, error)` — defaults 0 to 10, rejects above `maxRows`
   - `func inputWithin(s string) error` — rejects input above `maxInputBytes`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `mcp/limits_test.go`:
 
@@ -280,7 +280,7 @@ func TestInputWithin(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 ```bash
 cd mcp && go test ./... -run "Rows|Input"
@@ -288,7 +288,7 @@ cd mcp && go test ./... -run "Rows|Input"
 
 Expected: FAIL, `undefined: rowsWithin`.
 
-- [ ] **Step 3: Write `mcp/limits.go`**
+- [x] **Step 3: Write `mcp/limits.go`**
 
 ```go
 package mcp
@@ -332,7 +332,7 @@ func inputWithin(s string) error {
 }
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 ```bash
 cd mcp && go test ./... -run "Rows|Input"
@@ -340,7 +340,7 @@ cd mcp && go test ./... -run "Rows|Input"
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add mcp/limits.go mcp/limits_test.go
@@ -368,7 +368,7 @@ that has no limit, so a model that hits one knows what to do instead."
   - `func handleListTypes(a listTypesArgs) (any, error)` where `listTypesArgs` is `struct{ Search string }`
   - `func handleListPresets() (any, error)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `mcp/generate_test.go`:
 
@@ -474,7 +474,7 @@ func TestListPresetsCarriesTheSpec(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 ```bash
 cd mcp && go test ./... -run "Generate|List"
@@ -482,7 +482,7 @@ cd mcp && go test ./... -run "Generate|List"
 
 Expected: FAIL, `undefined: handleGenerate`.
 
-- [ ] **Step 3: Write `mcp/generate.go`**
+- [x] **Step 3: Write `mcp/generate.go`**
 
 ```go
 package mcp
@@ -593,7 +593,7 @@ func handleListPresets() (any, error) {
 }
 ```
 
-- [ ] **Step 4: Register the tools in `mcp/server.go`**
+- [x] **Step 4: Register the tools in `mcp/server.go`**
 
 Replace the body of `New` with:
 
@@ -665,7 +665,7 @@ func result(v any, err error) (*mcp.CallToolResult, error) {
 
 Imports needed in `server.go`: `context`, `fmt`, `github.com/mark3labs/mcp-go/mcp`, `github.com/mark3labs/mcp-go/server`.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 ```bash
 cd mcp && go test ./... && go vet ./...
@@ -673,7 +673,7 @@ cd mcp && go test ./... && go vet ./...
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add mcp/
@@ -698,7 +698,7 @@ a transport error, so the model reads the message and fixes the call."
 - Consumes: `inputWithin` from Task 2.
 - Produces: `type verifyArgs struct { Data, Format string }`, `func handleVerify(a verifyArgs) (any, error)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `mcp/verify_test.go`:
 
@@ -762,7 +762,7 @@ func TestVerifyDoesNotTakeAPath(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 ```bash
 cd mcp && go test ./... -run Verify
@@ -770,7 +770,7 @@ cd mcp && go test ./... -run Verify
 
 Expected: FAIL, `undefined: handleVerify`.
 
-- [ ] **Step 3: Write `mcp/verify.go`**
+- [x] **Step 3: Write `mcp/verify.go`**
 
 ```go
 package mcp
@@ -859,7 +859,7 @@ func ReadSample(r io.Reader, format string, max int) ([]map[string]any, error) {
 Then rewrite `LoadSample` to open the file and delegate to `ReadSample`, so the
 two cannot drift apart. Commit that change together with this task.
 
-- [ ] **Step 4: Register the tool in `New`**
+- [x] **Step 4: Register the tool in `New`**
 
 ```go
 	s.AddTool(mcp.NewTool("verify",
@@ -871,7 +871,7 @@ two cannot drift apart. Commit that change together with this task.
 	), typed(handleVerify))
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 ```bash
 cd mcp && go test ./... && go vet ./...
@@ -879,7 +879,7 @@ cd mcp && go test ./... && go vet ./...
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add mcp/ constraint/
@@ -910,7 +910,7 @@ primitive."
   - `type profileArgs struct { Data, Format string }`, `func handleProfile(a profileArgs) (any, error)` — returns the inferred spec as YAML plus per-column stats.
   - `type maskArgs struct { Data, Format, Key, Locale string }`, `func handleMask(a maskArgs) (any, error)` — returns the masked dataset as text.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `mcp/profile_test.go`:
 
@@ -1001,7 +1001,7 @@ func TestMaskRequiresAKey(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 ```bash
 cd mcp && go test ./... -run "Profile|Mask"
@@ -1009,7 +1009,7 @@ cd mcp && go test ./... -run "Profile|Mask"
 
 Expected: FAIL, `undefined: handleProfile`.
 
-- [ ] **Step 3: Write `mcp/profile.go`**
+- [x] **Step 3: Write `mcp/profile.go`**
 
 ```go
 package mcp
@@ -1101,7 +1101,7 @@ func TestRenderRoundTrips(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: Write `mcp/mask.go`**
+- [x] **Step 4: Write `mcp/mask.go`**
 
 ```go
 package mcp
@@ -1182,7 +1182,7 @@ Check `mask.Report`'s actual fields before using `rep.Rows` and `rep.Columns`
 above; adapt `maskResult` to what `Report` really carries rather than the other
 way round.
 
-- [ ] **Step 5: Register both tools in `New`**
+- [x] **Step 5: Register both tools in `New`**
 
 ```go
 	s.AddTool(mcp.NewTool("profile",
@@ -1204,7 +1204,7 @@ way round.
 	), typed(handleMask))
 ```
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 ```bash
 cd mcp && go test ./... && cd .. && go test ./... && go vet ./...
@@ -1213,7 +1213,7 @@ cd mcp && go test ./... && cd .. && go test ./... && go vet ./...
 Expected: PASS in both modules — exporting the mask methods must not break the
 core module's own tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add mcp/ mask/ profile/
@@ -1236,7 +1236,7 @@ the caller most likely believes they are buying by masking at all."
 **Interfaces:**
 - Produces: `type snapshotArgs struct { Spec, At, From, To, Locale string; Rows int; Seed uint64 }`, `func handleSnapshot(a snapshotArgs) (any, error)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `mcp/snapshot_test.go`:
 
@@ -1300,7 +1300,7 @@ func TestSnapshotRejectsABadDate(t *testing.T) {
 
 Add `import "fmt"` to the test file.
 
-- [ ] **Step 2: Run it to see it fail**
+- [x] **Step 2: Run it to see it fail**
 
 ```bash
 cd mcp && go test ./... -run Snapshot
@@ -1308,7 +1308,7 @@ cd mcp && go test ./... -run Snapshot
 
 Expected: FAIL, `undefined: handleSnapshot`.
 
-- [ ] **Step 3: Write `mcp/snapshot.go`**
+- [x] **Step 3: Write `mcp/snapshot.go`**
 
 ```go
 package mcp
@@ -1431,7 +1431,7 @@ Add `window` (a duration string, e.g. `"180d"` → parse it, `time.ParseDuration
 does not accept days) and `start` (a date) to `snapshotArgs`, and say in the
 tool description that `at=` before `start` returns nothing.
 
-- [ ] **Step 4: Register the tool in `New`**
+- [x] **Step 4: Register the tool in `New`**
 
 ```go
 	s.AddTool(mcp.NewTool("snapshot",
@@ -1448,7 +1448,7 @@ tool description that `at=` before `start` returns nothing.
 	), typed(handleSnapshot))
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 ```bash
 cd mcp && go test ./... && go vet ./...
@@ -1456,7 +1456,7 @@ cd mcp && go test ./... && go vet ./...
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add mcp/
@@ -1481,7 +1481,7 @@ a later well-meaning change, and a comment does not stop that.
 **Interfaces:**
 - Consumes: everything registered so far.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 `mcp/boundary_test.go`:
 
@@ -1535,7 +1535,7 @@ func TestNoFilesystemOrNetworkImports(t *testing.T) {
 outside the scan. That is correct: the boundary applies to the tool handlers,
 while the command needs to be able to report a startup failure.
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 ```bash
 cd mcp && go test ./... -run Boundary
@@ -1544,7 +1544,7 @@ cd mcp && go test ./... -run Boundary
 Expected: PASS. If it fails, the failure is the point — remove the import
 rather than the test.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add mcp/boundary_test.go
@@ -1562,7 +1562,7 @@ change, and a comment in a package doc does not stop that."
 - Create: `mcp/README.md`
 - Modify: `README.md` (a short section pointing at it)
 
-- [ ] **Step 1: Write `mcp/README.md`**
+- [x] **Step 1: Write `mcp/README.md`**
 
 ````markdown
 # Synth over MCP
@@ -1627,7 +1627,7 @@ context window.
 check that a validator accepts it.
 ````
 
-- [ ] **Step 2: Add a section to the root `README.md`**
+- [x] **Step 2: Add a section to the root `README.md`**
 
 Place it after the CLI section:
 
@@ -1646,7 +1646,7 @@ Seven tools: `generate`, `list_types`, `list_presets`, `verify`, `profile`,
 [mcp/README.md](mcp/README.md).
 ```
 
-- [ ] **Step 3: Verify the install path works**
+- [x] **Step 3: Verify the install path works**
 
 ```bash
 cd mcp && go build ./cmd/synth-mcp && ./synth-mcp < /dev/null; echo "exit: $?"
@@ -1654,7 +1654,7 @@ cd mcp && go build ./cmd/synth-mcp && ./synth-mcp < /dev/null; echo "exit: $?"
 
 Expected: it exits without a panic. A clean EOF on stdin is not an error.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add mcp/README.md README.md
