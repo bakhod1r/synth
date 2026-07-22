@@ -81,6 +81,7 @@ jobs:
           - { name: Usage counters, dir: ui/stats, test: true }
           - { name: Parquet sink, dir: sink/parquet, test: true }
           - { name: Benchmark comparison, dir: benchcmp, test: false }
+          - { name: Data importer, dir: cmd/synthdata, test: true }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

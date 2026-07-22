@@ -78,7 +78,7 @@ Per-locale name frequency beyond the US comes from national statistics offices t
   func WriteNotice(w io.Writer, sources []Source) error
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```go
 // A source with no licence must be rejected: shipping data we cannot
@@ -152,16 +152,16 @@ func TestAttributionRequiredForCCBY(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `cd cmd/synthdata && go test ./...`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the manifest**
+- [x] **Step 3: Implement the manifest**
 
 `allowedLicences` is an explicit allow-list, not a deny-list: a licence nobody has reviewed must fail closed. Fetch caches to `cacheDir`, verifies SHA-256 before returning, and reports the actual hash in the error so updating the manifest is one copy-paste.
 
-- [ ] **Step 4: Wire the CLI**
+- [x] **Step 4: Wire the CLI**
 
 ```bash
 cd cmd/synthdata
@@ -170,7 +170,7 @@ go run . import cldr geonames  # named sources, or all
 go run . notice                # regenerate NOTICE
 ```
 
-- [ ] **Step 5: Run the tests, then commit**
+- [x] **Step 5: Run the tests, then commit**
 
 ```bash
 git add cmd/synthdata NOTICE
