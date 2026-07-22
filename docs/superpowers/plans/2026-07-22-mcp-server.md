@@ -6,7 +6,7 @@
 
 **Architecture:** A separate nested Go module at `mcp/` holding a stdio MCP server built on `mark3labs/mcp-go`. It imports the existing `synth`, `verify`, `profile`, `mask` and `snapshot` packages and adds no capability they do not already have. The server never reads or writes a file and never opens an outbound connection: every tool takes its input as an argument and returns its result in the response. `mcp/cmd/synth-mcp` is the binary.
 
-**Tech Stack:** Go 1.25, `github.com/mark3labs/mcp-go` (server + stdio transport), the existing Synth packages.
+**Tech Stack:** Go 1.25.5, `github.com/mark3labs/mcp-go@v0.56.0` (server + stdio transport), the existing Synth packages.
 
 ## Global Constraints
 
@@ -15,7 +15,19 @@
 - **No filesystem.** No tool reads a path or writes a file. Input arrives as an argument; output is returned. The agent decides where anything is saved. A path argument would let a prompt-injected model read `~/.ssh/id_rsa` through a data generator, and refusing paths outright is the only version of that boundary that cannot be got wrong.
 - **No database.** Unchanged from the rest of the project: Synth supplies data, the seeder writes it.
 - **Every tool response is bounded.** `maxRows = 1000` for generate, `maxInputBytes = 8 << 20` for tools that take a dataset. Exceeding either is an error naming the limit, never a truncated result presented as complete.
-- Go version: `go 1.25` in `mcp/go.mod`.
+- Go version: `go 1.25.5` in `mcp/go.mod`. `mcp-go@v0.56.0` requires it; a lower
+  directive makes the build fetch a toolchain silently. The core module's own
+  `go 1.25` is unaffected.
+- **Verified against `mcp-go@v0.56.0`.** Every API used below was compiled
+  against that version: `server.NewMCPServer(name, version string, ...ServerOption)`,
+  `(*MCPServer).AddTool(mcp.Tool, ToolHandlerFunc)`, `server.ServeStdio`,
+  `mcp.NewTool`, `mcp.WithDescription`, `mcp.WithString/WithNumber/WithBoolean`,
+  `mcp.Required()`, `mcp.Description()`, `(CallToolRequest).BindArguments`,
+  `mcp.NewToolResultJSON[T]`, `mcp.NewToolResultError`. Pin the version; do not
+  use `@latest`.
+- **The MCP module pulls 20 transitive dependencies** — jsonschema-go, testify,
+  spf13/cast and golang.org/x/tools among them. That number is the entire reason
+  this is a separate module. It must never reach the core.
 - Module path: `github.com/bakhodir/synth/mcp`.
 - Binary name: `synth-mcp`.
 - Tool names are snake_case and prefixed nothing: `generate`, `list_types`, `list_presets`, `verify`, `profile`, `mask`, `snapshot`.
@@ -41,6 +53,24 @@
 
 Tool handlers are plain functions taking a typed argument struct and returning `(any, error)`; the MCP wiring is confined to `server.go`. That split means every handler is testable without constructing a protocol message.
 
+### Changes to the core module
+
+This is not a purely additive plan. Four core packages expose their work only
+through a path, and the MCP server may not open a file. Each change replaces a
+path-taking function with a reader/writer one and rewrites the path version to
+delegate, so there is one implementation rather than two.
+
+| Package | Change | Task |
+|---|---|---|
+| `constraint` | `ReadSample(io.Reader, format, max)`; `LoadSample` delegates | 4 |
+| `yamlfe` | `Render(*schema.Schema, order) ([]byte, error)` — the inverse of `Parse` | 5 |
+| `mask` | export `csv`/`jsonl` as `CSV`/`JSONL`; `File` delegates | 5 |
+| `synth` | `(*YAMLSpec).Schema() *schema.Schema` | 6 |
+
+None of these adds a dependency, and each is useful on its own: `Render` in
+particular closes the profile loop, letting a profiled dataset be fed straight
+back into the generator. Run the **core** module's tests after each.
+
 ---
 
 ### Task 1: Module skeleton and the server that registers nothing
@@ -63,8 +93,12 @@ cd mcp
 go mod init github.com/bakhodir/synth/mcp
 go mod edit -require=github.com/bakhodir/synth@v0.0.0
 go mod edit -replace=github.com/bakhodir/synth=../
-go get github.com/mark3labs/mcp-go@latest
+go get github.com/mark3labs/mcp-go@v0.56.0
 ```
+
+Pinned rather than `@latest`: this plan's code was compiled against v0.56.0, and
+a later release that renames one option would break the build somewhere the
+cause is not obvious.
 
 Expected: `mcp/go.mod` exists and names `github.com/mark3labs/mcp-go`.
 
@@ -621,15 +655,15 @@ func result(v any, err error) (*mcp.CallToolResult, error) {
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
-	body, err := json.MarshalIndent(v, "", "  ")
+	out, err := mcp.NewToolResultJSON(v)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("cannot encode the result: %v", err)), nil
 	}
-	return mcp.NewToolResultText(string(body)), nil
+	return out, nil
 }
 ```
 
-Imports needed in `server.go`: `context`, `encoding/json`, `fmt`, `github.com/mark3labs/mcp-go/mcp`, `github.com/mark3labs/mcp-go/server`.
+Imports needed in `server.go`: `context`, `fmt`, `github.com/mark3labs/mcp-go/mcp`, `github.com/mark3labs/mcp-go/server`.
 
 - [ ] **Step 5: Run the tests**
 
@@ -745,7 +779,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bakhodir/synth/profile"
+	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/verify"
 )
 
@@ -764,7 +798,7 @@ func handleVerify(a verifyArgs) (any, error) {
 	return verify.Run(rows, verify.Options{}), nil
 }
 
-// parseRows reads an inline dataset. It is shared by verify and profile.
+// parseRows reads an inline dataset. It is shared by verify and snapshot.
 func parseRows(data, format string) ([]map[string]any, error) {
 	if err := inputWithin(data); err != nil {
 		return nil, err
@@ -772,29 +806,58 @@ func parseRows(data, format string) ([]map[string]any, error) {
 	if strings.TrimSpace(data) == "" {
 		return nil, fmt.Errorf("data is empty — pass the rows themselves, not a file path")
 	}
-	switch strings.ToLower(format) {
+	rows, err := constraint.ReadSample(strings.NewReader(data), format, 0)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read the %s: %w", nonEmpty(format, "csv"), err)
+	}
+	return rows, nil
+}
+
+func nonEmpty(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
+}
+```
+
+**Verified against the current code, and it does not match the obvious guess:**
+
+- `profile.Result` is `{Schema, Order, Rows int, Stats}` — `Rows` is a **count**,
+  not the parsed rows, and there is no `Rows []map[string]any` anywhere. Do not
+  try to get rows out of `profile`.
+- The row parsers already exist in `constraint/sample.go` as the unexported
+  `sampleCSV` and `sampleJSONL`, both taking an `io.Reader`. `LoadSample(path,
+  max)` is the exported wrapper, and it opens a file — which this module must
+  not do.
+
+So the first change of this task is in the core module, not in `mcp/`:
+
+```go
+// constraint/sample.go
+
+// ReadSample parses rows from an already-open reader. LoadSample is the same
+// thing for a path; callers that must not touch the filesystem — the MCP
+// server — use this instead.
+//
+// format is "csv" (the default), or "jsonl"/"ndjson".
+func ReadSample(r io.Reader, format string, max int) ([]map[string]any, error) {
+	if max <= 0 {
+		max = DefaultSample
+	}
+	switch strings.ToLower(strings.TrimPrefix(format, ".")) {
+	case "jsonl", "ndjson", "json":
+		return sampleJSONL(r, max)
 	case "", "csv":
-		res, err := profile.FromCSV(strings.NewReader(data))
-		if err != nil {
-			return nil, fmt.Errorf("cannot read the CSV: %w", err)
-		}
-		return res.Rows, nil
-	case "jsonl", "ndjson":
-		res, err := profile.FromJSONL(strings.NewReader(data))
-		if err != nil {
-			return nil, fmt.Errorf("cannot read the JSONL: %w", err)
-		}
-		return res.Rows, nil
+		return sampleCSV(r, max)
 	default:
 		return nil, fmt.Errorf("unknown format %q — use csv or jsonl", format)
 	}
 }
 ```
 
-> **Note for the implementer:** `profile.Result` may not expose the parsed rows.
-> Check `profile/profile.go` first. If it does not, add an exported `Rows` field
-> to `profile.Result` populated by `FromCSV`/`FromJSONL` in the same commit,
-> with a comment saying verify needs them; do not duplicate the parsers here.
+Then rewrite `LoadSample` to open the file and delegate to `ReadSample`, so the
+two cannot drift apart. Commit that change together with this task.
 
 - [ ] **Step 4: Register the tool in `New`**
 
@@ -819,8 +882,12 @@ Expected: PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add mcp/ profile/
-git commit -m "feat(mcp): add verify
+git add mcp/ constraint/
+git commit -m "feat(mcp): add verify, and let constraint parse from a reader
+
+constraint.LoadSample opens a file, which this module must not do. ReadSample is
+the same parser taking an io.Reader, and LoadSample now delegates to it so the
+two cannot drift apart.
 
 The dataset arrives as text, never as a path. An MCP server runs with the
 user's permissions on behalf of a model that may be reading attacker-controlled
@@ -951,6 +1018,7 @@ import (
 	"strings"
 
 	"github.com/bakhodir/synth/profile"
+	"github.com/bakhodir/synth/yamlfe"
 )
 
 type profileArgs struct {
@@ -984,18 +1052,54 @@ func handleProfile(a profileArgs) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	yaml, err := res.YAML()
+	spec, err := yamlfe.Render(res.Schema, res.Order)
 	if err != nil {
 		return nil, err
 	}
-	return profileResult{Spec: string(yaml), Rows: res.Rows, Columns: res.Columns}, nil
+	return profileResult{Spec: string(spec), Rows: res.Rows, Columns: res.Stats}, nil
 }
 ```
 
-> **Note for the implementer:** check `profile.Result`'s actual field and method
-> names before writing this — `Rows`, `Columns` and `YAML()` are the expected
-> shape but the existing type may differ. Adapt this handler to the type; do not
-> change `profile.Result`'s public API to match the plan.
+**Verified:** `profile.Result` is `{Schema *schema.Schema, Order []string, Rows
+int, Stats map[string]*ColumnStats}`. There is **no `YAML()` method and no
+`Columns` field** — `Rows` is the row count and `Stats` holds the per-column
+statistics.
+
+So this task needs a way to turn a `*schema.Schema` into YAML. Before writing
+one, check how `cmd/synth`'s `profile` subcommand already emits its spec and
+reuse that code path. If it renders inline in `main.go`, lift the rendering into
+`yamlfe` as:
+
+```go
+// Render writes a schema as a YAML spec, in the given column order. It is the
+// inverse of Parse, so a profiled dataset can be round-tripped back into a
+// generator.
+func Render(s *schema.Schema, order []string) ([]byte, error)
+```
+
+and have both the CLI and this handler call it. Do not write a second renderer
+in `mcp/`: two renderers drift, and the one nobody looks at drifts first.
+
+Add a round-trip test in `yamlfe` in the same commit:
+
+```go
+// Render must produce something Parse accepts, or a profiled dataset cannot be
+// fed back into the generator — which is the entire point of profiling.
+func TestRenderRoundTrips(t *testing.T) {
+	src := []byte("name: t\ncount: 5\nfields:\n  email: { kind: email }\n  age: { kind: int, min: 18, max: 90 }\n")
+	spec, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := Render(spec.Schema, spec.Order)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Parse(out); err != nil {
+		t.Fatalf("Render produced something Parse rejects: %v\n%s", err, out)
+	}
+}
+```
 
 - [ ] **Step 4: Write `mcp/mask.go`**
 
@@ -1003,7 +1107,6 @@ func handleProfile(a profileArgs) (any, error) {
 package mcp
 
 import (
-	"encoding/csv"
 	"fmt"
 	"strings"
 
@@ -1056,13 +1159,28 @@ func handleMask(a maskArgs) (any, error) {
 	return maskResult{Data: out.String(), Rows: rep.Rows, Columns: rep.Columns}, nil
 }
 
-var _ = csv.NewReader // keep the import meaningful if the branch above changes
 ```
 
-> **Note for the implementer:** `mask.Masker`'s CSV and JSONL methods are
-> currently unexported (`csv`, `jsonl` in `mask/file.go`). Export them as `CSV`
-> and `JSONL` taking `(io.Reader, io.Writer)` in the same commit, and rewrite
-> `(*Masker).File` to call them. Do not copy the parsing logic into `mcp/`.
+**Verified:** `mask/file.go` has `(*Masker).csv` and `(*Masker).jsonl`, both
+already `(io.Reader, io.Writer) (*Report, error)` — the right signature, just
+unexported. `File(in, out string)` is the exported wrapper and it opens files,
+which this module must not do.
+
+Export them as `CSV` and `JSONL` in this commit and rewrite `File` to call them,
+so there is one implementation rather than two:
+
+```go
+// CSV masks a CSV stream. File is the same thing for two paths; callers that
+// must not touch the filesystem — the MCP server — use this.
+func (m *Masker) CSV(r io.Reader, w io.Writer) (*Report, error) { ... }
+
+// JSONL masks a JSONL stream.
+func (m *Masker) JSONL(r io.Reader, w io.Writer) (*Report, error) { ... }
+```
+
+Check `mask.Report`'s actual fields before using `rep.Rows` and `rep.Columns`
+above; adapt `maskResult` to what `Report` really carries rather than the other
+way round.
 
 - [ ] **Step 5: Register both tools in `New`**
 
@@ -1242,6 +1360,7 @@ func handleSnapshot(a snapshotArgs) (any, error) {
 		return nil, fmt.Errorf("the spec does not parse: %w", err)
 	}
 	tl, err := snapshot.New(spec.Schema(), snapshot.Config{
+		Table:  spec.Name(),
 		Rows:   n,
 		Seed:   a.Seed,
 		Locale: a.Locale,
@@ -1285,11 +1404,32 @@ func parseInstant(s string) (time.Time, error) {
 }
 ```
 
-> **Note for the implementer:** `snapshot.Config`'s fields and
-> `synth.YAMLSpec`'s accessor for the underlying `*schema.Schema` may differ
-> from the names above. Read `snapshot/snapshot.go` and `yaml.go` first and
-> adapt. If `YAMLSpec` has no exported accessor for its schema, add one
-> (`func (y *YAMLSpec) Schema() *schema.Schema`) in the same commit.
+**Verified:** `snapshot.Config` is
+`{Table, Key string, Rows int, Start time.Time, Window time.Duration, Churn
+float64, DeleteFrac float64, Seed uint64, Locale string}` — the fields used
+above all exist.
+
+`synth.YAMLSpec` holds an unexported `spec *yamlfe.Spec` and has **no accessor
+for the schema**. Add one in this commit:
+
+```go
+// Schema returns the parsed schema, for packages that build on it — snapshot
+// and constraint mining both need the fields, not just the generated rows.
+func (y *YAMLSpec) Schema() *schema.Schema { return y.spec.Schema }
+```
+
+Two `Config` fields are worth exposing as tool arguments rather than leaving at
+their defaults, because a caller asking about time will want them:
+
+- `Window` — the span over which rows are born and change. Default one year. A
+  `from`/`to` pair outside the window returns no events, which looks like a bug
+  and is not one.
+- `Start` — when the table came into existence. A snapshot before it is empty,
+  for the same reason.
+
+Add `window` (a duration string, e.g. `"180d"` → parse it, `time.ParseDuration`
+does not accept days) and `start` (a date) to `snapshotArgs`, and say in the
+tool description that `at=` before `start` returns nothing.
 
 - [ ] **Step 4: Register the tool in `New`**
 
@@ -1349,7 +1489,6 @@ a later well-meaning change, and a comment does not stop that.
 package mcp
 
 import (
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"strconv"
@@ -1388,25 +1527,13 @@ func TestNoFilesystemOrNetworkImports(t *testing.T) {
 			}
 		}
 	}
-	_ = ast.Print // keep the ast import honest if the check is extended
-}
-
-// Every registered tool must have a description, because the description is
-// the only thing a model has to decide whether to call it.
-func TestEveryToolIsDescribed(t *testing.T) {
-	if New() == nil {
-		t.Fatal("New() returned nil")
-	}
-	// mcp-go does not expose the registered tool list; this test is a
-	// placeholder to be filled in if it gains an accessor. Until then the
-	// descriptions are covered by review.
-	t.Skip("mcp-go exposes no accessor for registered tools")
 }
 ```
 
-> **Note for the implementer:** `main.go` under `mcp/cmd/synth-mcp` legitimately
-> imports `os`. It is in a different directory, so `ParseDir(".")` does not see
-> it — verify that is still true before trusting this test.
+**Verified:** `parser.ParseDir` does not recurse, so `main.go` under
+`mcp/cmd/synth-mcp` — which legitimately imports `os` to exit with a status — is
+outside the scan. That is correct: the boundary applies to the tool handlers,
+while the command needs to be able to report a startup failure.
 
 - [ ] **Step 2: Run it**
 
