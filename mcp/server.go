@@ -97,6 +97,26 @@ func New() *server.MCPServer {
 		mcp.WithString("locale", mcp.Description("Locale for the replacement values.")),
 	), typed(handleMask))
 
+	s.AddTool(mcp.NewTool("snapshot",
+		mcp.WithDescription("Show a generated table as it stood at one instant (at=), or the "+
+			"change events between two (from= and to=). Useful for testing migrations and "+
+			"incremental ETL. An instant outside the table's lifetime returns nothing — set "+
+			"start= and window= if the defaults do not cover the dates you care about. "+
+			"Reads and writes no files."),
+		mcp.WithString("spec", mcp.Required(), mcp.Description("A YAML schema.")),
+		mcp.WithString("at", mcp.Description(
+			"An instant, e.g. 2026-07-01. Use this or from/to, not both.")),
+		mcp.WithString("from", mcp.Description("Start of the window. Goes with to.")),
+		mcp.WithString("to", mcp.Description("End of the window. Goes with from.")),
+		mcp.WithString("start", mcp.Description(
+			"When the table came into existence. A snapshot before it is empty.")),
+		mcp.WithString("window", mcp.Description(
+			"How long rows are born and change for, e.g. 180d or 720h. Default one year.")),
+		mcp.WithString("locale", mcp.Description("Data locale.")),
+		mcp.WithNumber("rows", mcp.Description("How many rows. Default 10, maximum 1000.")),
+		mcp.WithNumber("seed", mcp.Description("Seed.")),
+	), typed(handleSnapshot))
+
 	return s
 }
 

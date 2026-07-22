@@ -39,6 +39,10 @@ func (y *YAMLSpec) Columns() []string { return y.spec.Order }
 // Name returns the spec's declared dataset name (used as an SQL table name).
 func (y *YAMLSpec) Name() string { return y.spec.Name }
 
+// Schema returns the parsed schema. Packages that build on the fields rather
+// than on generated rows — snapshot and constraint mining — need it.
+func (y *YAMLSpec) Schema() *schema.Schema { return y.spec.Schema }
+
 // Count returns the number of rows the spec requests.
 func (y *YAMLSpec) Count() int { return y.spec.Count }
 
