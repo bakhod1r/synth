@@ -1,0 +1,20 @@
+{
+  "name": "@bakhod1r/synth",
+  "version": "1.0.0",
+  "description": "Generate realistic, coherent, referentially-consistent fake data. Runs locally — nothing is sent anywhere.",
+  "keywords": ["fake-data", "test-data", "fixtures", "faker", "seed", "wasm", "synthetic-data"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/bakhod1r/synth.git" },
+  "homepage": "https://bakhod1r.github.io/synth",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.js" }
+  },
+  "files": ["index.js", "index.d.ts", "synth.wasm", "wasm_exec.js", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node test.mjs"
+  }
+}

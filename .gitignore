@@ -10,3 +10,5 @@
 
 # Built by scripts/build-pages.sh.
 /dist
+./docs
+./scripts/node_modules
