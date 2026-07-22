@@ -6,8 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+# A second push to the same branch cancels the first: a queue of runs on stale
+# commits tells you nothing and delays the one that matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  core:
+    name: Core library
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,19 +25,98 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-      - name: Verify formatting
-        run: test -z "$(gofmt -l .)"
+
+      - name: Formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "not gofmt'd:"; echo "$unformatted"; exit 1
+          fi
+
       - name: Vet
         run: go vet ./...
+
       - name: Test
         run: go test -race ./...
+
+      # The whole argument for the nested modules is that the core stays at two
+      # dependencies. Nothing enforces that except this check.
+      - name: Dependency budget
+        run: |
+          deps=$(go list -m all | tail -n +2 | grep -v '^gopkg.in/check.v1' | wc -l)
+          echo "core runtime dependencies: $deps"
+          go list -m all | tail -n +2
+          if [ "$deps" -gt 2 ]; then
+            echo "::error::the core library must depend on google/uuid and yaml.v3 only"
+            exit 1
+          fi
+
       - name: Build CLI
         run: go build ./cmd/synth
-      # Submodules keep their dependencies out of the core library, so they are
-      # built and tested separately.
-      - name: Test Parquet submodule
-        run: go test ./...
-        working-directory: sink/parquet
-      - name: Build benchmark submodule
+
+  # Each nested module keeps its own dependencies out of the core, so each is
+  # built and tested on its own. A module missing from this list is a module
+  # nobody is testing.
+  modules:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: MCP server, dir: mcp, test: true }
+          - { name: Usage counters, dir: ui/stats, test: true }
+          - { name: Parquet sink, dir: sink/parquet, test: true }
+          - { name: Benchmark comparison, dir: benchcmp, test: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - name: Vet
+        run: go vet ./...
+        working-directory: ${{ matrix.dir }}
+      - name: Test
+        if: matrix.test
+        run: go test -race ./...
+        working-directory: ${{ matrix.dir }}
+      - name: Build
+        if: ${{ !matrix.test }}
         run: go build ./...
+        working-directory: ${{ matrix.dir }}
+
+  docs:
+    name: Diagrams
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: npm install
+        working-directory: scripts
+      # A broken mermaid block is not a build failure — it is a red error box on
+      # the front page that nobody notices until someone else points at it.
+      - name: Render every diagram in the README
+        run: npm run check-diagrams
+        working-directory: scripts
+
+  benchmark:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    # Benchmarks are informational: a shared runner's timings are too noisy to
+    # gate a merge on. They run so a large regression is visible in the log.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - name: Core
+        run: go test -bench=. -benchmem -benchtime=10x -run='^$' ./...
+      - name: Against other fakers
+        run: go test -bench=. -benchmem -benchtime=10x -run='^$' ./...
         working-directory: benchcmp
