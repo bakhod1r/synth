@@ -113,7 +113,9 @@ func New() *server.MCPServer {
 		mcp.WithString("window", mcp.Description(
 			"How long rows are born and change for, e.g. 180d or 720h. Default one year.")),
 		mcp.WithString("locale", mcp.Description("Data locale.")),
-		mcp.WithNumber("rows", mcp.Description("How many rows. Default 10, maximum 1000.")),
+		mcp.WithNumber("rows", mcp.Description(
+			"How many rows are ever born, not how many come back — halfway through "+
+				"the window only some exist yet. Default 10, maximum 1000.")),
 		mcp.WithNumber("seed", mcp.Description("Seed.")),
 	), typed(handleSnapshot))
 

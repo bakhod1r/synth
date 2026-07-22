@@ -138,3 +138,31 @@ func TestSnapshotRejectsABadWindow(t *testing.T) {
 		t.Fatal("an unparseable window was accepted")
 	}
 }
+
+// rows= is how many rows are ever born, not how many come back. Halfway through
+// the window only some exist yet; by the end all of them do. Without this
+// written down, "I asked for 20 and got 10" reads as a bug and gets filed as
+// one.
+func TestSnapshotRowCountIsRowsEverBorn(t *testing.T) {
+	const want = 200
+	at := func(when string) int {
+		t.Helper()
+		out, err := handleSnapshot(snapshotArgs{
+			Spec: snapSpec, Rows: want, Seed: 1,
+			Start: "2026-01-01", Window: "365d", At: when,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(out.(snapshotResult).Rows)
+	}
+	if got := at("2025-12-31"); got != 0 {
+		t.Fatalf("before the table existed: %d rows, want 0", got)
+	}
+	if mid := at("2026-07-01"); mid == 0 || mid >= want {
+		t.Fatalf("halfway through the window: %d rows, want some but not all of %d", mid, want)
+	}
+	if got := at("2026-12-31"); got != want {
+		t.Fatalf("at the end of the window: %d rows, want all %d", got, want)
+	}
+}
