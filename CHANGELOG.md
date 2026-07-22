@@ -1,0 +1,95 @@
+# Changelog
+
+Notable changes to Synth. Versions follow [semantic versioning](https://semver.org).
+
+While the major version is `0`, the API may change in a minor release. Pin an
+exact version if that matters to you; `v1.0.0` is where the surface freezes.
+
+## [Unreleased]
+
+## [0.1.0] — 2026-07-22
+
+First tagged release. Everything below already existed; the tag is what makes it
+depend-able.
+
+### Generation
+
+- Records rather than fields: referential integrity (`Ref`, `OneToMany`),
+  temporal causality (`after=`, `gap=`), unique constraints and primary keys,
+  nested structs and slices.
+- Locale coherence across 52 locales — one `Place` is drawn per record, so the
+  city matches the postcode instead of merely both being Uzbek. Gendered name
+  banks keep first name, surname and the gender column consistent.
+- 260 column types, including `birthdate`/`age`, the national identifier under
+  the names people search for (`pinfl`, `nationalid`, `taxid`), and the card
+  security code under all six of its network names (`cvv`, `cvc`, `cvv2`,
+  `cvc2`, `csc`, `cid`).
+- Format-valid values: Luhn cards with real BIN ranges, mod-97 IBANs, ISIN, LEI,
+  CUSIP, EAN-13, and a national identifier per locale with its real check digit
+  — PINFL, TC Kimlik, IIN, PESEL, DNI, NIF, BSN, Aadhaar, the Chinese MOD 11-2.
+- Statistical distributions: uniform, normal, log-normal, exponential, Zipf.
+- Per-record RNG, so the same seed gives byte-identical output at any worker
+  count.
+
+### Frontends
+
+Go structs, YAML, OpenAPI 3, SQL DDL, JSON Schema, Avro, Protobuf, and profiling
+a real CSV/JSONL export. All collapse into one schema, so every feature works
+regardless of where the schema came from.
+
+### Products built on the same engine
+
+- `synth verify` — audit an existing dataset for broken checksums, malformed
+  formats and time anomalies.
+- `synth mask` — replace personal data in a real export, keeping foreign keys
+  matched across related dumps.
+- `synth snapshot` — the table at an instant, or the change events between two.
+  Replaying the events onto the earlier state reproduces the later one.
+- Constraint mining — learn invariants from a sample and hold them while
+  generating.
+- `synth ui` — a local browser workbench, loopback only.
+- MCP server (`mcp/`) — seven tools for an assistant, stdio only, no files.
+- Usage counters (`ui/stats/`) — optional SQLite-backed totals.
+
+### Output
+
+CSV, JSONL, SQL `INSERT`, Parquet (`sink/parquet/`), CDC events. Streaming keeps
+memory constant at any row count.
+
+### Boundaries
+
+These are deliberate and enforced by tests, not conventions:
+
+- **No database.** Synth supplies data; a loader writes it.
+- **No network.** The workbench binds loopback and refuses anything else. The
+  MCP server speaks stdio and cannot import `net/http`.
+- **No files from MCP.** Every tool takes its input as an argument, so a
+  prompt-injected model cannot turn a data generator into a file reader.
+- **Two dependencies** in the core library. Anything heavier lives in a nested
+  module, and CI fails if that slips.
+
+### Fixed before the tag
+
+Found while preparing this release, all of them the quiet kind:
+
+- An unquoted date bound in YAML was parsed as a timestamp and then formatted
+  into something no provider could read. An unparseable bound is ignored rather
+  than rejected, so the `user` preset shipped generating dates of birth in 2025.
+- `mask=hash` produced the same digest for the same value in different columns,
+  so anyone holding two masked tables could join on the masked value and re-link
+  the rows the mask was meant to separate.
+- Profiling could emit a spec Synth itself could not parse, for a column name
+  containing a control character or long enough to exceed YAML's key limit.
+- Profiling turned a short sample of a UUID or email column into an enum whose
+  choices are the real values — copying identifiers into a file meant for
+  version control.
+- A true/false column profiled as an enum of the strings `"true"` and `"false"`,
+  handing a JSON consumer a string where the source had a boolean.
+- `ddlfe` skipped table-level `PRIMARY KEY (id)` — the form pg_dump writes — so
+  the key column looked ordinary and generation could produce duplicates. It
+  also failed entirely on `public.users` and `[users]`.
+- `locale.Names()` ranged over a map, so the locale list came out in a different
+  order on every run.
+
+[Unreleased]: https://github.com/bakhodir/synth/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/bakhodir/synth/releases/tag/v0.1.0

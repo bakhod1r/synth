@@ -693,6 +693,21 @@ Column types are inferred (int64, double, boolean, string), so query engines
 see real types rather than everything-as-string. Uploading the file to S3,
 MinIO or a warehouse is your loader's job.
 
+## Versioning and stability
+
+Synth follows [semantic versioning](https://semver.org). While the major version
+is `0` the API may change in a minor release, so pin an exact version if that
+matters; `v1.0.0` is where the surface freezes. See [CHANGELOG.md](CHANGELOG.md).
+
+What is already enforced rather than promised:
+
+| | |
+| --- | --- |
+| Tests | 380+, race-clean, on every push |
+| Fuzzing | six parser targets, nightly |
+| Core dependencies | exactly two, and CI fails if that slips |
+| Boundaries | no database, no network, no files from MCP — each with a test |
+
 ## Status & roadmap
 
 **Implemented:** struct frontend with tagless inference, referential integrity
