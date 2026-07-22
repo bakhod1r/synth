@@ -6,6 +6,10 @@
 
 const I18N = {
   ar: {
+    generate: 'توليد',
+    generating: 'جارٍ التوليد…',
+    generatingRows: (n) => `جارٍ توليد ${n.toLocaleString()} صفًا…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} صف · ${size} · ${ms} ms — جاهز للتنزيل`,
     digestHint: 'الملح يمنع مجموعتَي بيانات من مشاركة التجزئات نفسها. والمفتاح السري يجعل إعادة حساب التجزئة مستحيلة — فبدونه يمكن ببساطة تخمين قيمة قصيرة كرقم الهوية وتجزئتها حتى تتطابق.',
     salt: 'ملح',
     secret: 'مفتاح سري',
@@ -82,6 +86,10 @@ const I18N = {
   },
 
   az: {
+    generate: 'Yarat',
+    generating: 'Yaradılır…',
+    generatingRows: (n) => `${n.toLocaleString()} sətir yaradılır…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} sətir · ${size} · ${ms} ms — yükləməyə hazırdır`,
     digestHint: 'Duz iki məlumat dəstinin eyni heşləri paylaşmasının qarşısını alır. Gizli açar heşin yenidən hesablanmasını qeyri-mümkün edir — onsuz FİN kimi qısa dəyəri sadəcə təxmin edib uyğun gələnədək heşləmək olar.',
     salt: 'duz',
     secret: 'gizli açar',
@@ -158,6 +166,10 @@ const I18N = {
   },
 
   bg: {
+    generate: 'Генерирай',
+    generating: 'Генериране…',
+    generatingRows: (n) => `генериране на ${n.toLocaleString()} реда…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} реда · ${size} · ${ms} ms — готово за изтегляне`,
     digestHint: 'Солта пречи два набора данни да споделят едни и същи дайджести. Таен ключ прави дайджеста невъзможен за преизчисляване — без него кратка стойност като ЕГН може просто да се отгатва и хешира, докато съвпадне.',
     salt: 'сол',
     secret: 'таен ключ',
@@ -166,10 +178,6 @@ const I18N = {
     mask: 'маска',
     done: 'Готово',
     generate: 'Сгенерировать',
-    statFiles: 'запусков',
-    statRows: 'строк',
-    statCells: 'значений',
-    statsSession: 'только эта сессия',
     generating: 'Генерация…',
     generatingRows: (n) => `генерация ${n.toLocaleString()} строк…`,
     generated: (rows, size, ms) => `${rows.toLocaleString()} строк · ${size} · ${ms} мс — можно скачать`,
@@ -242,6 +250,10 @@ const I18N = {
   },
 
   bn: {
+    generate: 'তৈরি করুন',
+    generating: 'তৈরি হচ্ছে…',
+    generatingRows: (n) => `${n.toLocaleString()}টি সারি তৈরি হচ্ছে…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()}টি সারি · ${size} · ${ms} ms — ডাউনলোডের জন্য প্রস্তুত`,
     digestHint: 'সল্ট দুটি ডেটাসেটকে একই ডাইজেস্ট ভাগ করতে দেয় না। গোপন চাবি ডাইজেস্ট পুনরায় গণনা করা অসম্ভব করে — এটি ছাড়া জাতীয় পরিচয় নম্বরের মতো ছোট মান কেবল অনুমান করে হ্যাশ করলেই মিলে যায়।',
     salt: 'সল্ট',
     secret: 'গোপন চাবি',
@@ -318,6 +330,10 @@ const I18N = {
   },
 
   cs: {
+    generate: 'Generovat',
+    generating: 'Generuji…',
+    generatingRows: (n) => `generuji ${n.toLocaleString()} řádků…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} řádků · ${size} · ${ms} ms — připraveno ke stažení`,
     digestHint: 'Sůl zabrání tomu, aby dvě datové sady sdílely stejné otisky. Tajný klíč znemožní otisk přepočítat — bez něj lze krátkou hodnotu jako rodné číslo prostě hádat a hashovat, dokud nesedí.',
     salt: 'sůl',
     secret: 'tajný klíč',
@@ -394,6 +410,10 @@ const I18N = {
   },
 
   da: {
+    generate: 'Generér',
+    generating: 'Genererer…',
+    generatingRows: (n) => `genererer ${n.toLocaleString()} rækker…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rækker · ${size} · ${ms} ms — klar til download`,
     digestHint: 'Et salt forhindrer, at to datasæt deler digests. En hemmelig nøgle gør digesten umulig at genberegne — uden den kan en kort værdi som et CPR-nummer simpelthen gættes og hashes, indtil den passer.',
     salt: 'salt',
     secret: 'hemmelig nøgle',
@@ -470,6 +490,10 @@ const I18N = {
   },
 
   de: {
+    generate: 'Generieren',
+    generating: 'Generiere…',
+    generatingRows: (n) => `${n.toLocaleString()} Zeilen werden generiert…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} Zeilen · ${size} · ${ms} ms — bereit zum Download`,
     digestHint: 'Ein Salt verhindert, dass zwei Datensätze dieselben Digests teilen. Ein geheimer Schlüssel macht den Digest unberechenbar — ohne ihn lässt sich ein kurzer Wert wie eine Ausweisnummer einfach raten und hashen, bis er passt.',
     salt: 'Salt',
     secret: 'geheimer Schlüssel',
@@ -546,6 +570,10 @@ const I18N = {
   },
 
   el: {
+    generate: 'Δημιουργία',
+    generating: 'Δημιουργία…',
+    generatingRows: (n) => `δημιουργία ${n.toLocaleString()} γραμμών…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} γραμμές · ${size} · ${ms} ms — έτοιμο για λήψη`,
     digestHint: 'Το αλάτι εμποδίζει δύο σύνολα δεδομένων να μοιράζονται τους ίδιους κατακερματισμούς. Ένα μυστικό κλειδί καθιστά αδύνατο τον επανυπολογισμό — χωρίς αυτό, μια σύντομη τιμή όπως ένας ΑΜΚΑ μπορεί απλώς να μαντευτεί και να κατακερματιστεί μέχρι να ταιριάξει.',
     salt: 'αλάτι',
     secret: 'μυστικό κλειδί',
@@ -630,10 +658,6 @@ const I18N = {
     mask: 'mask',
     done: 'Done',
     generate: 'Generate',
-    statFiles: 'generated',
-    statRows: 'rows',
-    statCells: 'values',
-    statsSession: 'this session only',
     generating: 'Generating…',
     generatingRows: (n) => `generating ${n.toLocaleString()} rows…`,
     generated: (rows, size, ms) => `${rows.toLocaleString()} rows · ${size} · ${ms} ms — ready to download`,
@@ -700,6 +724,10 @@ const I18N = {
   },
 
   es: {
+    generate: 'Generar',
+    generating: 'Generando…',
+    generatingRows: (n) => `generando ${n.toLocaleString()} filas…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} filas · ${size} · ${ms} ms — listo para descargar`,
     digestHint: 'Una sal evita que dos conjuntos de datos compartan resúmenes. Una clave secreta hace imposible recalcular el resumen — sin ella, un valor corto como un DNI puede adivinarse y hashearse hasta que coincida.',
     salt: 'sal',
     secret: 'clave secreta',
@@ -776,6 +804,10 @@ const I18N = {
   },
 
   et: {
+    generate: 'Loo',
+    generating: 'Loon…',
+    generatingRows: (n) => `loon ${n.toLocaleString()} rida…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rida · ${size} · ${ms} ms — allalaadimiseks valmis`,
     digestHint: 'Sool hoiab ära, et kaks andmestikku jagaksid samu räsisid. Salajane võti muudab räsi taasarvutamise võimatuks — ilma selleta saab lühikest väärtust nagu isikukood lihtsalt ära arvata ja räsida, kuni see klapib.',
     salt: 'sool',
     secret: 'salajane võti',
@@ -852,6 +884,10 @@ const I18N = {
   },
 
   fa: {
+    generate: 'تولید',
+    generating: 'در حال تولید…',
+    generatingRows: (n) => `تولید ${n.toLocaleString()} سطر…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} سطر · ${size} · ${ms} ms — آمادهٔ دانلود`,
     digestHint: 'نمک مانع می‌شود دو مجموعه‌داده درهم‌های یکسان داشته باشند. کلید مخفی محاسبهٔ دوبارهٔ درهم را ناممکن می‌کند — بدون آن، مقدار کوتاهی مانند کد ملی را می‌توان حدس زد و درهم کرد تا مطابقت پیدا کند.',
     salt: 'نمک',
     secret: 'کلید مخفی',
@@ -928,6 +964,10 @@ const I18N = {
   },
 
   fi: {
+    generate: 'Luo',
+    generating: 'Luodaan…',
+    generatingRows: (n) => `luodaan ${n.toLocaleString()} riviä…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} riviä · ${size} · ${ms} ms — valmis ladattavaksi`,
     digestHint: 'Suola estää kahta aineistoa jakamasta samoja tiivisteitä. Salainen avain tekee tiivisteestä mahdottoman laskea uudelleen — ilman sitä lyhyt arvo kuten henkilötunnus voidaan yksinkertaisesti arvata ja tiivistää, kunnes se täsmää.',
     salt: 'suola',
     secret: 'salainen avain',
@@ -1004,6 +1044,10 @@ const I18N = {
   },
 
   fil: {
+    generate: 'Bumuo',
+    generating: 'Bumubuo…',
+    generatingRows: (n) => `bumubuo ng ${n.toLocaleString()} hilera…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} hilera · ${size} · ${ms} ms — handa nang i-download`,
     digestHint: 'Pinipigilan ng asin na magkapareho ng digest ang dalawang set ng datos. Ang lihim na susi ang nagpapaimposible na muling kwentahin ang digest — kung wala ito, ang maikling halaga tulad ng numero ng ID ay puwedeng hulaan at i-hash hanggang tumugma.',
     salt: 'asin',
     secret: 'lihim na susi',
@@ -1080,6 +1124,10 @@ const I18N = {
   },
 
   fr: {
+    generate: 'Générer',
+    generating: 'Génération…',
+    generatingRows: (n) => `génération de ${n.toLocaleString()} lignes…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} lignes · ${size} · ${ms} ms — prêt à télécharger`,
     digestHint: 'Un sel empêche deux jeux de données de partager les mêmes condensés. Une clé secrète rend le condensé impossible à recalculer — sans elle, une valeur courte comme un numéro national peut simplement être devinée et hachée jusqu’à correspondre.',
     salt: 'sel',
     secret: 'clé secrète',
@@ -1156,6 +1204,10 @@ const I18N = {
   },
 
   he: {
+    generate: 'צור',
+    generating: 'מייצר…',
+    generatingRows: (n) => `מייצר ${n.toLocaleString()} שורות…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} שורות · ${size} · ${ms} ms — מוכן להורדה`,
     digestHint: 'מלח מונע משני מערכי נתונים לחלוק את אותם גיבובים. מפתח סודי הופך את הגיבוב לבלתי ניתן לחישוב מחדש — בלעדיו אפשר פשוט לנחש ערך קצר כמו תעודת זהות ולגבב אותו עד להתאמה.',
     salt: 'מלח',
     secret: 'מפתח סודי',
@@ -1232,6 +1284,10 @@ const I18N = {
   },
 
   hi: {
+    generate: 'बनाएँ',
+    generating: 'बन रहा है…',
+    generatingRows: (n) => `${n.toLocaleString()} पंक्तियाँ बन रही हैं…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} पंक्तियाँ · ${size} · ${ms} ms — डाउनलोड के लिए तैयार`,
     digestHint: 'सॉल्ट दो डेटासेट को एक ही डाइजेस्ट साझा करने से रोकता है। गुप्त कुंजी डाइजेस्ट को दोबारा गणना करना असंभव बना देती है — इसके बिना आधार जैसे छोटे मान का अंदाजा लगाकर मिलान होने तक हैश किया जा सकता है।',
     salt: 'सॉल्ट',
     secret: 'गुप्त कुंजी',
@@ -1308,6 +1364,10 @@ const I18N = {
   },
 
   hr: {
+    generate: 'Generiraj',
+    generating: 'Generiranje…',
+    generatingRows: (n) => `generiranje ${n.toLocaleString()} redaka…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} redaka · ${size} · ${ms} ms — spremno za preuzimanje`,
     digestHint: 'Sol sprječava da dva skupa podataka dijele iste sažetke. Tajni ključ čini sažetak nemogućim za ponovni izračun — bez njega se kratka vrijednost poput OIB-a može jednostavno pogađati i sažimati dok se ne poklopi.',
     salt: 'sol',
     secret: 'tajni ključ',
@@ -1384,6 +1444,10 @@ const I18N = {
   },
 
   hu: {
+    generate: 'Generálás',
+    generating: 'Generálás…',
+    generatingRows: (n) => `${n.toLocaleString()} sor generálása…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} sor · ${size} · ${ms} ms — letölthető`,
     digestHint: 'A só megakadályozza, hogy két adathalmaz ugyanazokat a hasheket használja. A titkos kulcs újraszámíthatatlanná teszi a hasht — nélküle egy rövid érték, például egy személyi szám, egyszerűen kitalálható és hashelhető, amíg egyezik.',
     salt: 'só',
     secret: 'titkos kulcs',
@@ -1460,6 +1524,10 @@ const I18N = {
   },
 
   id: {
+    generate: 'Hasilkan',
+    generating: 'Membuat…',
+    generatingRows: (n) => `membuat ${n.toLocaleString()} baris…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} baris · ${size} · ${ms} ms — siap diunduh`,
     digestHint: 'Garam mencegah dua kumpulan data berbagi digest yang sama. Kunci rahasia membuat digest mustahil dihitung ulang — tanpanya, nilai pendek seperti NIK bisa ditebak dan di-hash sampai cocok.',
     salt: 'garam',
     secret: 'kunci rahasia',
@@ -1536,6 +1604,10 @@ const I18N = {
   },
 
   it: {
+    generate: 'Genera',
+    generating: 'Generazione…',
+    generatingRows: (n) => `generazione di ${n.toLocaleString()} righe…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} righe · ${size} · ${ms} ms — pronto per il download`,
     digestHint: 'Un sale impedisce che due dataset condividano gli stessi digest. Una chiave segreta rende il digest impossibile da ricalcolare — senza di essa un valore breve come un codice fiscale può essere semplicemente indovinato e hashato finché non combacia.',
     salt: 'sale',
     secret: 'chiave segreta',
@@ -1612,6 +1684,10 @@ const I18N = {
   },
 
   ja: {
+    generate: '生成',
+    generating: '生成中…',
+    generatingRows: (n) => `${n.toLocaleString()} 行を生成中…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} 行 · ${size} · ${ms} ms — ダウンロードできます`,
     digestHint: 'ソルトは二つのデータセットが同じダイジェストを共有することを防ぎます。秘密鍵があるとダイジェストを再計算できません。鍵がなければ、マイナンバーのような短い値は総当たりでハッシュすれば一致してしまいます。',
     salt: 'ソルト',
     secret: '秘密鍵',
@@ -1688,6 +1764,10 @@ const I18N = {
   },
 
   ka: {
+    generate: 'შექმნა',
+    generating: 'იქმნება…',
+    generatingRows: (n) => `იქმნება ${n.toLocaleString()} სტრიქონი…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} სტრიქონი · ${size} · ${ms} ms — ჩამოსატვირთად მზადაა`,
     digestHint: 'მარილი ხელს უშლის ორ მონაცემთა ნაკრებს ერთი და იმავე დაიჯესტების გაზიარებაში. საიდუმლო გასაღები დაიჯესტის ხელახლა გამოთვლას შეუძლებელს ხდის — მის გარეშე მოკლე მნიშვნელობა, როგორიცაა პირადი ნომერი, უბრალოდ გამოცნობა და ჰეშირება შეიძლება დამთხვევამდე.',
     salt: 'მარილი',
     secret: 'საიდუმლო გასაღები',
@@ -1764,6 +1844,10 @@ const I18N = {
   },
 
   kk: {
+    generate: 'Жасау',
+    generating: 'Жасалуда…',
+    generatingRows: (n) => `${n.toLocaleString()} жол жасалуда…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} жол · ${size} · ${ms} ms — жүктеуге дайын`,
     digestHint: 'Тұз екі деректер жиынының бірдей дайджест бөлісуіне жол бермейді. Құпия кілт дайджестті қайта есептеуді мүмкін емес етеді — онсыз ЖСН сияқты қысқа мәнді жай ғана болжап, сәйкес келгенше хештеуге болады.',
     salt: 'тұз',
     secret: 'құпия кілт',
@@ -1840,6 +1924,10 @@ const I18N = {
   },
 
   ko: {
+    generate: '생성',
+    generating: '생성 중…',
+    generatingRows: (n) => `${n.toLocaleString()}행 생성 중…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()}행 · ${size} · ${ms} ms — 내려받을 수 있습니다`,
     digestHint: '솔트는 서로 다른 두 데이터셋이 같은 다이제스트를 갖지 않게 합니다. 비밀 키가 있으면 다이제스트를 다시 계산할 수 없습니다. 키가 없으면 주민등록번호처럼 짧은 값은 그냥 추측해서 해시해 보면 맞출 수 있습니다.',
     salt: '솔트',
     secret: '비밀 키',
@@ -1916,6 +2004,10 @@ const I18N = {
   },
 
   lt: {
+    generate: 'Generuoti',
+    generating: 'Generuojama…',
+    generatingRows: (n) => `generuojama ${n.toLocaleString()} eilučių…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} eilutės · ${size} · ${ms} ms — galima atsisiųsti`,
     digestHint: 'Druska neleidžia dviem duomenų rinkiniams turėti tų pačių santraukų. Slaptas raktas padaro santrauką neperskaičiuojamą — be jo trumpą reikšmę, pavyzdžiui, asmens kodą, galima tiesiog spėlioti ir maišyti, kol sutaps.',
     salt: 'druska',
     secret: 'slaptas raktas',
@@ -1992,6 +2084,10 @@ const I18N = {
   },
 
   lv: {
+    generate: 'Ģenerēt',
+    generating: 'Ģenerē…',
+    generatingRows: (n) => `ģenerē ${n.toLocaleString()} rindas…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rindas · ${size} · ${ms} ms — gatavs lejupielādei`,
     digestHint: 'Sāls neļauj diviem datu kopumiem dalīties ar vieniem un tiem pašiem kopsavilkumiem. Slepenā atslēga padara kopsavilkumu neatkārtojamu — bez tās īsu vērtību, piemēram, personas kodu, var vienkārši uzminēt un jaukt, līdz tas sakrīt.',
     salt: 'sāls',
     secret: 'slepenā atslēga',
@@ -2068,6 +2164,10 @@ const I18N = {
   },
 
   ms: {
+    generate: 'Jana',
+    generating: 'Menjana…',
+    generatingRows: (n) => `menjana ${n.toLocaleString()} baris…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} baris · ${size} · ${ms} ms — sedia dimuat turun`,
     digestHint: 'Garam menghalang dua set data daripada berkongsi cincangan yang sama. Kunci rahsia menjadikan cincangan mustahil dikira semula — tanpanya, nilai pendek seperti nombor kad pengenalan boleh diteka dan dicincang sehingga sepadan.',
     salt: 'garam',
     secret: 'kunci rahsia',
@@ -2144,6 +2244,10 @@ const I18N = {
   },
 
   nb: {
+    generate: 'Generer',
+    generating: 'Genererer…',
+    generatingRows: (n) => `genererer ${n.toLocaleString()} rader…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rader · ${size} · ${ms} ms — klar til nedlasting`,
     digestHint: 'Et salt hindrer at to datasett deler digester. En hemmelig nøkkel gjør digesten umulig å regne ut på nytt — uten den kan en kort verdi som et fødselsnummer bare gjettes og hashes til den stemmer.',
     salt: 'salt',
     secret: 'hemmelig nøkkel',
@@ -2220,6 +2324,10 @@ const I18N = {
   },
 
   nl: {
+    generate: 'Genereren',
+    generating: 'Bezig…',
+    generatingRows: (n) => `${n.toLocaleString()} rijen genereren…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rijen · ${size} · ${ms} ms — klaar om te downloaden`,
     digestHint: 'Een salt voorkomt dat twee datasets dezelfde digests delen. Een geheime sleutel maakt de digest onherberekenbaar — zonder sleutel kan een korte waarde zoals een BSN gewoon geraden en gehasht worden tot het klopt.',
     salt: 'salt',
     secret: 'geheime sleutel',
@@ -2296,6 +2404,10 @@ const I18N = {
   },
 
   pl: {
+    generate: 'Generuj',
+    generating: 'Generowanie…',
+    generatingRows: (n) => `generowanie ${n.toLocaleString()} wierszy…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} wierszy · ${size} · ${ms} ms — gotowe do pobrania`,
     digestHint: 'Sól sprawia, że dwa zbiory danych nie mają wspólnych skrótów. Tajny klucz uniemożliwia przeliczenie skrótu — bez niego krótką wartość, jak PESEL, można po prostu zgadywać i haszować, aż się zgodzi.',
     salt: 'sól',
     secret: 'tajny klucz',
@@ -2372,6 +2484,10 @@ const I18N = {
   },
 
   pt: {
+    generate: 'Gerar',
+    generating: 'Gerando…',
+    generatingRows: (n) => `gerando ${n.toLocaleString()} linhas…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} linhas · ${size} · ${ms} ms — pronto para baixar`,
     digestHint: 'Um sal impede que dois conjuntos de dados compartilhem digests. Uma chave secreta torna o digest impossível de recalcular — sem ela, um valor curto como um CPF pode simplesmente ser adivinhado e hasheado até coincidir.',
     salt: 'sal',
     secret: 'chave secreta',
@@ -2448,6 +2564,10 @@ const I18N = {
   },
 
   ro: {
+    generate: 'Generează',
+    generating: 'Se generează…',
+    generatingRows: (n) => `se generează ${n.toLocaleString()} rânduri…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rânduri · ${size} · ${ms} ms — gata de descărcat`,
     digestHint: 'Sarea împiedică două seturi de date să aibă aceleași rezumate. O cheie secretă face rezumatul imposibil de recalculat — fără ea, o valoare scurtă precum CNP-ul poate fi pur și simplu ghicită și hașurată până se potrivește.',
     salt: 'sare',
     secret: 'cheie secretă',
@@ -2524,6 +2644,10 @@ const I18N = {
   },
 
   ru: {
+    generate: 'Сгенерировать',
+    generating: 'Генерация…',
+    generatingRows: (n) => `генерация ${n.toLocaleString()} строк…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} строк · ${size} · ${ms} мс — можно скачать`,
     salt: 'соль',
     secret: 'секретный ключ',
     digest: 'длина дайджеста',
@@ -2594,6 +2718,10 @@ const I18N = {
   },
 
   sk: {
+    generate: 'Generovať',
+    generating: 'Generujem…',
+    generatingRows: (n) => `generujem ${n.toLocaleString()} riadkov…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} riadkov · ${size} · ${ms} ms — pripravené na stiahnutie`,
     digestHint: 'Soľ zabráni tomu, aby dve množiny údajov zdieľali rovnaké odtlačky. Tajný kľúč znemožní odtlačok prepočítať — bez neho možno krátku hodnotu ako rodné číslo jednoducho hádať a hashovať, kým nesedí.',
     salt: 'soľ',
     secret: 'tajný kľúč',
@@ -2670,6 +2798,10 @@ const I18N = {
   },
 
   sl: {
+    generate: 'Ustvari',
+    generating: 'Ustvarjanje…',
+    generatingRows: (n) => `ustvarjanje ${n.toLocaleString()} vrstic…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} vrstic · ${size} · ${ms} ms — pripravljeno za prenos`,
     digestHint: 'Sol prepreči, da bi dva nabora podatkov delila iste zgoščene vrednosti. Skrivni ključ onemogoči ponovni izračun — brez njega je kratko vrednost, kot je EMŠO, mogoče preprosto uganiti in zgostiti, dokler se ne ujema.',
     salt: 'sol',
     secret: 'skrivni ključ',
@@ -2746,6 +2878,10 @@ const I18N = {
   },
 
   sr: {
+    generate: 'Генериши',
+    generating: 'Генерисање…',
+    generatingRows: (n) => `генерисање ${n.toLocaleString()} редова…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} редова · ${size} · ${ms} ms — спремно за преузимање`,
     digestHint: 'Со спречава да два скупа података деле исте хешеве. Тајни кључ чини хеш немогућим за поновно израчунавање — без њега се кратка вредност попут ЈМБГ-а може једноставно погађати и хешовати док се не поклопи.',
     salt: 'со',
     secret: 'тајни кључ',
@@ -2822,6 +2958,10 @@ const I18N = {
   },
 
   sv: {
+    generate: 'Generera',
+    generating: 'Genererar…',
+    generatingRows: (n) => `genererar ${n.toLocaleString()} rader…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} rader · ${size} · ${ms} ms — redo att laddas ner`,
     digestHint: 'Ett salt hindrar två datamängder från att dela digest. En hemlig nyckel gör digesten omöjlig att räkna om — utan den kan ett kort värde som ett personnummer helt enkelt gissas och hashas tills det stämmer.',
     salt: 'salt',
     secret: 'hemlig nyckel',
@@ -2898,6 +3038,10 @@ const I18N = {
   },
 
   th: {
+    generate: 'สร้าง',
+    generating: 'กำลังสร้าง…',
+    generatingRows: (n) => `กำลังสร้าง ${n.toLocaleString()} แถว…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} แถว · ${size} · ${ms} ms — พร้อมดาวน์โหลด`,
     digestHint: 'เกลือช่วยไม่ให้ชุดข้อมูลสองชุดมีแฮชตรงกัน กุญแจลับทำให้คำนวณแฮชซ้ำไม่ได้ — หากไม่มีกุญแจ ค่าที่สั้นอย่างเลขบัตรประชาชนสามารถเดาแล้วแฮชจนกว่าจะตรงได้',
     salt: 'เกลือ',
     secret: 'กุญแจลับ',
@@ -2974,6 +3118,10 @@ const I18N = {
   },
 
   tr: {
+    generate: 'Oluştur',
+    generating: 'Oluşturuluyor…',
+    generatingRows: (n) => `${n.toLocaleString()} satır oluşturuluyor…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} satır · ${size} · ${ms} ms — indirmeye hazır`,
     digestHint: 'Tuz, iki veri kümesinin aynı özetleri paylaşmasını önler. Gizli anahtar özetin yeniden hesaplanmasını imkânsız kılar — onsuz TC Kimlik gibi kısa bir değer tahmin edilip eşleşene kadar özetlenebilir.',
     salt: 'tuz',
     secret: 'gizli anahtar',
@@ -3050,6 +3198,10 @@ const I18N = {
   },
 
   uk: {
+    generate: 'Згенерувати',
+    generating: 'Генерування…',
+    generatingRows: (n) => `генерування ${n.toLocaleString()} рядків…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} рядків · ${size} · ${ms} ms — готово до завантаження`,
     digestHint: 'Сіль не дає двом наборам даних мати однакові дайджести. Таємний ключ робить дайджест неможливим для перерахунку — без нього коротке значення на кшталт ІПН можна просто перебрати й гешувати, доки не збіжиться.',
     salt: 'сіль',
     secret: 'таємний ключ',
@@ -3134,10 +3286,6 @@ const I18N = {
     mask: 'maska',
     done: 'Tayyor',
     generate: 'Yaratish',
-    statFiles: 'marta',
-    statRows: 'qator',
-    statCells: 'qiymat',
-    statsSession: 'faqat shu sessiya',
     generating: 'Yaratilmoqda…',
     generatingRows: (n) => `${n.toLocaleString()} qator yaratilmoqda…`,
     generated: (rows, size, ms) => `${rows.toLocaleString()} qator · ${size} · ${ms} ms — yuklab olishga tayyor`,
@@ -3204,6 +3352,10 @@ const I18N = {
   },
 
   vi: {
+    generate: 'Tạo',
+    generating: 'Đang tạo…',
+    generatingRows: (n) => `đang tạo ${n.toLocaleString()} dòng…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} dòng · ${size} · ${ms} ms — sẵn sàng tải xuống`,
     digestHint: 'Muối ngăn hai tập dữ liệu dùng chung các digest. Khoá bí mật khiến digest không thể tính lại — nếu không có nó, một giá trị ngắn như số căn cước có thể bị đoán rồi băm cho tới khi khớp.',
     salt: 'muối',
     secret: 'khoá bí mật',
@@ -3280,6 +3432,10 @@ const I18N = {
   },
 
   zh: {
+    generate: '生成',
+    generating: '生成中…',
+    generatingRows: (n) => `正在生成 ${n.toLocaleString()} 行…`,
+    generated: (rows, size, ms) => `${rows.toLocaleString()} 行 · ${size} · ${ms} 毫秒 — 可以下载`,
     digestHint: '盐可防止两个数据集共用相同的摘要。密钥使摘要无法被重新计算——没有密钥，身份证号这类较短的值只要逐个猜测并哈希，就能对上。',
     salt: '盐',
     secret: '密钥',

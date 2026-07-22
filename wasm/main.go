@@ -85,12 +85,6 @@ func handle(_ js.Value, args []js.Value) (result any) {
 		return json200(locale.Names())
 	case "/api/presets":
 		return json200(presets())
-	case "/api/stats":
-		// The page shows totals; in the browser there is nowhere to keep them
-		// between reloads, and saying so beats a number that resets silently.
-		return json200(map[string]any{
-			"files": 0, "rows": 0, "cells": 0, "bytes": 0, "persistent": false,
-		})
 	case "/api/preview":
 		return generate(method, body, q, maxPreview)
 	case "/api/generate":

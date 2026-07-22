@@ -50,7 +50,6 @@ regardless of where the schema came from.
   generating.
 - `synth ui` — a local browser workbench, loopback only.
 - MCP server (`mcp/`) — seven tools for an assistant, stdio only, no files.
-- Usage counters (`ui/stats/`) — optional SQLite-backed totals.
 
 ### Output
 

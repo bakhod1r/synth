@@ -78,7 +78,6 @@ jobs:
       matrix:
         include:
           - { name: MCP server, dir: mcp, test: true }
-          - { name: Usage counters, dir: ui/stats, test: true }
           - { name: Parquet sink, dir: sink/parquet, test: true }
           - { name: Benchmark comparison, dir: benchcmp, test: false }
           - { name: Data importer, dir: cmd/synthdata, test: true }

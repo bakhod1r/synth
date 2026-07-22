@@ -23,7 +23,7 @@ jobs:
       - run: go test -race ./...
       - name: Modules
         run: |
-          for dir in mcp ui/stats sink/parquet; do
+          for dir in mcp sink/parquet; do
             echo "== $dir"
             (cd "$dir" && go vet ./... && go test ./...)
           done
