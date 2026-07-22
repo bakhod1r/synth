@@ -1,0 +1,56 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a newer commit wins. Cancelling in progress is
+# wrong here: a half-deployed site is worse than a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # git describe needs the tags to stamp a version
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build
+        run: scripts/build-pages.sh dist/pages
+
+      # The demo runs the same generator the library does, so a broken module
+      # is a broken release — not just a broken page.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check the module answers
+        run: node scripts/check-wasm.mjs dist/pages
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

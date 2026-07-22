@@ -7,3 +7,6 @@
 # Go library or its tests needs them.
 /scripts/node_modules
 /scripts/package-lock.json
+
+# Built by scripts/build-pages.sh.
+/dist

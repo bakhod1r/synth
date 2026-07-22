@@ -62,6 +62,11 @@ jobs:
       - name: Build CLI
         run: go build ./cmd/synth
 
+      # The hosted demo runs the same generator the library does, so a module
+      # that stops compiling for wasm is a broken release, not a broken page.
+      - name: Build for WebAssembly
+        run: GOOS=js GOARCH=wasm go build -o /dev/null ./wasm
+
   # Each nested module keeps its own dependencies out of the core, so each is
   # built and tested on its own. A module missing from this list is a module
   # nobody is testing.
@@ -110,6 +115,25 @@ jobs:
       - name: Render every diagram in the README
         run: npm run check-diagrams
         working-directory: scripts
+
+  pages:
+    name: Static site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build
+        run: scripts/build-pages.sh dist/pages
+      - name: Check the module answers
+        run: node scripts/check-wasm.mjs dist/pages
 
   # Fuzzing finds what tests do not, but only if it runs for longer than a pull
   # request should wait. So it runs nightly, and a crasher is uploaded for

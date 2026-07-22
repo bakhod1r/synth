@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/internal/webspec"
 )
 
 // The API is the workbench without the browser: the same two verbs the page
@@ -20,7 +21,7 @@ import (
 
 // resolveSpec builds a spec from either a preset named in the query string or a
 // JSON body. The query form exists so a fixture is one curl, not a document.
-func resolveSpec(r *http.Request, cap int) (*specRequest, *synth.YAMLSpec, []synth.Option, error) {
+func resolveSpec(r *http.Request, cap int) (*webspec.Request, *synth.YAMLSpec, []synth.Option, error) {
 	q := r.URL.Query()
 	name := q.Get("preset")
 	if name == "" {
@@ -44,7 +45,7 @@ func resolveSpec(r *http.Request, cap int) (*specRequest, *synth.YAMLSpec, []syn
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	req := &specRequest{Name: name, Count: n, Locale: q.Get("locale"), Format: q.Get("format")}
+	req := &webspec.Request{Name: name, Count: n, Locale: q.Get("locale"), Format: q.Get("format")}
 
 	opts := []synth.Option{}
 	if req.Locale != "" {

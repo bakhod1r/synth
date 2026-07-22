@@ -20,10 +20,10 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/bakhod1r/synth"
+	"github.com/bakhod1r/synth/internal/webspec"
 	"github.com/bakhod1r/synth/locale"
 	"github.com/bakhod1r/synth/providers"
 	"github.com/bakhod1r/synth/schema"
@@ -145,7 +145,7 @@ func handleTypes(w http.ResponseWriter, r *http.Request) {
 		covered := providers.LocalesFor(k)
 		out = append(out, typeInfo{
 			Kind:      string(k),
-			Category:  categoryOf(k),
+			Category:  webspec.CategoryOf(k),
 			Localized: structurallyLocalized[k] || len(covered) > 0,
 			Locales:   covered,
 		})
@@ -155,17 +155,6 @@ func handleTypes(w http.ResponseWriter, r *http.Request) {
 
 func handleLocales(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, locale.Names())
-}
-
-// specRequest is what the page posts: the same shape as a YAML spec.
-type specRequest struct {
-	Name   string                    `json:"name"`
-	Count  int                       `json:"count"`
-	Locale string                    `json:"locale"`
-	Seed   uint64                    `json:"seed"`
-	Format string                    `json:"format"`
-	Fields map[string]map[string]any `json:"fields"`
-	Order  []string                  `json:"order"`
 }
 
 func handlePreview(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +206,7 @@ func generate(w http.ResponseWriter, r *http.Request, rec Recorder) {
 			Name:    name,
 			Rows:    len(rows),
 			Columns: len(cols),
-			Format:  nonEmptyFormat(req.Format),
+			Format:  webspec.NonEmpty(req.Format, "csv"),
 			Bytes:   out.n,
 			Millis:  time.Since(started).Milliseconds(),
 		})
@@ -240,18 +229,18 @@ func generate(w http.ResponseWriter, r *http.Request, rec Recorder) {
 	case "sql":
 		w.Header().Set("Content-Type", "application/sql")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.sql"`)
-		writeSQL(out, name, cols, rows)
+		webspec.WriteSQL(out, name, cols, rows)
 	default:
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.csv"`)
-		writeCSV(out, cols, rows)
+		webspec.WriteCSV(out, cols, rows)
 	}
 }
 
 // parseSpec turns the posted JSON into a spec, rejecting an unknown kind by
 // name. Making a mistake visible is the whole reason the workbench exists.
-func parseSpec(r *http.Request, cap int) (*specRequest, *synth.YAMLSpec, error) {
-	var req specRequest
+func parseSpec(r *http.Request, cap int) (*webspec.Request, *synth.YAMLSpec, error) {
+	var req webspec.Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, nil, fmt.Errorf("cannot read the schema: %w", err)
 	}
@@ -273,7 +262,7 @@ func parseSpec(r *http.Request, cap int) (*specRequest, *synth.YAMLSpec, error) 
 	if cap > 0 && req.Count > cap {
 		req.Count = cap
 	}
-	doc, err := buildYAML(&req)
+	doc, err := webspec.BuildYAML(&req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -296,81 +285,12 @@ func (c *countingWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func nonEmptyFormat(s string) string {
-	if s == "" {
-		return "csv"
-	}
-	return s
-}
-
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	// The page is same-origin and served from this binary; nothing here should
 	// ever be readable cross-origin.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	json.NewEncoder(w).Encode(v)
-}
-
-// categoryOf groups a kind for the palette. The grouping is presentational
-// only — an unrecognized kind still appears, under "other", so a newly added
-// type is never invisible.
-func categoryOf(k schema.Kind) string {
-	name := string(k)
-	for _, g := range categories {
-		for _, member := range g.kinds {
-			if member == name {
-				return g.name
-			}
-		}
-	}
-	for _, g := range categories {
-		for _, frag := range g.fragments {
-			if strings.Contains(name, frag) {
-				return g.name
-			}
-		}
-	}
-	return "other"
-}
-
-var categories = []struct {
-	name      string
-	kinds     []string
-	fragments []string
-}{
-	{name: "person", kinds: []string{"name", "firstname", "lastname", "middlename",
-		"gender", "username", "email", "phone", "title", "namesuffix",
-		"maritalstatus", "education", "bloodtype", "nickname", "petname",
-		"birthdate", "age", "pinfl", "nationalid", "taxid", "ssn"}},
-	{name: "location", kinds: []string{"city", "region", "country", "postcode",
-		"street", "countryname", "countrycode", "continent", "timezone",
-		"latitude", "longitude", "airport", "airline"}, fragments: []string{"geo"}},
-	{name: "finance", kinds: []string{"iban", "card", "currency", "amount",
-		"bankname", "accounttype", "paymentmethod", "swift", "salary",
-		"stockticker", "crypto", "isin", "lei", "cusip", "routingnumber",
-		"accountnumber", "ein", "cardbrand", "cardexpiry", "cardtoken",
-		"cvv", "cvc", "cvv2", "cvc2", "csc", "cid", "balance"}},
-	{name: "health", kinds: []string{"icd10", "ndc", "drugname"}},
-	{name: "internet", kinds: []string{"ipv4", "ipv6", "url", "domain", "mac",
-		"macvendor", "useragent", "port", "protocol", "cidr", "asn",
-		"httpmethod", "httpstatus", "httpheader", "mimetype", "browser", "os"}},
-	{name: "tech", kinds: []string{"uuid", "md5", "sha256", "jwt", "gitcommit",
-		"gitbranch", "gittag", "semver", "filename", "filepath", "fileext",
-		"filesize", "loglevel", "environment", "awsregion", "cloudprovider",
-		"containerimage", "framework", "cron", "errorcode", "base64", "slug"}},
-	{name: "commerce", kinds: []string{"product", "productcategory",
-		"productmaterial", "brand", "sku", "ean13", "upc", "isbn", "orderstatus",
-		"couponcode", "company", "job", "jobarea", "joblevel", "department"}},
-	{name: "text", kinds: []string{"lorem", "word", "sentence", "paragraph",
-		"catchphrase", "appname", "password"}},
-	{name: "basic", kinds: []string{"int", "float", "bool", "time", "unixtime",
-		"enum", "year", "month", "weekday", "percentage", "rating",
-		"temperature", "duration", "unit"}},
-	{name: "culture", kinds: []string{"book", "movie", "celebrity", "band",
-		"musicgenre", "instrument", "musicnote", "sportsteam", "sport",
-		"superhero", "food", "drink", "cocktail", "coffee", "fruit",
-		"vegetable", "animal", "dogbreed", "catbreed", "flower", "language",
-		"languagename", "university", "emoji"}},
 }
 
 // structurallyLocalized are the kinds whose values follow the locale through

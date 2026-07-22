@@ -193,6 +193,19 @@ Testing the happy path is the easy part. Ask for the values that break parsers: 
 synth.New(synth.WithChaos(0.02))   // 2% of records carry a nasty value
 ```
 
+## Try it without installing anything
+
+**[bakhod1r.github.io/synth](https://bakhod1r.github.io/synth)** — the workbench
+with the generator compiled to WebAssembly.
+
+It is the same page and the same engine as `synth ui`; only the backend differs,
+and the page's JavaScript is byte-identical between them. Nothing is uploaded,
+because there is nowhere to upload it to — the generator runs in your tab. That
+is a stronger claim than a promise not to send your schema anywhere, and it is
+the whole reason the demo is built this way rather than hosted.
+
+About 1.6 MB to download, once.
+
 ## Browser workbench
 
 ```bash
