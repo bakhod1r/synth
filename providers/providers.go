@@ -56,7 +56,15 @@ func init() {
 	registry[schema.KindCountry] = func(c Ctx) any { return c.Locale.Country }
 	registry[schema.KindInt] = intProvider
 	registry[schema.KindFloat] = floatProvider
-	registry[schema.KindBool] = func(c Ctx) any { return c.Rand.Bool(0.5) }
+	// true= is the share of true values, so a profiled column that was 90% true
+	// generates that way rather than an even split.
+	registry[schema.KindBool] = func(c Ctx) any {
+		p := 0.5
+		if v, ok := floatParam(c.Params, "true"); ok && v >= 0 && v <= 1 {
+			p = v
+		}
+		return c.Rand.Bool(p)
+	}
 	registry[schema.KindTime] = timeProvider
 	registry[schema.KindLorem] = lorem
 	registry[schema.KindIBAN] = iban

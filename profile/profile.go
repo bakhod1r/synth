@@ -194,6 +194,14 @@ func build(order []string, stats map[string]*ColumnStats, rows int) *Result {
 		f := schema.Field{Name: name, Params: map[string]string{}}
 
 		switch {
+		// A two-value true/false column becomes a bool, not an enum of the
+		// strings "true" and "false". An enum would reproduce the ratio but
+		// emit a string where the source had a boolean, and a consumer reading
+		// the JSON gets "true" instead of true. The ratio is carried in a param
+		// instead, so nothing is lost.
+		case isBoolean(c):
+			f.Kind = schema.KindBool
+			f.Params["true"] = strconv.FormatFloat(trueShare(c), 'g', 4, 64)
 		// Numeric columns stay numeric (a learned range), so generated values
 		// keep their type instead of becoming enum strings.
 		case c.Numeric:
@@ -208,7 +216,14 @@ func build(order []string, stats map[string]*ColumnStats, rows int) *Result {
 			}
 		// Low-cardinality text columns are reproduced as a weighted enum, so the
 		// observed category frequencies carry over exactly.
-		case c.Values != nil && len(c.Values) > 0 && !isIdentifierLike(c):
+		//
+		// A column whose values are a recognizable format is never a category,
+		// however few distinct values were seen. This matters beyond neatness:
+		// an enum spec lists its choices verbatim, so treating a short sample of
+		// a UUID or email column as categorical would copy real identifiers into
+		// a file meant to be committed — and profiling promises the opposite.
+		// isIdentifierLike needs twenty rows to be sure; a format match does not.
+		case c.Values != nil && len(c.Values) > 0 && !isIdentifierLike(c) && !hasRecognizableFormat(c):
 			c.Categorical = true
 			f.Kind = schema.KindEnum
 			for v, n := range c.Values {
@@ -226,6 +241,60 @@ func build(order []string, stats map[string]*ColumnStats, rows int) *Result {
 
 // isIdentifierLike reports whether a column looks like a unique key rather than
 // a category (every observed value distinct across a decent sample).
+// isBoolean reports whether every value in the column is a boolean spelling.
+// The spellings are the ones real exports use: SQL writes t/f, CSV from a
+// spreadsheet writes TRUE/FALSE, JSON writes true/false, and some tools write
+// 1/0 — but 1/0 is left alone, because an integer column that happens to hold
+// only zeroes and ones is far more common than a boolean written that way.
+func isBoolean(c *ColumnStats) bool {
+	if len(c.Values) == 0 || len(c.Values) > 2 {
+		return false
+	}
+	for v := range c.Values {
+		if boolValue(v) == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// boolValue normalises a boolean spelling, returning "" for anything else.
+func boolValue(v string) string {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "true", "t", "yes", "y":
+		return "true"
+	case "false", "f", "no", "n":
+		return "false"
+	}
+	return ""
+}
+
+// trueShare is the observed fraction of true values.
+func trueShare(c *ColumnStats) float64 {
+	var yes, total int
+	for v, n := range c.Values {
+		total += n
+		if boolValue(v) == "true" {
+			yes += n
+		}
+	}
+	if total == 0 {
+		return 0.5
+	}
+	return float64(yes) / float64(total)
+}
+
+// hasRecognizableFormat reports whether the column's values parse as a known
+// format. Such a column is generated from its format rather than from a list of
+// the values that were seen.
+func hasRecognizableFormat(c *ColumnStats) bool {
+	switch detectByValue(c) {
+	case schema.KindUUID, schema.KindEmail, schema.KindURL, schema.KindTime, schema.KindPhone:
+		return true
+	}
+	return false
+}
+
 func isIdentifierLike(c *ColumnStats) bool {
 	return c.NonNull >= 20 && len(c.Values) == c.NonNull
 }
@@ -233,6 +302,20 @@ func isIdentifierLike(c *ColumnStats) bool {
 // detectFormat inspects sample values for a recognizable format, then falls
 // back to the column name, then to free text.
 func detectFormat(c *ColumnStats) schema.Kind {
+	if k := detectByValue(c); k != "" {
+		return k
+	}
+	if k, matched := infer.Kind(c.Name, ""); matched {
+		return k
+	}
+	return schema.KindLorem
+}
+
+// detectByValue reads the format from the data itself, returning "" when
+// nothing matches. It is separate from detectFormat because the column-name
+// fallback is a guess, and a guess must not stop a column from being treated as
+// categorical.
+func detectByValue(c *ColumnStats) schema.Kind {
 	var sample string
 	for v := range c.Values {
 		sample = v
@@ -240,6 +323,7 @@ func detectFormat(c *ColumnStats) schema.Kind {
 	}
 	switch {
 	case sample == "":
+		return ""
 	case reUUID.MatchString(sample):
 		return schema.KindUUID
 	case reEmail.MatchString(sample):
@@ -251,10 +335,7 @@ func detectFormat(c *ColumnStats) schema.Kind {
 	case rePhone.MatchString(sample):
 		return schema.KindPhone
 	}
-	if k, matched := infer.Kind(c.Name, ""); matched {
-		return k
-	}
-	return schema.KindLorem
+	return ""
 }
 
 // sortChoices keeps enum output stable across runs (map iteration is random).
