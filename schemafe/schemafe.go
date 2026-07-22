@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/bakhod1r/synth/infer"
 	"github.com/bakhod1r/synth/schema"
@@ -31,6 +32,7 @@ type jsonSchemaDoc struct {
 	Enum       []any                    `json:"enum"`
 	Minimum    *float64                 `json:"minimum"`
 	Maximum    *float64                 `json:"maximum"`
+	MaxLength  *int                     `json:"maxLength"`
 	Items      *jsonSchemaDoc           `json:"items"`
 	// propOrder preserves declaration order, filled by orderedKeys.
 	propOrder []string
@@ -63,6 +65,7 @@ func ParseJSONSchema(data []byte) (*Table, error) {
 		f.Kind = jsonKind(key, prop)
 		applyEnum(&f, prop.Enum)
 		applyRange(&f, prop.Minimum, prop.Maximum)
+		applyMaxLength(&f, prop.MaxLength)
 		t.Schema.Fields = append(t.Schema.Fields, f)
 		t.Order = append(t.Order, key)
 	}
@@ -234,6 +237,14 @@ func applyRange(f *schema.Field, min, max *float64) {
 	}
 	if max != nil {
 		f.Params["max"] = fmt.Sprintf("%g", *max)
+	}
+}
+
+// applyMaxLength records a string's maxLength as the field's maxlen, which the
+// generator truncates to and the Postgres DDL writer turns into varchar(n).
+func applyMaxLength(f *schema.Field, n *int) {
+	if n != nil && *n > 0 {
+		f.Params["maxlen"] = strconv.Itoa(*n)
 	}
 }
 

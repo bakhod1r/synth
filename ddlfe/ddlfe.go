@@ -7,6 +7,7 @@ package ddlfe
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bakhod1r/synth/infer"
@@ -153,6 +154,9 @@ func parseColumn(col string) (schema.Field, bool) {
 
 	f := schema.Field{Name: name, Params: map[string]string{}}
 	f.Kind = kindForColumn(name, sqlType)
+	if n := charLimit(sqlType); n != "" {
+		f.Params["maxlen"] = n
+	}
 	if strings.Contains(rest, "primary key") {
 		f.PK = true
 		f.Unique = true
@@ -180,6 +184,29 @@ func kindForColumn(name, sqlType string) schema.Kind {
 		return k
 	}
 	return schema.KindLorem
+}
+
+// charLimit returns the length in varchar(n) or char(n), or "" for any other
+// type. NUMERIC(10,2) and the like are excluded: their parenthesised numbers
+// are precision and scale, not a character limit.
+func charLimit(t string) string {
+	i := strings.IndexByte(t, '(')
+	if i < 0 {
+		return ""
+	}
+	switch t[:i] {
+	case "varchar", "char", "character", "nvarchar", "nchar", "varchar2":
+	default:
+		return ""
+	}
+	n := strings.TrimSpace(t[i+1 : len(t)-1])
+	if n == "" || strings.ContainsAny(n, ",") {
+		return ""
+	}
+	if _, err := strconv.Atoi(n); err != nil {
+		return "" // varchar(max) on SQL Server, for one
+	}
+	return n
 }
 
 // kindForSQLType maps a SQL column type to a scalar Synth kind.

@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/bakhod1r/synth/schema"
@@ -45,6 +46,7 @@ type jsonSchema struct {
 	Enum       []string              `yaml:"enum" json:"enum"`
 	Minimum    *float64              `yaml:"minimum" json:"minimum"`
 	Maximum    *float64              `yaml:"maximum" json:"maximum"`
+	MaxLength  *int                  `yaml:"maxLength" json:"maxLength"`
 	Required   []string              `yaml:"required" json:"required"`
 	Properties map[string]jsonSchema `yaml:"properties" json:"properties"`
 }
@@ -102,6 +104,12 @@ func (s *Spec) Schema(method, path string) (*schema.Schema, error) {
 		}
 		if p.Maximum != nil {
 			f.Params["max"] = fmt.Sprintf("%g", *p.Maximum)
+		}
+		// maxLength is a real constraint on the endpoint: a payload that
+		// exceeds it is one the API would reject. The generator truncates to
+		// it, so generated request bodies stay valid.
+		if p.MaxLength != nil && *p.MaxLength > 0 {
+			f.Params["maxlen"] = strconv.Itoa(*p.MaxLength)
 		}
 		out.Fields = append(out.Fields, f)
 	}

@@ -223,7 +223,36 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 			return values[name]
 		},
 	}
-	return maskValue(f, p(c))
+	return clampLen(f, maskValue(f, p(c)))
+}
+
+// clampLen truncates a string value to the field's maxlen= in runes.
+//
+// The limit comes from the schema the user gave us — varchar(n) in a CREATE
+// TABLE, maxLength in an OpenAPI document, or the tag directly. Enforcing it
+// here rather than only in the generated DDL is the point: a limit that lives
+// only in the table surfaces as "value too long for type character varying(n)"
+// halfway through a load, after the file is already written.
+//
+// Runes, not bytes — cutting a Cyrillic or CJK name at a byte offset splits a
+// character and yields invalid UTF-8, which is a worse bug than the one being
+// prevented.
+//
+// It runs after masking, since a mask changes the length.
+func clampLen(f *schema.Field, v any) any {
+	s, ok := v.(string)
+	if !ok {
+		return v
+	}
+	n, err := strconv.Atoi(f.Params["maxlen"])
+	if err != nil || n <= 0 {
+		return v
+	}
+	r := []rune(s)
+	if len(r) <= n {
+		return v
+	}
+	return string(r[:n])
 }
 
 // maskValue applies the field's mask= setting to a generated value.
