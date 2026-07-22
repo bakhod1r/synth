@@ -3,6 +3,8 @@
 // field of a record agrees (uz_UZ → Uzbek names, +998, Tashkent districts).
 package locale
 
+import "sort"
+
 // Place ties a region, city and postcode together so correlated generation
 // (region → city → phone prefix) draws from a consistent triple.
 type Place struct {
@@ -116,6 +118,10 @@ func Names() []string {
 	for k := range registry {
 		out = append(out, k)
 	}
+	// Sorted, because map order is random: without this the same build lists
+	// the locales differently on every run, which makes the picker unusable and
+	// any output that names them non-reproducible.
+	sort.Strings(out)
 	return out
 }
 
