@@ -1,6 +1,9 @@
 package synth
 
 import (
+	"bytes"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bakhodir/synth/constraint"
@@ -39,6 +42,40 @@ func Profile(path string) (*Profiled, error) {
 	}
 	p.cons = constraint.Mine(sample, 1.0)
 	return p, nil
+}
+
+// ProfileBytes is Profile for data already in memory, with the format named
+// rather than read from a file extension. Callers that must not touch the
+// filesystem — the MCP server is one — use this.
+//
+// It takes bytes rather than an io.Reader because profiling and constraint
+// mining each need their own pass over the data: profiling streams and keeps
+// only statistics, while an invariant is a relationship between whole rows. A
+// single reader cannot be consumed twice, and buffering it here would hide the
+// memory cost from the caller who chose to hold the data in the first place.
+//
+// format is "csv" (the default) or "jsonl"/"ndjson".
+func ProfileBytes(data []byte, format string) (*Profiled, error) {
+	var (
+		r   *profile.Result
+		err error
+	)
+	switch strings.ToLower(strings.TrimPrefix(format, ".")) {
+	case "jsonl", "ndjson", "json":
+		r, err = profile.FromJSONL(bytes.NewReader(data))
+	case "", "csv":
+		r, err = profile.FromCSV(bytes.NewReader(data))
+	default:
+		return nil, fmt.Errorf("unknown format %q — use csv or jsonl", format)
+	}
+	if err != nil {
+		return nil, err
+	}
+	sample, err := constraint.ReadSample(bytes.NewReader(data), format, constraint.DefaultSample)
+	if err != nil {
+		return nil, err
+	}
+	return &Profiled{res: r, cons: constraint.Mine(sample, 1.0)}, nil
 }
 
 // Columns returns the profiled column names in file order.

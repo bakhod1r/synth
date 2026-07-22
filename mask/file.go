@@ -35,13 +35,16 @@ func (m *Masker) File(in, out string) (*Report, error) {
 
 	switch strings.ToLower(filepath.Ext(in)) {
 	case ".jsonl", ".ndjson", ".json":
-		return m.jsonl(src, dst)
+		return m.JSONL(src, dst)
 	default:
-		return m.csv(src, dst)
+		return m.CSV(src, dst)
 	}
 }
 
-func (m *Masker) csv(r io.Reader, w io.Writer) (*Report, error) {
+// CSV masks a CSV stream whose first row is a header. File is the same thing
+// for two paths; callers that must not touch the filesystem — the MCP server is
+// one — use this, and File delegates to it so the two cannot drift apart.
+func (m *Masker) CSV(r io.Reader, w io.Writer) (*Report, error) {
 	cr := csv.NewReader(r)
 	cr.FieldsPerRecord = -1
 	cw := csv.NewWriter(w)
@@ -82,7 +85,8 @@ func (m *Masker) csv(r io.Reader, w io.Writer) (*Report, error) {
 	return rep, nil
 }
 
-func (m *Masker) jsonl(r io.Reader, w io.Writer) (*Report, error) {
+// JSONL masks a stream of one JSON object per line.
+func (m *Masker) JSONL(r io.Reader, w io.Writer) (*Report, error) {
 	dec := json.NewDecoder(r)
 	enc := json.NewEncoder(w)
 	rep := &Report{Masked: map[string]int{}}

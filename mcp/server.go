@@ -70,6 +70,33 @@ func New() *server.MCPServer {
 		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
 	), typed(handleVerify))
 
+	s.AddTool(mcp.NewTool("profile",
+		mcp.WithDescription("Infer a Synth schema from an existing dataset, so you can generate "+
+			"more data shaped like it without keeping the original. Returns the spec, the "+
+			"per-column statistics behind it, and any cross-column invariants found. "+
+			"Reads no files."),
+		mcp.WithString("data", mcp.Required(), mcp.Description(
+			"The dataset itself, as text. Not a path.")),
+		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
+		mcp.WithString("name", mcp.Description(
+			`Table name for the inferred spec. Default "data".`)),
+		mcp.WithNumber("rows", mcp.Description(
+			"Row count the inferred spec should ask for. Default: as many as were profiled.")),
+	), typed(handleProfile))
+
+	s.AddTool(mcp.NewTool("mask",
+		mcp.WithDescription("Replace personal data in a real export with generated values of the "+
+			"same shape, keeping the file usable as a fixture. Reports which columns it did "+
+			"not recognize — read that part. Reads and writes no files."),
+		mcp.WithString("data", mcp.Required(), mcp.Description(
+			"The dataset itself, as text. Not a path.")),
+		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
+		mcp.WithString("key", mcp.Required(), mcp.Description(
+			"Makes replacements stable. Use the same key for related dumps so foreign keys "+
+				"still match, and a fresh one to make two dumps unlinkable.")),
+		mcp.WithString("locale", mcp.Description("Locale for the replacement values.")),
+	), typed(handleMask))
+
 	return s
 }
 
