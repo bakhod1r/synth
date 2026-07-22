@@ -2,3 +2,8 @@
 # in the repository.
 /synth
 /synth.exe
+
+# Development-only Node packages for scripts/check-diagrams.mjs. Nothing in the
+# Go library or its tests needs them.
+/scripts/node_modules
+/scripts/package-lock.json

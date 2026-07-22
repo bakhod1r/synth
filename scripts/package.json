@@ -1,0 +1,13 @@
+{
+  "name": "synth-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Development checks. Nothing in the Go library or its tests needs these.",
+  "scripts": {
+    "check-diagrams": "node check-diagrams.mjs ../README.md"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0",
+    "mermaid": "^11.0.0"
+  }
+}
