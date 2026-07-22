@@ -49,7 +49,6 @@ func Handler() http.Handler {
 	mux.HandleFunc("/api/locales", handleLocales)
 	mux.HandleFunc("/api/preview", handlePreview)
 	mux.HandleFunc("/api/generate", handleGenerate)
-	mux.HandleFunc("/api/tools", handleTools)
 	mux.HandleFunc("/api/presets", handlePresets)
 	return mux
 }

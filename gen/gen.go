@@ -4,6 +4,7 @@
 package gen
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -232,6 +233,15 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 //	mask=hash      SHA-256 hex of the value
 //	mask=redact    a fixed marker, no shape preserved
 //	mask=token     an opaque reference, unlinkable to the value
+//
+// hash and token take three further params:
+//
+//	salt=…         mixed in before hashing, so two datasets built from the same
+//	               values do not share digests
+//	secret=…       switches to HMAC-SHA256 with this key. Without the key the
+//	               digest cannot be recomputed, which is what stops an attacker
+//	               from confirming a guessed value by hashing it.
+//	digest=16      truncate the hex to this many characters
 func maskValue(f *schema.Field, v any) any {
 	mode := f.Params["mask"]
 	if mode == "" || v == nil {
@@ -245,15 +255,69 @@ func maskValue(f *schema.Field, v any) any {
 		}
 		return partialMask(s)
 	case "hash":
-		sum := sha256.Sum256([]byte(s))
-		return hex.EncodeToString(sum[:])
+		return truncate(f, digest(f, s))
 	case "redact":
 		return "[REDACTED]"
 	case "token":
-		sum := sha256.Sum256([]byte(s))
-		return "tok_" + hex.EncodeToString(sum[:12])
+		// A token is a reference, not a fingerprint: 24 hex characters is
+		// already far more than a table will ever need to stay collision-free,
+		// and a shorter value is easier to read in a log.
+		d := truncate(f, digest(f, s))
+		if len(d) > 24 {
+			d = d[:24]
+		}
+		return "tok_" + d
 	}
 	return v
+}
+
+// scoped binds a masked value to its column before hashing.
+//
+// Without this, the same national identifier masked in two different columns
+// produces the same digest, so anyone holding both tables can join on the
+// masked value and re-link the rows the mask was meant to separate. It also
+// makes a single rainbow table work against every column at once.
+//
+// Mixing the column name in keeps the property that matters — the same value in
+// the same column always masks the same way, so the column is still joinable —
+// while making cross-column correlation useless. The separator cannot occur in
+// a column name, so "ab"+"c" and "a"+"bc" cannot collide.
+func scoped(f *schema.Field, s string) []byte {
+	return []byte(f.Name + "\x00" + f.Params["salt"] + "\x00" + s)
+}
+
+// digest hashes a value for the hash and token masks.
+//
+// With secret= it is an HMAC rather than a bare hash. That difference matters
+// whenever the set of possible values is small: a national identifier or a
+// phone number can simply be enumerated and hashed until the digest matches, so
+// a plain hash of one hides nothing. A key the attacker does not have removes
+// that attack entirely.
+func digest(f *schema.Field, s string) string {
+	if key := f.Params["secret"]; key != "" {
+		m := hmac.New(sha256.New, []byte(key))
+		m.Write(scoped(f, s))
+		return hex.EncodeToString(m.Sum(nil))
+	}
+	sum := sha256.Sum256(scoped(f, s))
+	return hex.EncodeToString(sum[:])
+}
+
+// truncate shortens a digest to digest=N characters.
+//
+// Shortening raises the chance that two different values collide, which in a
+// masked column means two different people silently becoming one row. Sixteen
+// hex characters is the floor: below that, collisions stop being theoretical
+// in a table of any size.
+func truncate(f *schema.Field, s string) string {
+	n, err := strconv.Atoi(f.Params["digest"])
+	if err != nil || n <= 0 || n >= len(s) {
+		return s
+	}
+	if n < 16 {
+		n = 16
+	}
+	return s[:n]
 }
 
 // partialMask keeps the last four characters. Fewer than four would reveal

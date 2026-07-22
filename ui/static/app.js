@@ -20,8 +20,12 @@ const state = {
 };
 
 const el = (id) => document.getElementById(id);
+// t falls back to English rather than to the key name. A screen showing
+// "copySpecHint" is broken; a screen showing one English line among translated
+// ones is merely incomplete, and still usable.
 const t = (key, ...args) => {
-  const v = (I18N[state.lang] || I18N.en)[key];
+  const dict = I18N[state.lang] || I18N.en;
+  const v = dict[key] ?? I18N.en[key];
   return typeof v === 'function' ? v(...args) : (v ?? key);
 };
 
@@ -71,9 +75,6 @@ async function boot() {
   el('download').addEventListener('click', download);
   el('copySpec').addEventListener('click', copySpec);
   el('togglePalette').addEventListener('click', () => togglePane('palette'));
-  el('toggleTools').addEventListener('click', () => togglePane('tools'));
-  el('closeTools').addEventListener('click', () => togglePane('tools', false));
-  await bootTools();
   el('viewStacked').addEventListener('click', () => setView('stacked'));
   el('viewTable').addEventListener('click', () => setView('table'));
   setView(localStorage.getItem('synth.view') || 'table');
@@ -296,50 +297,131 @@ function specFor(kind) {
   return [];
 }
 
-function optionInputs(field, index) {
-  const box = document.createElement('div');
-  box.className = 'opts';
-
-  for (const spec of specFor(field.kind)) {
-    const label = t(spec.key);
-    let control;
-    if (spec.type === 'toggle') {
-      // Three states, not a checkbox: unset lets the strength policy decide,
-      // which is different from explicitly turning the class off.
-      control = document.createElement('select');
-      for (const [value, key] of [['', 'toggleAuto'], ['true', 'toggleOn'], ['false', 'toggleOff']]) {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = value === '' ? `${label}: ${t(key)}` : `${label}: ${t(key)}`;
-        control.appendChild(opt);
-      }
-      control.value = field.params[spec.key] ?? '';
-    } else if (spec.type === 'select') {
-      control = document.createElement('select');
-      for (const value of spec.options) {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = value === '' ? `— ${label} —` : value;
-        control.appendChild(opt);
-      }
-      control.value = field.params[spec.key] ?? '';
-    } else {
-      control = document.createElement('input');
-      control.type = spec.type;
-      control.placeholder = label;
-      if (field.params[spec.key] !== undefined) control.value = field.params[spec.key];
-    }
-    control.setAttribute('aria-label', `${field.name} ${label}`);
-    control.addEventListener('input', () => {
-      const raw = String(control.value).trim();
-      if (raw === '') delete state.fields[index].params[spec.key];
-      else state.fields[index].params[spec.key] = raw;
-      schedulePreview();
-    });
-    control.addEventListener('change', () => control.dispatchEvent(new Event('input')));
-    box.appendChild(control);
+// settingsFor lists everything adjustable on a column: the type's own options,
+// then the two that belong to every column — how often the value is missing,
+// and whether it is masked.
+function settingsFor(field) {
+  const list = [
+    ...specFor(field.kind),
+    { key: 'blank', type: 'percent' },
+    { key: 'mask', type: 'select', options: ['', 'partial', 'hash', 'redact', 'token'], labels: {
+      '': 'maskNone', partial: 'mask_partial', hash: 'mask_hash', redact: 'mask_redact', token: 'mask_token',
+    } },
+  ];
+  // The digest options only exist for the two modes that produce a digest.
+  // Showing them next to mask=redact would suggest a salt changes something
+  // there, and it does not.
+  const mode = field.params.mask;
+  if (mode === 'hash' || mode === 'token') {
+    list.push({ key: 'salt', type: 'text' });
+    list.push({ key: 'secret', type: 'text' });
+    list.push({ key: 'digest', type: 'number' });
   }
-  return box;
+  return list;
+}
+
+// countSet reports how many settings carry a value, so the row can say so
+// without being opened.
+function countSet(field) {
+  return settingsFor(field).filter((sp) => {
+    const v = field.params[sp.key];
+    return v !== undefined && v !== '' && !(sp.key === 'blank' && Number(v) === 0);
+  }).length;
+}
+
+function paintSettingsButton(button, field) {
+  const n = countSet(field);
+  button.textContent = n ? t('optionsSet', n) : t('optionsNone');
+  button.classList.toggle('has-options', n > 0);
+  button.setAttribute('aria-label', `${field.name}: ${t('colOptions')}`);
+}
+
+// control builds one labelled input for a setting.
+function control(field, index, spec) {
+  const row = document.createElement('label');
+  row.className = 'setting';
+  const label = document.createElement('span');
+  label.textContent = t(spec.key);
+  row.appendChild(label);
+
+  let input;
+  if (spec.type === 'toggle') {
+    // Three states, not a checkbox: unset lets the strength policy decide,
+    // which is different from explicitly turning the class off.
+    input = document.createElement('select');
+    for (const [value, key] of [['', 'toggleAuto'], ['true', 'toggleOn'], ['false', 'toggleOff']]) {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = t(key);
+      input.appendChild(o);
+    }
+    input.value = field.params[spec.key] ?? '';
+  } else if (spec.type === 'select') {
+    input = document.createElement('select');
+    for (const value of spec.options) {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = spec.labels ? t(spec.labels[value]) : (value === '' ? '—' : value);
+      input.appendChild(o);
+    }
+    input.value = field.params[spec.key] ?? '';
+  } else if (spec.type === 'percent') {
+    input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.max = '100';
+    input.value = field.params.blank ?? 0;
+  } else {
+    input = document.createElement('input');
+    input.type = spec.type;
+    if (field.params[spec.key] !== undefined) input.value = field.params[spec.key];
+  }
+
+  input.addEventListener('input', () => {
+    const raw = String(input.value).trim();
+    const params = state.fields[index].params;
+    if (spec.type === 'percent') {
+      const v = Number(raw);
+      if (!v || v <= 0) delete params.blank;
+      else params.blank = String(Math.min(v, 100));
+    } else if (raw === '') {
+      delete params[spec.key];
+    } else {
+      params[spec.key] = raw;
+    }
+    schedulePreview();
+    // Changing the mask changes which settings exist, so rebuild the dialog.
+    if (spec.key === 'mask') fillSettings(index);
+  });
+  input.addEventListener('change', () => input.dispatchEvent(new Event('input')));
+  row.appendChild(input);
+  return row;
+}
+
+// openSettings fills the dialog for one column. Edits apply as they are made —
+// there is nothing to cancel, and the preview updates behind the dialog, which
+// is the fastest way to see what a setting actually does.
+function openSettings(index) {
+  const field = state.fields[index];
+  const dialog = el('colSettings');
+  el('colSettingsTitle').textContent = `${field.name} — ${field.kind}`;
+
+  fillSettings(index);
+  dialog.addEventListener('close', () => renderFields(), { once: true });
+  dialog.showModal();
+}
+
+function fillSettings(index) {
+  const field = state.fields[index];
+  const body = el('colSettingsBody');
+  body.textContent = '';
+  for (const spec of settingsFor(field)) body.appendChild(control(field, index, spec));
+  if (field.params.mask === 'hash' || field.params.mask === 'token') {
+    const note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = t('digestHint');
+    body.appendChild(note);
+  }
 }
 
 function iconButton(label, glyph, onClick) {
@@ -390,47 +472,17 @@ function renderFields() {
     const kindCell = document.createElement('td');
     kindCell.appendChild(kindSelect(f, i));
 
+    // One button instead of a row of controls. A type offers between zero and
+    // nine options; inline they crush every label to three letters, and the
+    // count on the button says what is set without opening anything.
     const optCell = document.createElement('td');
-    optCell.appendChild(optionInputs(f, i));
-
-    // Blank share belongs to every column, not to a particular type: any
-    // column can have missing values, and a primary key never does.
-    const blankCell = document.createElement('td');
-    blankCell.className = 'blank';
-    const blank = document.createElement('input');
-    blank.type = 'number';
-    blank.min = '0';
-    blank.max = '100';
-    blank.value = f.params.blank ?? 0;
-    blank.setAttribute('aria-label', `${f.name} ${t('blank')}`);
-    blank.addEventListener('input', () => {
-      const v = Number(blank.value);
-      if (!v || v <= 0) delete state.fields[i].params.blank;
-      else state.fields[i].params.blank = String(Math.min(v, 100));
-      schedulePreview();
-    });
-    blankCell.append(blank, document.createTextNode('%'));
-
-    // Masking belongs to every column too. A card number or a national id in
-    // a fixture reaches a ticket or a screenshot sooner or later, so the safe
-    // form has to be one click away rather than a documentation lookup.
-    const maskCell = document.createElement('td');
-    maskCell.className = 'mask';
-    const mask = document.createElement('select');
-    mask.setAttribute('aria-label', `${f.name} ${t('mask')}`);
-    for (const mode of ['', 'partial', 'hash', 'redact', 'token']) {
-      const o = document.createElement('option');
-      o.value = mode;
-      o.textContent = mode === '' ? t('maskNone') : t('mask_' + mode);
-      mask.appendChild(o);
-    }
-    mask.value = f.params.mask ?? '';
-    mask.addEventListener('change', () => {
-      if (!mask.value) delete state.fields[i].params.mask;
-      else state.fields[i].params.mask = mask.value;
-      schedulePreview();
-    });
-    maskCell.appendChild(mask);
+    optCell.className = 'opts-cell';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'opts-button';
+    open.addEventListener('click', () => openSettings(i));
+    optCell.appendChild(open);
+    paintSettingsButton(open, f);
 
     const removeCell = document.createElement('td');
     removeCell.appendChild(iconButton(t('remove'), '×', () => {
@@ -439,7 +491,7 @@ function renderFields() {
       schedulePreview();
     }));
 
-    tr.append(orderCell, nameCell, kindCell, optCell, blankCell, maskCell, removeCell);
+    tr.append(orderCell, nameCell, kindCell, optCell, removeCell);
     body.appendChild(tr);
   }
   el('empty').hidden = state.fields.length > 0;
@@ -689,128 +741,13 @@ function togglePane(id, force) {
   const show = force === undefined ? pane.hidden : force;
   pane.hidden = !show;
   localStorage.setItem(`synth.pane.${id}`, show ? 'open' : 'closed');
-  const btn = id === 'tools' ? el('toggleTools') : el('togglePalette');
+  const btn = el('togglePalette');
   btn.classList.toggle('on', show);
 }
 
 function restorePanes() {
   togglePane('palette', localStorage.getItem('synth.pane.palette') !== 'closed');
-  togglePane('tools', localStorage.getItem('synth.pane.tools') === 'open');
 }
 
-// ---------------------------------------------------------------- tools
 
 const toolState = { catalog: [], decode: false };
-
-async function bootTools() {
-  toolState.catalog = await fetch('/api/tools').then((r) => r.json());
-  renderToolOptions();
-
-  el('toolOp').addEventListener('change', onToolChange);
-  el('dirEncode').addEventListener('click', () => setDirection(false));
-  el('dirDecode').addEventListener('click', () => setDirection(true));
-  el('toolRun').addEventListener('click', runTool);
-  el('toolCopy').addEventListener('click', async () => {
-    const text = el('toolOutput').value;
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast(t('copiedOutput'));
-    } catch { /* clipboard refused; the value is already on screen */ }
-  });
-  onToolChange();
-  restorePanes();
-}
-
-function groupLabel(group) {
-  return { hash: t('groupHash'), password: t('groupPassword'), encoding: t('groupEncoding') }[group] || group;
-}
-
-function renderToolOptions() {
-  const sel = el('toolOp');
-  const previous = sel.value;
-  sel.textContent = '';
-  const groups = new Map();
-  for (const tool of toolState.catalog) {
-    if (!groups.has(tool.group)) groups.set(tool.group, []);
-    groups.get(tool.group).push(tool);
-  }
-  for (const [group, items] of groups) {
-    const og = document.createElement('optgroup');
-    og.label = groupLabel(group);
-    for (const tool of items) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = tool.op;
-      og.appendChild(opt);
-    }
-    sel.appendChild(og);
-  }
-  if (previous) sel.value = previous;
-}
-
-function currentTool() {
-  return toolState.catalog.find((tool) => tool.op === el('toolOp').value);
-}
-
-// onToolChange shows only the inputs the chosen operation actually uses, and
-// hides the encode/decode switch for one-way hashes rather than offering a
-// decode that cannot exist.
-function onToolChange() {
-  const tool = currentTool();
-  if (!tool) return;
-
-  el('toolDirection').hidden = !tool.reversible;
-  if (!tool.reversible) setDirection(false);
-  el('toolKeyRow').hidden = !tool.needsKey;
-  el('toolSaltRow').hidden = !tool.needsSalt;
-
-  const warn = el('toolWarn');
-  warn.hidden = !tool.warn;
-  warn.textContent = tool.warn || '';
-
-  el('toolOutput').value = '';
-  el('toolNote').hidden = true;
-}
-
-function setDirection(decode) {
-  toolState.decode = decode;
-  el('dirEncode').classList.toggle('on', !decode);
-  el('dirDecode').classList.toggle('on', decode);
-}
-
-async function runTool() {
-  const tool = currentTool();
-  if (!tool) return;
-  const input = el('toolInput').value;
-  if (!input.trim()) {
-    showToolResult('', t('needInput'), true);
-    return;
-  }
-  const op = tool.reversible ? `${tool.op}-${toolState.decode ? 'decode' : 'encode'}` : tool.op;
-  const res = await fetch('/api/tools', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      op,
-      input,
-      key: el('toolKey').value,
-      salt: el('toolSalt').value,
-      iterations: Number(el('toolIter').value || 0),
-    }),
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    showToolResult('', text, true);
-    return;
-  }
-  const data = JSON.parse(text);
-  showToolResult(data.output, data.note || '', false);
-}
-
-function showToolResult(output, note, isError) {
-  el('toolOutput').value = output;
-  const box = el('toolNote');
-  box.hidden = !note;
-  box.textContent = note;
-  box.classList.toggle('warn', Boolean(isError));
-}

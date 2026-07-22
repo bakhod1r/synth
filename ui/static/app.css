@@ -271,13 +271,32 @@ button.icon:hover { color: var(--text); background: var(--raised); }
 #fields td:last-child, #fields th:last-child { padding-right: 0; width: 1%; }
 #fields input, #fields select { width: 100%; }
 #fields td.order { width: 1%; white-space: nowrap; }
-#fields td.blank, #fields td.mask { width: 1%; white-space: nowrap; }
-#fields td.mask select { font-size: 12px; }
-#fields td.blank { color: var(--muted); font-size: 12px; }
-#fields td.blank input { width: 58px; text-align: right; }
+#fields td.opts-cell { width: 1%; white-space: nowrap; }
 
-.opts { display: flex; gap: 5px; }
-.opts input { min-width: 0; }
+.opts-button {
+  font: inherit; font-size: 12px; color: var(--muted);
+  background: transparent; border: 1px dashed #3a4055; border-radius: 6px;
+  padding: 5px 12px; cursor: pointer; white-space: nowrap;
+}
+.opts-button:hover { border-color: #566; color: #cfd6e6; }
+.opts-button.has-options { border-style: solid; border-color: #4b7bec; color: #9fb8ff; }
+
+/* Column settings dialog. */
+#colSettings {
+  border: 1px solid #2a3040; border-radius: 12px; padding: 0;
+  background: #161a24; color: inherit; min-width: 320px; max-width: 420px;
+}
+#colSettings::backdrop { background: rgba(6, 8, 14, .6); }
+#colSettings header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid #232838;
+}
+#colSettings h2 { margin: 0; font-size: 14px; font-weight: 600; }
+#colSettingsBody { padding: 12px 16px; display: grid; gap: 10px; }
+#colSettings footer { padding: 12px 16px; border-top: 1px solid #232838; text-align: right; }
+.setting { display: grid; grid-template-columns: 1fr 150px; align-items: center; gap: 12px; }
+.setting > span { font-size: 13px; color: var(--muted); }
+.setting input, .setting select { width: 100%; }
 
 #add { margin-top: 10px; }
 
@@ -378,45 +397,54 @@ pre.yaml {
   main > section { max-height: none; }
 }
 
-/* ---------------------------------------------------------------- tools */
+/* ---------------------------------------------------------------- narrow
 
-#tools .pane-head { margin-bottom: 6px; }
-#tools .stack {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 10px;
-}
-#tools .stack input, #tools .stack select, #tools textarea { width: 100%; }
-#tools .row { display: flex; gap: 8px; }
-#tools .row .stack { flex: 1; min-width: 0; }
-#tools .toggle { margin-bottom: 10px; }
-#tools button.primary { width: 100%; margin-bottom: 12px; }
-#tools #toolCopy { width: 100%; }
-
-#tools textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  resize: vertical;
-  background: #0f1218;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: inherit;
-  padding: 8px 9px;
-}
-#tools #toolOutput { color: #b9c6dd; }
-
-.warn {
-  color: #f0b46b;
-  font-size: 11px;
-  line-height: 1.45;
-  margin: -4px 0 10px;
-}
+   Three breakpoints, each for a real failure rather than a round number:
+   1100px is where the palette stops fitting beside the work area, 900px is
+   where the schema table's five columns start truncating their inputs, and
+   620px is a phone. Below 900px the table becomes stacked cards, because a
+   horizontally scrolling table of form controls cannot be filled in with a
+   thumb. */
 
 @media (max-width: 1100px) {
   #shell { grid-template-columns: 1fr; }
-  #palette, #tools { width: auto; position: static; max-height: none; }
+  #palette { width: auto; position: static; max-height: 42vh; }
+  main { grid-template-columns: 1fr; }
+  main > section { max-height: none; }
 }
+
+@media (max-width: 900px) {
+  header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+  .controls { flex-wrap: wrap; }
+  .controls label { flex: 1 1 130px; }
+
+  /* The schema table becomes one card per column. A five-column table of
+     inputs at this width leaves every field too narrow to read. */
+  #fields, #fields tbody, #fields tr, #fields td { display: block; width: 100%; }
+  #fields thead { display: none; }
+  #fields tr {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px; margin-bottom: 10px; background: var(--panel);
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+  }
+  #fields td { padding: 0; }
+  #fields td.order { grid-row: 1; grid-column: 2; width: auto; }
+  #fields td:nth-child(2) { grid-row: 1; grid-column: 1; }
+  #fields td:nth-child(3) { grid-row: 2; grid-column: 1 / -1; }
+  #fields td.opts-cell { grid-row: 3; grid-column: 1; width: auto; }
+  #fields td:last-child { grid-row: 3; grid-column: 2; text-align: right; }
+  .opts-button { width: 100%; }
+}
+
+@media (max-width: 620px) {
+  header { padding: 8px 12px; }
+  .tag { display: none; }               /* the tagline is the first thing to go */
+  main > section { padding: 12px; }
+  .controls label { flex: 1 1 100%; }
+  #colSettings { min-width: 0; width: calc(100vw - 24px); }
+  .setting { grid-template-columns: 1fr; gap: 4px; }
+  #preview table { font-size: 11px; }
+}
+
+/* A wide table must scroll inside its own pane, never the page. */
+#preview { overflow-x: auto; -webkit-overflow-scrolling: touch; }

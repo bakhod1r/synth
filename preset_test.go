@@ -185,6 +185,110 @@ func TestCardMaskKeepsBothEnds(t *testing.T) {
 	}
 }
 
+// The same value masked in two columns must not produce the same digest.
+// Otherwise anyone holding both tables joins on the masked value and re-links
+// exactly the rows the mask was meant to separate.
+func TestHashMaskIsScopedToItsColumn(t *testing.T) {
+	spec := `name: t
+count: 100
+seed: 21
+fields:
+  raw:  { kind: ssn }
+  a:    { kind: ssn, from: raw, mask: hash }
+  b:    { kind: ssn, from: raw, mask: hash }
+`
+	y, err := synth.YAMLBytes([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := y.Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range rows {
+		if r["a"] == r["b"] {
+			t.Fatalf("row %d: the same value hashed identically in two columns (%v)", i, r["a"])
+		}
+	}
+}
+
+// Within one column the mask must stay stable, or the column cannot be joined
+// on and a golden test cannot pin it.
+func TestHashMaskIsStableWithinItsColumn(t *testing.T) {
+	a, _ := synth.Transactions(50, synth.WithSeed(22))
+	b, _ := synth.Transactions(50, synth.WithSeed(22))
+	for i := range a {
+		if a[i]["national_id"] != b[i]["national_id"] {
+			t.Fatalf("row %d: the masked value changed between runs", i)
+		}
+	}
+}
+
+// A salt must change the digest, so two datasets built from the same values do
+// not share masked identifiers.
+func TestSaltChangesTheDigest(t *testing.T) {
+	rows := digestRows(t, `  raw: { kind: ssn }
+  plain:  { kind: ssn, from: raw, mask: hash }
+  salted: { kind: ssn, from: raw, mask: hash, salt: pepper }
+`)
+	for i, r := range rows {
+		if r["plain"] == r["salted"] {
+			t.Fatalf("row %d: the salt did not change the digest", i)
+		}
+	}
+}
+
+// A secret key must produce an HMAC, not the plain hash. Without a key, a short
+// value like a national identifier can be enumerated until the digest matches.
+func TestSecretKeyChangesTheDigest(t *testing.T) {
+	rows := digestRows(t, `  raw: { kind: ssn }
+  plain: { kind: ssn, from: raw, mask: hash }
+  keyed: { kind: ssn, from: raw, mask: hash, secret: k1 }
+  other: { kind: ssn, from: raw, mask: hash, secret: k2 }
+`)
+	for i, r := range rows {
+		if r["keyed"] == r["plain"] {
+			t.Fatalf("row %d: secret= produced the unkeyed hash", i)
+		}
+		if r["keyed"] == r["other"] {
+			t.Fatalf("row %d: two different keys produced the same digest", i)
+		}
+	}
+}
+
+// digest= must shorten the value, but never below the point where collisions
+// stop being theoretical.
+func TestDigestLength(t *testing.T) {
+	rows := digestRows(t, `  short: { kind: ssn, mask: hash, digest: 20 }
+  floor: { kind: ssn, mask: hash, digest: 4 }
+  over:  { kind: ssn, mask: hash, digest: 999 }
+`)
+	for i, r := range rows {
+		if got := len(r["short"].(string)); got != 20 {
+			t.Fatalf("row %d: digest 20 gave %d characters", i, got)
+		}
+		if got := len(r["floor"].(string)); got != 16 {
+			t.Fatalf("row %d: digest 4 gave %d characters, want the 16 floor", i, got)
+		}
+		if got := len(r["over"].(string)); got != 64 {
+			t.Fatalf("row %d: an oversized digest truncated to %d", i, got)
+		}
+	}
+}
+
+func digestRows(t *testing.T, fields string) []map[string]any {
+	t.Helper()
+	y, err := synth.YAMLBytes([]byte("name: t\ncount: 50\nseed: 31\nfields:\n" + fields))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := y.Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rows
+}
+
 // A short value must be starred completely: revealing four of five characters
 // is not masking.
 func TestPartialMaskDoesNotRevealShortValues(t *testing.T) {
