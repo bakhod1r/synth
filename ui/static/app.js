@@ -84,6 +84,37 @@ async function boot() {
   el('viewStacked').addEventListener('click', () => setView('stacked'));
   el('viewTable').addEventListener('click', () => setView('table'));
   setView(localStorage.getItem('synth.view') || 'table');
+  refreshStats();
+}
+
+// refreshStats shows how much data this workbench has produced. The numbers are
+// counted locally and never sent anywhere — see ui/record.go.
+async function refreshStats() {
+  try {
+    const totals = await fetch('/api/stats').then((r) => r.json());
+    if (!totals || !totals.files) {
+      el('stats').hidden = true;
+      return;
+    }
+    el('statFiles').textContent = totals.files.toLocaleString();
+    el('statRows').textContent = totals.rows.toLocaleString();
+    el('statCells').textContent = compactNumber(totals.cells);
+    // Say plainly when the totals reset on exit, so a number that drops back to
+    // zero next time does not look like something was lost.
+    el('stats').title = totals.persistent ? '' : t('statsSession');
+    el('stats').hidden = false;
+  } catch {
+    el('stats').hidden = true; // counters are a convenience, never an error
+  }
+}
+
+// compactNumber keeps a cell count readable: 61,128,816 says less at a glance
+// than 61.1M, and the exact figure is not what anyone reads it for.
+function compactNumber(n) {
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  return `${(n / 1_000_000_000).toFixed(2)}B`;
 }
 
 function navigatorLang() {
@@ -754,6 +785,7 @@ async function generate() {
       ms: Math.round(performance.now() - started),
     };
     el('download').hidden = false;
+    refreshStats();
     setStatus(t('generated', state.generated.rows, humanBytes(blob.size), state.generated.ms));
   } catch (err) {
     showError(String(err));

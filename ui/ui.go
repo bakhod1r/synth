@@ -16,6 +16,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -35,9 +36,27 @@ var static embed.FS
 // keystroke, so a request for a million rows must not be honored.
 const maxPreview = 100
 
+// Option configures the server.
+type Option func(*config)
+
+type config struct {
+	recorder Recorder
+}
+
+// WithRecorder replaces the in-memory usage counters with an implementation
+// that outlives the process. See the ui/stats module.
+func WithRecorder(r Recorder) Option {
+	return func(c *config) { c.recorder = r }
+}
+
 // Handler returns every route, so tests can exercise the API without opening
 // a socket.
-func Handler() http.Handler {
+func Handler(opts ...Option) http.Handler {
+	cfg := config{recorder: newMemoryRecorder()}
+	for _, o := range opts {
+		o(&cfg)
+	}
+	rec := cfg.recorder
 	mux := http.NewServeMux()
 
 	sub, err := fs.Sub(static, "static")
@@ -48,15 +67,25 @@ func Handler() http.Handler {
 	mux.HandleFunc("/api/types", handleTypes)
 	mux.HandleFunc("/api/locales", handleLocales)
 	mux.HandleFunc("/api/preview", handlePreview)
-	mux.HandleFunc("/api/generate", handleGenerate)
+	mux.HandleFunc("/api/generate", func(w http.ResponseWriter, r *http.Request) {
+		generate(w, r, rec)
+	})
 	mux.HandleFunc("/api/presets", handlePresets)
+	mux.HandleFunc("/api/stats", func(w http.ResponseWriter, r *http.Request) {
+		totals, err := rec.Totals()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, totals)
+	})
 	return mux
 }
 
 // Serve runs the workbench. It refuses to bind a non-loopback address: a data
 // generator that answers to the network is a very different, much riskier
 // thing than one that answers to you.
-func Serve(addr string) error {
+func Serve(addr string, opts ...Option) error {
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		return fmt.Errorf("ui: %q is not host:port: %w", addr, err)
@@ -78,7 +107,7 @@ func Serve(addr string) error {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           Handler(),
+		Handler:           Handler(opts...),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	fmt.Printf("synth ui on http://%s (loopback only; nothing leaves this machine)\n", addr)
@@ -153,7 +182,10 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, rows)
 }
 
-func handleGenerate(w http.ResponseWriter, r *http.Request) {
+// generate writes the dataset and, if a recorder is present, counts it. The
+// count is taken from what was actually written, not from what was requested:
+// a run that failed halfway should not be reported as a complete one.
+func generate(w http.ResponseWriter, r *http.Request, rec Recorder) {
 	req, spec, opts, err := resolveSpec(r, 0)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -168,13 +200,38 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = "data"
 	}
+	cols := spec.Columns()
+	started := time.Now()
+	// The body is written through a counter so the recorded size is the bytes
+	// that actually left, not an estimate.
+	out := &countingWriter{w: w}
+
+	defer func() {
+		if rec == nil || out.n == 0 {
+			return
+		}
+		// A failed Record is logged by the implementation and dropped here.
+		// Losing a count is not worth failing a generation that succeeded.
+		_ = rec.Record(Run{
+			At:      started,
+			Name:    name,
+			Rows:    len(rows),
+			Columns: len(cols),
+			Format:  nonEmptyFormat(req.Format),
+			Bytes:   out.n,
+			Millis:  time.Since(started).Milliseconds(),
+		})
+	}()
+
 	switch req.Format {
 	case "json":
-		writeJSON(w, rows)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		json.NewEncoder(out).Encode(rows)
 	case "jsonl":
 		w.Header().Set("Content-Type", "application/x-ndjson")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.jsonl"`)
-		enc := json.NewEncoder(w)
+		enc := json.NewEncoder(out)
 		for _, row := range rows {
 			if err := enc.Encode(row); err != nil {
 				return
@@ -183,11 +240,11 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	case "sql":
 		w.Header().Set("Content-Type", "application/sql")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.sql"`)
-		writeSQL(w, name, spec.Columns(), rows)
+		writeSQL(out, name, cols, rows)
 	default:
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.csv"`)
-		writeCSV(w, spec.Columns(), rows)
+		writeCSV(out, cols, rows)
 	}
 }
 
@@ -225,6 +282,25 @@ func parseSpec(r *http.Request, cap int) (*specRequest, *synth.YAMLSpec, error) 
 		return nil, nil, err
 	}
 	return &req, spec, nil
+}
+
+// countingWriter records how many bytes reached the client.
+type countingWriter struct {
+	w io.Writer
+	n int64
+}
+
+func (c *countingWriter) Write(p []byte) (int, error) {
+	n, err := c.w.Write(p)
+	c.n += int64(n)
+	return n, err
+}
+
+func nonEmptyFormat(s string) string {
+	if s == "" {
+		return "csv"
+	}
+	return s
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
