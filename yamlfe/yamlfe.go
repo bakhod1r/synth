@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/infer"
@@ -203,6 +204,13 @@ func setVal(m map[string]string, key string, v any) {
 		m[key] = fmt.Sprintf("%g", x)
 	case int:
 		m[key] = strconv.Itoa(x)
+	case time.Time:
+		// An unquoted `min: 1960-01-01` is parsed by yaml.v3 as a timestamp,
+		// not a string. Formatting it back with fmt.Sprint would give
+		// "1960-01-01 00:00:00 +0000 UTC", which no provider parses — and
+		// because a bound that fails to parse is simply ignored, the field
+		// would generate outside its range with nothing to show it had.
+		m[key] = x.UTC().Format(time.RFC3339)
 	case string:
 		if x != "" {
 			m[key] = x

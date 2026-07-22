@@ -147,6 +147,28 @@ with inline CSS and JavaScript: no CDN, no fonts, no telemetry, no outbound
 request of any kind, and a test asserts the page contains no external origin.
 The browser connects in; Synth never connects out.
 
+## MCP
+
+Synth speaks MCP, so an assistant can generate and check data without shelling
+out to the CLI:
+
+```bash
+go install github.com/bakhodir/synth/mcp/cmd/synth-mcp@latest
+claude mcp add synth -- synth-mcp
+```
+
+Seven tools: `generate`, `list_types`, `list_presets`, `verify`, `profile`,
+`mask`, `snapshot`.
+
+The server is stdio-only and takes every input as an argument rather than a
+path — it opens no socket and reads no file, and a test forbids the imports that
+would let it. An MCP server runs with your permissions on behalf of a model that
+may be reading text someone else wrote, so a path argument would turn a data
+generator into a file-reading primitive. See [mcp/README.md](mcp/README.md).
+
+It is a separate module: `mcp-go` brings 20 transitive dependencies and the core
+library has two.
+
 ## Install
 
 ```bash
