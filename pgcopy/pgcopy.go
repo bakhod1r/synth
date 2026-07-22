@@ -131,3 +131,8 @@ func needsEscape(s string) bool {
 	}
 	return false
 }
+
+var (
+	_ Writer = (*TextWriter)(nil)
+	_ Writer = (*BinaryWriter)(nil)
+)
