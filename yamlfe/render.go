@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/bakhodir/synth/constraint"
 	"github.com/bakhodir/synth/schema"
@@ -31,7 +32,7 @@ func Render(s *schema.Schema, order []string, name string, count int, cs []const
 
 	var b bytes.Buffer
 	if name != "" {
-		fmt.Fprintf(&b, "name: %s\n", name)
+		fmt.Fprintf(&b, "name: %s\n", yamlString(name))
 	}
 	if count > 0 {
 		fmt.Fprintf(&b, "count: %d\n", count)
@@ -42,10 +43,32 @@ func Render(s *schema.Schema, order []string, name string, count int, cs []const
 		if !ok {
 			continue
 		}
-		fmt.Fprintf(&b, "  %s: {%s}\n", yamlKey(n), renderField(f))
+		writeEntry(&b, n, renderField(f))
 	}
 	b.WriteString(renderConstraints(cs))
 	return b.Bytes(), nil
+}
+
+// maxSimpleKey is YAML's limit on a simple mapping key: 1024 characters, and it
+// counts the escaped form. A column name long enough to exceed it after
+// escaping cannot be written as `key: value` at all — the parser reports
+// "mapping values are not allowed in this context", which says nothing about
+// the real cause.
+const maxSimpleKey = 1024
+
+// writeEntry writes one field, falling back to YAML's explicit-key form when
+// the key is too long to be a simple one.
+//
+// The fallback exists because the alternative is refusing to profile a file
+// over a column name, and a name that long is somebody's real export however
+// unlikely it looks.
+func writeEntry(b *bytes.Buffer, name, body string) {
+	key := yamlKey(name)
+	if len(key) <= maxSimpleKey {
+		fmt.Fprintf(b, "  %s: {%s}\n", key, body)
+		return
+	}
+	fmt.Fprintf(b, "  ? %s\n  : {%s}\n", key, body)
 }
 
 // renderField emits the inline mapping body for one field.
@@ -61,11 +84,13 @@ func renderField(f schema.Field) string {
 	} else if f.Unique {
 		parts = append(parts, "unique: true")
 	}
+	// from= and match= name other columns, so they carry the same hazards as a
+	// key does.
 	if f.From != "" {
-		parts = append(parts, "from: "+f.From)
+		parts = append(parts, "from: "+yamlString(f.From))
 	}
 	if f.Match != "" {
-		parts = append(parts, "match: "+f.Match)
+		parts = append(parts, "match: "+yamlString(f.Match))
 	}
 	if len(f.Choices) > 0 {
 		parts = append(parts, "choices: ["+strings.Join(quoteAll(f.Choices), ", ")+"]")
@@ -84,36 +109,87 @@ func renderField(f schema.Field) string {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		parts = append(parts, k+": "+f.Params[k])
+		// A param value profiled from real data is arbitrary text — a date
+		// bound, a separator, a category name — so it is quoted like any other
+		// value that did not originate here.
+		parts = append(parts, k+": "+yamlString(f.Params[k]))
 	}
 	return strings.Join(parts, ", ")
 }
 
-// quoteAll quotes enum choices so values containing a comma, a colon or a
-// leading digit survive the inline-sequence syntax.
+// quoteAll renders enum choices for an inline sequence.
 func quoteAll(vals []string) []string {
 	out := make([]string, len(vals))
 	for i, v := range vals {
-		out[i] = `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
+		out[i] = yamlString(v)
 	}
 	return out
 }
 
-// yamlKey quotes a column name that would otherwise be misread as a different
-// YAML type — real exports have columns called "no", "on" and "yes".
-func yamlKey(n string) string {
-	if n == "" {
-		return `""`
+// yamlString renders any Go string as a YAML double-quoted scalar on one line.
+//
+// Everything this file emits ends up inside a flow mapping or sequence —
+// `{kind: x, from: y}`, `[a, b]` — where a plain scalar containing a comma or a
+// brace silently becomes two items or a syntax error. Double-quoting everything
+// that came from data removes the question.
+//
+// yaml.Marshal is not used here for two reasons: it leaves a comma unquoted,
+// which is exactly the flow-context hazard, and it folds a long string across
+// lines, which cannot appear inside a flow mapping.
+//
+// Control characters are the case that made this necessary. A column named
+// "\x10" — which a real, badly-exported CSV can produce — used to be written
+// out raw, and the resulting spec would not parse: profiling a file made the
+// tool emit something it could not read back.
+func yamlString(v string) string {
+	var b strings.Builder
+	b.Grow(len(v) + 2)
+	b.WriteByte('"')
+	for _, r := range v {
+		switch r {
+		case '\\':
+			b.WriteString(`\\`)
+		case '"':
+			b.WriteString(`\"`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		case 0x2028:
+			b.WriteString(`\L`) // line separator
+		case 0x2029:
+			b.WriteString(`\P`) // paragraph separator
+		default:
+			switch {
+			// C0, DEL and the whole C1 block. YAML's printable set excludes
+			// them, and an unescaped one makes the document unreadable — which
+			// is how a column named "\u0089" produced a spec Synth could not
+			// parse back.
+			case r < 0x20 || (r >= 0x7f && r <= 0x9f):
+				fmt.Fprintf(&b, `\x%02x`, r)
+			case r == utf8.RuneError:
+				// Invalid UTF-8 reaches here as U+FFFD. Emitting it as an
+				// escape keeps the document valid; emitting the raw bytes
+				// would not.
+				b.WriteString(`\uFFFD`)
+			default:
+				b.WriteRune(r)
+			}
+		}
 	}
-	switch strings.ToLower(n) {
-	case "y", "n", "yes", "no", "on", "off", "true", "false", "null", "~":
-		return `"` + n + `"`
-	}
-	if strings.ContainsAny(n, ":{}[],&*#?|-<>=!%@`\"' ") || (n[0] >= '0' && n[0] <= '9') {
-		return `"` + strings.ReplaceAll(n, `"`, `\"`) + `"`
-	}
-	return n
+	b.WriteByte('"')
+	return b.String()
 }
+
+// yamlKey renders a column name as a mapping key.
+//
+// Every name is quoted rather than only the ones that look dangerous. The old
+// version kept a list of characters to watch for, and the list was wrong: it
+// covered "no" and "on" and a leading digit, and missed control characters
+// entirely. A list of exceptions is the wrong shape for this problem.
+func yamlKey(n string) string { return yamlString(n) }
 
 // renderConstraints emits the mined-invariant block. Each line carries the
 // support count as a comment so a reader can judge the evidence behind it.
@@ -126,15 +202,17 @@ func renderConstraints(cs []constraint.Constraint) string {
 	for _, c := range cs {
 		switch c.Kind {
 		case constraint.Ordering:
-			fmt.Fprintf(&b, "  - {kind: ordering, left: %s, right: %s}", c.Left, c.Right)
+			fmt.Fprintf(&b, "  - {kind: ordering, left: %s, right: %s}",
+				yamlString(c.Left), yamlString(c.Right))
 		case constraint.SumEquals:
 			fmt.Fprintf(&b, "  - {kind: sum, parts: [%s], whole: %s}",
-				strings.Join(c.Parts, ", "), c.Whole)
+				strings.Join(quoteAll(c.Parts), ", "), yamlString(c.Whole))
 		case constraint.Implication:
-			fmt.Fprintf(&b, "  - {kind: implication, when: %s, equals: %q, then: %s, exclusive: %t}",
-				c.When, c.Equals, c.Then, c.Exclusive)
+			fmt.Fprintf(&b, "  - {kind: implication, when: %s, equals: %s, then: %s, exclusive: %t}",
+				yamlString(c.When), yamlString(c.Equals), yamlString(c.Then), c.Exclusive)
 		case constraint.Range:
-			fmt.Fprintf(&b, "  - {kind: range, left: %s, lo: %g, hi: %g}", c.Left, c.Lo, c.Hi)
+			fmt.Fprintf(&b, "  - {kind: range, left: %s, lo: %g, hi: %g}",
+				yamlString(c.Left), c.Lo, c.Hi)
 		default:
 			continue
 		}
