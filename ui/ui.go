@@ -50,6 +50,7 @@ func Handler() http.Handler {
 	mux.HandleFunc("/api/preview", handlePreview)
 	mux.HandleFunc("/api/generate", handleGenerate)
 	mux.HandleFunc("/api/tools", handleTools)
+	mux.HandleFunc("/api/presets", handlePresets)
 	return mux
 }
 
@@ -140,13 +141,12 @@ type specRequest struct {
 }
 
 func handlePreview(w http.ResponseWriter, r *http.Request) {
-	req, spec, err := parseSpec(r, maxPreview)
+	_, spec, opts, err := resolveSpec(r, maxPreview)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_ = req
-	rows, err := spec.Generate()
+	rows, err := spec.Generate(opts...)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -155,12 +155,12 @@ func handlePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGenerate(w http.ResponseWriter, r *http.Request) {
-	req, spec, err := parseSpec(r, 0)
+	req, spec, opts, err := resolveSpec(r, 0)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	rows, err := spec.Generate()
+	rows, err := spec.Generate(opts...)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -170,6 +170,8 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		name = "data"
 	}
 	switch req.Format {
+	case "json":
+		writeJSON(w, rows)
 	case "jsonl":
 		w.Header().Set("Content-Type", "application/x-ndjson")
 		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`.jsonl"`)

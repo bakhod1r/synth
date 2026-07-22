@@ -42,6 +42,13 @@ func (y *YAMLSpec) Name() string { return y.spec.Name }
 // Count returns the number of rows the spec requests.
 func (y *YAMLSpec) Count() int { return y.spec.Count }
 
+// SetCount overrides how many rows the spec produces.
+func (y *YAMLSpec) SetCount(n int) {
+	if n > 0 {
+		y.spec.Count = n
+	}
+}
+
 // Generate produces the spec's records as field→value maps. Options override
 // the spec's seed/locale when provided.
 func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
