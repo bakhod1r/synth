@@ -162,3 +162,48 @@ func TestFinanceFieldsInferFromNames(t *testing.T) {
 		}
 	}
 }
+
+// The security code has a different name on every network. Someone typing the
+// name their own payment provider uses should find it rather than conclude
+// Synth has no such type.
+func TestSecurityCodeAliases(t *testing.T) {
+	for _, alias := range []string{"cvv", "cvc", "cvv2", "cvc2", "csc", "cid"} {
+		y, err := synth.YAMLBytes([]byte(
+			"name: t\ncount: 50\nseed: 7\nfields:\n  c: { kind: " + alias + " }\n"))
+		if err != nil {
+			t.Fatalf("%s: %v", alias, err)
+		}
+		rows, err := y.Generate()
+		if err != nil {
+			t.Fatalf("%s: %v", alias, err)
+		}
+		for i, r := range rows {
+			v, _ := r["c"].(string)
+			if len(v) != 3 || strings.Trim(v, "0123456789") != "" {
+				t.Fatalf("%s row %d: %q is not a 3-digit code", alias, i, v)
+			}
+		}
+	}
+}
+
+// Every alias must follow the card it is linked to, not just the plain form.
+// Amex uses four digits; a fixture that is uniformly wrong a fifth of the time
+// makes a length validator look flaky.
+func TestAliasesFollowTheCardLength(t *testing.T) {
+	for _, alias := range []string{"cvv", "cvc", "cid"} {
+		y, err := synth.YAMLBytes([]byte(
+			"name: t\ncount: 50\nseed: 7\nfields:\n" +
+				"  card: { kind: card, brand: american express }\n" +
+				"  c: { kind: " + alias + ", from: card }\n"))
+		if err != nil {
+			t.Fatalf("%s: %v", alias, err)
+		}
+		rows, _ := y.Generate()
+		for i, r := range rows {
+			if v := r["c"].(string); len(v) != 4 {
+				t.Fatalf("%s row %d: %q is %d digits beside an Amex card, want 4",
+					alias, i, v, len(v))
+			}
+		}
+	}
+}

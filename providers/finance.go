@@ -52,6 +52,18 @@ func cardExpiry(c Ctx) any {
 	}
 }
 
+// The security code has a different name on every network — Visa calls it CVV2,
+// Mastercard CVC2, Amex and Discover CID, and the EMV specs say CSC. They are
+// the same three or four digits. Someone typing the name their own payment
+// provider uses should find it rather than conclude Synth has no such type.
+func init() {
+	for _, k := range []schema.Kind{
+		schema.KindCVC, schema.KindCVV2, schema.KindCVC2, schema.KindCSC, schema.KindCID,
+	} {
+		registry[k] = cvv
+	}
+}
+
 // cvv returns a security code. American Express uses four digits and everyone
 // else uses three, so when the field is linked to a card column with from= the
 // length follows that card rather than being uniformly wrong a fraction of the
