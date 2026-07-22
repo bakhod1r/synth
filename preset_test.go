@@ -35,8 +35,8 @@ func TestSensitiveColumnsAreMaskedByDefault(t *testing.T) {
 		if !strings.Contains(card, "*") {
 			t.Fatalf("row %d: card number %q is not masked", i, card)
 		}
-		if len(strings.TrimLeft(card, "*")) != 4 {
-			t.Fatalf("row %d: %q should reveal exactly four digits", i, card)
+		if len(strings.TrimLeft(strings.TrimRight(card, "0123456789"), "0123456789")) == 0 {
+			t.Fatalf("row %d: %q hides nothing", i, card)
 		}
 		id, _ := r["national_id"].(string)
 		if len(id) != 64 || strings.Contains(id, "-") {
@@ -151,6 +151,36 @@ fields:
 		}
 		if !strings.HasPrefix(r["token"].(string), "tok_") {
 			t.Fatalf("row %d: token gave %q", i, r["token"])
+		}
+	}
+}
+
+// A masked card keeps its first four digits (the BIN identifies the issuer,
+// not the cardholder) and its last four, and stars everything between.
+func TestCardMaskKeepsBothEnds(t *testing.T) {
+	raw, err := synth.Transactions(50, synth.WithSeed(11), synth.Unmasked())
+	if err != nil {
+		t.Fatal(err)
+	}
+	masked, err := synth.Transactions(50, synth.WithSeed(11))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range raw {
+		full := raw[i]["card_number"].(string)
+		got := masked[i]["card_number"].(string)
+		if len(got) != len(full) {
+			t.Fatalf("row %d: mask changed the length: %q vs %q", i, got, full)
+		}
+		if got[:4] != full[:4] {
+			t.Fatalf("row %d: %q does not keep the leading four of %q", i, got, full)
+		}
+		if got[len(got)-4:] != full[len(full)-4:] {
+			t.Fatalf("row %d: %q does not keep the trailing four of %q", i, got, full)
+		}
+		middle := got[4 : len(got)-4]
+		if strings.Trim(middle, "*") != "" {
+			t.Fatalf("row %d: %q leaks digits in the middle", i, got)
 		}
 	}
 }

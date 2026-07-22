@@ -226,7 +226,9 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 // nothing, even by accident. It runs on the generated value rather than on real
 // data — for masking an actual export, see the mask package.
 //
-//	mask=partial   keep the last 4 characters, star the rest
+//	mask=partial   keep the last 4 characters, star the rest — on a card
+//	               number, the first 4 as well (the BIN, which identifies the
+//	               issuer and not the cardholder)
 //	mask=hash      SHA-256 hex of the value
 //	mask=redact    a fixed marker, no shape preserved
 //	mask=token     an opaque reference, unlinkable to the value
@@ -238,6 +240,9 @@ func maskValue(f *schema.Field, v any) any {
 	s := fmt.Sprint(v)
 	switch mode {
 	case "partial":
+		if f.Kind == schema.KindCard {
+			return cardMask(s)
+		}
 		return partialMask(s)
 	case "hash":
 		sum := sha256.Sum256([]byte(s))
@@ -268,6 +273,43 @@ func partialMask(s string) string {
 		case c == '-' || c == ' ' || c == '/':
 			b.WriteRune(c) // keep the shape readable
 		default:
+			b.WriteRune('*')
+		}
+	}
+	return b.String()
+}
+
+// cardMask keeps the leading four digits and the trailing four. The first four
+// are the start of the BIN: they identify the issuer, not the cardholder, and
+// keeping them lets a fixture stay recognizably a Visa or a HUMO card while the
+// account number stays hidden. PCI DSS permits up to the first six and the last
+// four; four is the stricter choice.
+//
+// Below twelve digits the two windows would meet and reveal nearly everything,
+// so a short value falls back to the trailing-four rule.
+func cardMask(s string) string {
+	const lead, tail = 4, 4
+	r := []rune(s)
+	digits := 0
+	for _, c := range r {
+		if c >= '0' && c <= '9' {
+			digits++
+		}
+	}
+	if digits < 12 {
+		return partialMask(s)
+	}
+	var b strings.Builder
+	seen := 0
+	for _, c := range r {
+		if c < '0' || c > '9' {
+			b.WriteRune(c) // keep the shape readable
+			continue
+		}
+		seen++
+		if seen <= lead || seen > digits-tail {
+			b.WriteRune(c)
+		} else {
 			b.WriteRune('*')
 		}
 	}
