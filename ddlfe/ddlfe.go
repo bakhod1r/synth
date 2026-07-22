@@ -21,25 +21,91 @@ type Table struct {
 }
 
 var (
-	reCreate = regexp.MustCompile(`(?is)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["` + "`" + `]?(\w+)["` + "`" + `]?\s*\((.*?)\)\s*;`)
+	// The name may be quoted four different ways and prefixed by a schema —
+	// pg_dump writes `public.users`, SQL Server writes `[users]`. Only the last
+	// segment is kept: the schema qualifier is where the table lives, not what
+	// it is called, and carrying it into a generated CSV header helps nobody.
+	ident    = `(?:"[^"]+"|` + "`[^`]+`" + `|\[[^\]]+\]|\w+)`
+	reCreate = regexp.MustCompile(`(?is)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(` +
+		ident + `(?:\s*\.\s*` + ident + `)*)\s*\((.*?)\)\s*;`)
+
+	// PRIMARY KEY (a, b) as a table-level constraint. Dropping it would leave
+	// the key column looking ordinary and silently produce duplicates.
+	rePKConstraint     = regexp.MustCompile(`(?is)^\s*(?:CONSTRAINT\s+` + ident + `\s+)?PRIMARY\s+KEY\s*\((.*)\)\s*$`)
+	reUniqueConstraint = regexp.MustCompile(`(?is)^\s*(?:CONSTRAINT\s+` + ident + `\s+)?UNIQUE\s*\((.*)\)\s*$`)
 )
+
+// unquote strips the quoting styles the four major databases use, and reduces a
+// qualified name to its last segment.
+func unquote(name string) string {
+	name = strings.TrimSpace(name)
+	if i := strings.LastIndex(name, "."); i >= 0 {
+		name = strings.TrimSpace(name[i+1:])
+	}
+	if len(name) >= 2 {
+		switch {
+		case name[0] == '"' && name[len(name)-1] == '"',
+			name[0] == '`' && name[len(name)-1] == '`':
+			return name[1 : len(name)-1]
+		case name[0] == '[' && name[len(name)-1] == ']':
+			return name[1 : len(name)-1]
+		}
+	}
+	return name
+}
 
 // Parse reads all CREATE TABLE statements in the given SQL text.
 func Parse(sql string) ([]*Table, error) {
 	var tables []*Table
 	for _, m := range reCreate.FindAllStringSubmatch(sql, -1) {
-		t := &Table{Name: m[1], Schema: &schema.Schema{}}
+		t := &Table{Name: unquote(m[1]), Schema: &schema.Schema{}}
+		var pk, unique []string
 		for _, col := range splitColumns(m[2]) {
+			if cols, ok := constraintColumns(col, rePKConstraint); ok {
+				pk = append(pk, cols...)
+				continue
+			}
+			if cols, ok := constraintColumns(col, reUniqueConstraint); ok {
+				unique = append(unique, cols...)
+				continue
+			}
 			f, ok := parseColumn(col)
 			if !ok {
-				continue // table-level constraint (PRIMARY KEY(...), FOREIGN KEY...)
+				continue // FOREIGN KEY, CHECK and the rest
 			}
 			t.Schema.Fields = append(t.Schema.Fields, f)
 			t.Order = append(t.Order, f.Name)
 		}
+		// A table-level constraint is applied after the columns exist, because
+		// it names them.
+		for _, name := range pk {
+			if f := t.Schema.FieldByName(name); f != nil {
+				f.PK, f.Unique = true, true
+			}
+		}
+		for _, name := range unique {
+			if f := t.Schema.FieldByName(name); f != nil {
+				f.Unique = true
+			}
+		}
 		tables = append(tables, t)
 	}
 	return tables, nil
+}
+
+// constraintColumns returns the column names a table-level constraint covers.
+func constraintColumns(clause string, re *regexp.Regexp) ([]string, bool) {
+	m := re.FindStringSubmatch(clause)
+	if m == nil {
+		return nil, false
+	}
+	var out []string
+	for _, part := range strings.Split(m[1], ",") {
+		if name := unquote(part); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out, true
 }
 
 // splitColumns splits the body on top-level commas (ignoring commas inside
