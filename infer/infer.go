@@ -245,7 +245,7 @@ func Kind(fieldName, goType string) (schema.Kind, bool) {
 // name→email (from), city↔postcode↔region share a Place, and multiple time
 // fields get an ordering hint by name semantics.
 func LinkDependencies(s *schema.Schema) {
-	var nameField, timeCreated, cardField string
+	var nameField, timeCreated, cardField, airportField string
 	for i := range s.Fields {
 		switch s.Fields[i].Kind {
 		case schema.KindName, schema.KindFirstName:
@@ -255,6 +255,19 @@ func LinkDependencies(s *schema.Schema) {
 		case schema.KindCard:
 			if cardField == "" {
 				cardField = s.Fields[i].Name
+			}
+		case schema.KindAirport:
+			if airportField == "" {
+				airportField = s.Fields[i].Name
+			}
+		}
+	}
+	// An airport name beside an airport code must be that airport.
+	if airportField != "" {
+		for i := range s.Fields {
+			f := &s.Fields[i]
+			if f.Kind == schema.KindAirportName && f.From == "" {
+				f.From = airportField
 			}
 		}
 	}

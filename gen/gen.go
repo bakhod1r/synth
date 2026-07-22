@@ -4,6 +4,8 @@
 package gen
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -214,7 +216,62 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 			return values[name]
 		},
 	}
-	return p(c)
+	return maskValue(f, p(c))
+}
+
+// maskValue applies the field's mask= setting to a generated value.
+//
+// This is what makes a fixture safe to paste into a ticket or a screenshot: a
+// card number or a national identifier is realistic in shape but reveals
+// nothing, even by accident. It runs on the generated value rather than on real
+// data — for masking an actual export, see the mask package.
+//
+//	mask=partial   keep the last 4 characters, star the rest
+//	mask=hash      SHA-256 hex of the value
+//	mask=redact    a fixed marker, no shape preserved
+//	mask=token     an opaque reference, unlinkable to the value
+func maskValue(f *schema.Field, v any) any {
+	mode := f.Params["mask"]
+	if mode == "" || v == nil {
+		return v
+	}
+	s := fmt.Sprint(v)
+	switch mode {
+	case "partial":
+		return partialMask(s)
+	case "hash":
+		sum := sha256.Sum256([]byte(s))
+		return hex.EncodeToString(sum[:])
+	case "redact":
+		return "[REDACTED]"
+	case "token":
+		sum := sha256.Sum256([]byte(s))
+		return "tok_" + hex.EncodeToString(sum[:12])
+	}
+	return v
+}
+
+// partialMask keeps the last four characters. Fewer than four would reveal
+// most of a short value, so a short value is starred completely rather than
+// half-shown.
+func partialMask(s string) string {
+	const keep = 4
+	r := []rune(s)
+	if len(r) <= keep {
+		return strings.Repeat("*", len(r))
+	}
+	var b strings.Builder
+	for i, c := range r {
+		switch {
+		case i >= len(r)-keep:
+			b.WriteRune(c)
+		case c == '-' || c == ' ' || c == '/':
+			b.WriteRune(c) // keep the shape readable
+		default:
+			b.WriteRune('*')
+		}
+	}
+	return b.String()
 }
 
 // array generates a slice value for a KindArray field.

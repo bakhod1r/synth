@@ -211,16 +211,87 @@ const (
 	KindPassphrase Kind = "passphrase"
 	// KindPasswordHash is a self-describing PBKDF2 hash of a generated
 	// password, for seeding a credentials table.
-	KindPasswordHash  Kind = "passwordhash"
-	KindIMEI          Kind = "imei"
-	KindUPC           Kind = "upc"
-	KindRoutingNumber Kind = "routingnumber"
-	KindAccountNumber Kind = "accountnumber"
-	KindErrorCode     Kind = "errorcode"
-	KindCron          Kind = "cron"
-	KindFileSize      Kind = "filesize"
-	KindDuration      Kind = "duration"
-	KindGitTag        Kind = "gittag"
+	KindPasswordHash Kind = "passwordhash"
+
+	// Named things: publications, vessels, aircraft, venues and hardware.
+	KindArticleTitle Kind = "articletitle"
+	KindMagazine     Kind = "magazine"
+	KindShipName     Kind = "shipname"
+	KindShipType     Kind = "shiptype"
+	KindAircraft     Kind = "aircraft"
+	KindTrainModel   Kind = "trainmodel"
+	KindHotel        Kind = "hotel"
+	KindComputer     Kind = "computer"
+	// KindAirportName is the airport's full name. With from=<code column> it
+	// names that airport rather than a different one.
+	KindAirportName Kind = "airportname"
+
+	// Entertainment and gaming.
+	KindMovieCharacter Kind = "moviecharacter"
+	KindGame           Kind = "game"
+	KindGamertag       Kind = "gamertag"
+
+	// KindCardToken is a payment token — the opaque reference a gateway hands
+	// back in place of a card number. It is not derived from any card: that is
+	// the whole point of tokenization.
+	KindCardToken Kind = "cardtoken"
+
+	// Roads and anatomy.
+	KindStreetType Kind = "streettype"
+	KindBird       Kind = "bird"
+	KindDisease    Kind = "disease"
+
+	// Catalog batch 4: media, nature, medicine, transport, civic life.
+	KindTVShow           Kind = "tvshow"
+	KindAnime            Kind = "anime"
+	KindPodcast          Kind = "podcast"
+	KindNewspaper        Kind = "newspaper"
+	KindMusicAlbum       Kind = "musicalbum"
+	KindBoardGame        Kind = "boardgame"
+	KindConsole          Kind = "console"
+	KindRestaurant       Kind = "restaurant"
+	KindClothingBrand    Kind = "clothingbrand"
+	KindWatchBrand       Kind = "watchbrand"
+	KindCameraModel      Kind = "cameramodel"
+	KindPhoneModel       Kind = "phonemodel"
+	KindTree             Kind = "tree"
+	KindInsect           Kind = "insect"
+	KindFish             Kind = "fish"
+	KindHerb             Kind = "herb"
+	KindSpice            Kind = "spice"
+	KindDinosaur         Kind = "dinosaur"
+	KindMineral          Kind = "mineral"
+	KindMedicalSpecialty Kind = "medicalspecialty"
+	KindLabTest          Kind = "labtest"
+	KindProcedure        Kind = "procedure"
+	KindVaccine          Kind = "vaccine"
+	KindAllergy          Kind = "allergy"
+	KindSymptom          Kind = "symptom"
+	KindMilitaryRank     Kind = "militaryrank"
+	KindReligion         Kind = "religion"
+	KindHoliday          Kind = "holiday"
+	KindInsuranceType    Kind = "insurancetype"
+	KindCrimeType        Kind = "crimetype"
+	KindTaxType          Kind = "taxtype"
+	KindSpacecraft       Kind = "spacecraft"
+	KindMotorcycle       Kind = "motorcycle"
+	KindBicycleType      Kind = "bicycletype"
+	KindFuelType         Kind = "fueltype"
+	KindNaturalDisaster  Kind = "naturaldisaster"
+	KindMartialArt       Kind = "martialart"
+	KindDance            Kind = "dance"
+	KindChessOpening     Kind = "chessopening"
+	KindWineVariety      Kind = "winevariety"
+	KindCheese           Kind = "cheese"
+	KindIMEI             Kind = "imei"
+	KindUPC              Kind = "upc"
+	KindRoutingNumber    Kind = "routingnumber"
+	KindAccountNumber    Kind = "accountnumber"
+	KindErrorCode        Kind = "errorcode"
+	KindCron             Kind = "cron"
+	KindFileSize         Kind = "filesize"
+	KindDuration         Kind = "duration"
+	KindGitTag           Kind = "gittag"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""

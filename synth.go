@@ -28,6 +28,7 @@ type config struct {
 	refs     []refSpec
 	weighted map[string]weightedSpec
 	chaos    float64
+	unmask   bool
 }
 
 type weightedSpec struct {

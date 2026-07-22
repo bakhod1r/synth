@@ -33,7 +33,9 @@ func init() {
 	set(schema.KindOS, []string{"Windows 11", "macOS Sonoma", "Ubuntu 22.04", "Android 14", "iOS 17", "Debian 12", "Fedora 39"})
 	set(schema.KindBrowser, []string{"Chrome", "Firefox", "Safari", "Edge", "Opera", "Brave"})
 	set(schema.KindDevice, []string{"iPhone 15", "Galaxy S24", "Pixel 8", "MacBook Pro", "iPad Air", "Surface Pro", "ThinkPad X1"})
-	set(schema.KindAirport, []string{"JFK", "LHR", "CDG", "HND", "DXB", "SIN", "FRA", "IST", "TAS", "ICN"})
+	// Codes come from the paired airport table in things.go, so a code and a
+	// name column can describe the same airport.
+	set(schema.KindAirport, airportCodes)
 	set(schema.KindAirline, []string{"Emirates", "Qatar Airways", "Lufthansa", "Delta", "Singapore Airlines", "Turkish Airlines", "Uzbekistan Airways", "ANA"})
 	set(schema.KindStockTicker, []string{"AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX", "AMD", "INTC"})
 	set(schema.KindCrypto, []string{"Bitcoin", "Ethereum", "Solana", "Cardano", "Polkadot", "Litecoin", "Chainlink", "Avalanche"})

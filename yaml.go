@@ -52,6 +52,9 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 	// Clone schema so per-call overrides don't mutate the parsed spec.
 	s := &schema.Schema{Fields: append([]schema.Field(nil), y.spec.Schema.Fields...)}
 	applyWeighted(s, cfg.weighted)
+	if cfg.unmask {
+		stripMasks(s)
+	}
 	eng, err := gen.Compile(s, cfg.locale)
 	if err != nil {
 		return nil, err
@@ -66,6 +69,25 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// stripMasks removes every mask= setting, so the raw generated value is
+// returned. The field's Params map is shared with the cached spec, so it is
+// copied rather than edited in place — otherwise one unmasked call would
+// silently unmask every later one.
+func stripMasks(s *schema.Schema) {
+	for i := range s.Fields {
+		if _, ok := s.Fields[i].Params["mask"]; !ok {
+			continue
+		}
+		p := make(map[string]string, len(s.Fields[i].Params))
+		for k, v := range s.Fields[i].Params {
+			if k != "mask" {
+				p[k] = v
+			}
+		}
+		s.Fields[i].Params = p
+	}
 }
 
 // Constraints returns the spec's cross-column invariants.
