@@ -1,8 +1,10 @@
 package synth_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bakhodir/synth"
 )
@@ -287,6 +289,51 @@ func digestRows(t *testing.T, fields string) []map[string]any {
 		t.Fatal(err)
 	}
 	return rows
+}
+
+// Every date bound in every preset must actually bind.
+//
+// The user preset shipped with dates of birth in 2025 despite asking for
+// 1960..2006, because an unparseable bound is ignored rather than rejected.
+// Counting rows and checking columns exist could not catch that; only reading
+// the values against the spec can.
+func TestPresetDateBoundsHold(t *testing.T) {
+	bound := regexp.MustCompile(`(\w+):\s*\{[^}]*kind:\s*time[^}]*min:\s*(\S+?),\s*max:\s*(\S+?)\s*\}`)
+	checked := 0
+	for _, p := range synth.Presets() {
+		spec, _ := synth.PresetSpec(p)
+		rows, err := synth.Generate(p, 200, synth.WithSeed(13))
+		if err != nil {
+			t.Fatalf("%s: %v", p, err)
+		}
+		for _, m := range bound.FindAllStringSubmatch(spec, -1) {
+			col, lo, hi := m[1], mustDate(t, m[2]), mustDate(t, m[3])
+			checked++
+			for i, r := range rows {
+				got, ok := r[col].(time.Time)
+				if !ok {
+					t.Fatalf("%s.%s is %T, not a time", p, col, r[col])
+				}
+				if got.Before(lo) || got.After(hi) {
+					t.Fatalf("%s.%s row %d: %s is outside %s..%s",
+						p, col, i, got.Format("2006-01-02"),
+						lo.Format("2006-01-02"), hi.Format("2006-01-02"))
+				}
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no preset date bounds were checked — the pattern stopped matching")
+	}
+}
+
+func mustDate(t *testing.T, s string) time.Time {
+	t.Helper()
+	v, err := time.Parse("2006-01-02", strings.Trim(s, `"'`))
+	if err != nil {
+		t.Fatalf("cannot read %q as a date: %v", s, err)
+	}
+	return v
 }
 
 // A short value must be starred completely: revealing four of five characters
