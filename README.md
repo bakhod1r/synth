@@ -341,12 +341,28 @@ Each library fills the same four fields (name, email, phone, city).
 | `go-faker/faker` v4 | 10,848 | 8,778 | 116 |
 | **Synth** | **2,494** | **2,001** | **34** |
 
+```mermaid
+xychart-beta
+  title "One record from a struct — lower is better (ns/op)"
+  x-axis ["go-faker/faker v4", "Synth"]
+  y-axis "nanoseconds" 0 --> 12000
+  bar [10848, 2494]
+```
+
 **Per-field calls** — the fluent API:
 
 | Library | ns/op | B/op | allocs/op |
 | --- | --- | --- | --- |
 | `jaswdr/faker` v2 | 5,612 | 4,533 | 61 |
 | **Synth** | **778** | **222** | **14** |
+
+```mermaid
+xychart-beta
+  title "Four fluent field calls — lower is better (ns/op)"
+  x-axis ["jaswdr/faker v2", "Synth"]
+  y-axis "nanoseconds" 0 --> 6000
+  bar [5612, 778]
+```
 
 **Batch generation** — Synth's normal mode, where schema work is done once for
 the whole run: 1,678 ns/record (~596K records/sec single-threaded), and
@@ -376,11 +392,30 @@ xychart-beta
   bar [115.0, 63.1, 25.5, 20.4]
 ```
 
+Allocation is the wider gap, and the one that decides whether a run finishes:
+
+```mermaid
+xychart-beta
+  title "Memory to write 10,000 rows to CSV — lower is better (MB)"
+  x-axis ["go-faker", "jaswdr", "Synth", "Synth streamed"]
+  y-axis "megabytes allocated" 0 --> 90
+  bar [87.8, 46.0, 11.0, 9.1]
+```
+
 The streamed row is the one that matters at scale: it never holds the rows in
 memory, so its footprint does not grow with the row count. At ten thousand rows
 the gap is small; the same code writes ten million.
 
 Writing scales linearly — 1K/10K/100K rows take 3.2 ms, 25.2 ms and 240.9 ms:
+
+```mermaid
+xychart-beta
+  title "Writing CSV scales linearly with row count"
+  x-axis ["1K rows", "10K rows", "100K rows"]
+  y-axis "milliseconds" 0 --> 260
+  bar [3.2, 25.2, 240.9]
+  line [3.2, 25.2, 240.9]
+```
 
 ```
 BenchmarkSynth_WriteCSVScaling/1000        3,204,250 ns/op     1.1 MB/op
