@@ -19,6 +19,54 @@ Synth generates *realistic*, locale-aware data — users, payments, transactions
 | Output | strings you wire up yourself | CSV, JSONL, SQL, Parquet, CDC files |
 | Schemas | none | generates valid payloads from your OpenAPI spec |
 
+## How it fits together
+
+Every input format becomes the same intermediate schema, so a feature written
+once — coherence, constraints, masking — works no matter where the schema came
+from. Adding a frontend costs one parser and nothing else.
+
+```mermaid
+flowchart LR
+  subgraph front["Frontends"]
+    direction TB
+    A1["Go structs"]
+    A2["YAML spec"]
+    A3["OpenAPI 3"]
+    A4["SQL DDL"]
+    A5["JSON Schema / Avro"]
+    A6["Protobuf"]
+    A7["Real CSV/JSONL<br/>(profile)"]
+  end
+
+  IR["schema.Schema<br/><i>one intermediate form</i>"]
+
+  subgraph engine["Engine"]
+    direction TB
+    E1["providers<br/>250 types"]
+    E2["locale<br/>52 locales"]
+    E3["constraints<br/>+ coherence"]
+    E4["per-instance PCG rng"]
+  end
+
+  subgraph out["Output"]
+    direction TB
+    O1["CSV / JSONL / SQL"]
+    O2["Parquet"]
+    O3["CDC events"]
+    O4["in memory"]
+  end
+
+  A1 --> IR
+  A2 --> IR
+  A3 --> IR
+  A4 --> IR
+  A5 --> IR
+  A6 --> IR
+  A7 --> IR
+  IR --> engine
+  engine --> out
+```
+
 ## Features
 
 ### Referential integrity
@@ -67,6 +115,26 @@ That fallback is stated, not hidden. `providers.LocalesFor(kind)` reports
 exactly which locales a type has data for, the workbench shows it on every
 type in the palette, and a test asserts that a type like `superhero` — the
 same word everywhere — never claims coverage it does not have.
+
+Within one record the choices are not independent. A single `locale.Place` is
+drawn first, and every place-derived field reads from it — which is why the city
+matches the postcode instead of merely both being Uzbek.
+
+```mermaid
+flowchart TD
+  L["locale: uz_UZ"] --> P["pick one Place<br/>region + city + postcode + phone prefix"]
+  L --> G["pick a gender"]
+  P --> C["city"]
+  P --> R["region"]
+  P --> Z["postcode"]
+  P --> PH["phone"]
+  G --> FN["first name"]
+  G --> LN["last name<br/><i>gendered form</i>"]
+  FN --> EM["email"]
+  LN --> EM
+  FN --> FULL["full name"]
+  LN --> FULL
+```
 
 ### Statistical shape
 Real data isn't uniform. Synth draws from distributions so your test data stresses the same paths production does.
@@ -165,6 +233,22 @@ path — it opens no socket and reads no file, and a test forbids the imports th
 would let it. An MCP server runs with your permissions on behalf of a model that
 may be reading text someone else wrote, so a path argument would turn a data
 generator into a file-reading primitive. See [mcp/README.md](mcp/README.md).
+
+```mermaid
+flowchart LR
+  M["Assistant"] <-->|"stdio<br/>JSON-RPC"| S["synth-mcp"]
+  S --> E["Synth engine"]
+  E --> S
+  S -.->|"blocked by a test"| F["filesystem"]
+  S -.->|"blocked by a test"| N["network"]
+  S -.->|"never existed"| D["database"]
+
+  style F stroke-dasharray: 4, color:#888
+  style N stroke-dasharray: 4, color:#888
+  style D stroke-dasharray: 4, color:#888
+```
+
+Data goes in as an argument and comes back in the response. Nothing else moves.
 
 It is a separate module: `mcp-go` brings 20 transitive dependencies and the core
 library has two.
@@ -283,6 +367,14 @@ whole job against half of theirs.
 | `jaswdr/faker` v2 | JSONL (hand-written loop) | 96.4 | 46.7 MB | 627,708 |
 | **Synth** | **JSONL** | **50.1** | **9.6 MB** | **270,060** |
 | **Synth** | **SQL INSERT** | **57.2** | **13.1 MB** | **400,058** |
+
+```mermaid
+xychart-beta
+  title "10,000 rows to CSV — lower is better (ms)"
+  x-axis ["go-faker", "jaswdr", "Synth", "Synth streamed"]
+  y-axis "milliseconds" 0 --> 120
+  bar [115.0, 63.1, 25.5, 20.4]
+```
 
 The streamed row is the one that matters at scale: it never holds the rows in
 memory, so its footprint does not grow with the row count. At ten thousand rows
@@ -428,6 +520,14 @@ A row exists before it is updated, updates carry the true `before` image, and
 deleted rows are never touched again. LSNs and timestamps advance monotonically.
 
 ## Time travel
+
+```mermaid
+timeline
+  title One seed, many instants
+  2026-01-01 : rows born so far
+  2026-04-01 : some updated : some deleted
+  2026-07-01 : full state
+```
 
 One seed already fixes a whole dataset. Snapshots make *time* another axis of
 that determinism: ask for the table as it stood at any instant, or for what

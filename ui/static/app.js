@@ -273,6 +273,10 @@ const PARAM_SPECS = {
   cardexpiry:   [{ key: 'format', type: 'select', options: ['', 'MM/YYYY', 'YYYY-MM'] },
                  { key: 'expired', type: 'select', options: ['', 'true'] }],
   time:         [{ key: 'min', type: 'date' }, { key: 'max', type: 'date' }],
+  // birthdate's bounds are ages in years, not dates: "adults" is what the
+  // author means, and a spec written as `min: 1960-01-01` describes a different
+  // population every year it is re-run.
+  birthdate:    [{ key: 'min', type: 'number' }, { key: 'max', type: 'number' }],
   unixtime:     [{ key: 'min', type: 'date' }, { key: 'max', type: 'date' }],
   lorem:        [{ key: 'words', type: 'number' }],
   sentence:     [{ key: 'words', type: 'number' }],

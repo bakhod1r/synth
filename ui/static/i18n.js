@@ -3356,7 +3356,8 @@ const CATEGORY_NAMES = {
 // rest stay one search away.
 const COMMON = [
   'uuid', 'name', 'firstname', 'lastname', 'email', 'phone', 'username',
-  'password', 'passwordhash', 'gender', 'time', 'int', 'float', 'bool', 'enum',
+  'password', 'passwordhash', 'gender', 'birthdate', 'age', 'time',
+  'int', 'float', 'bool', 'enum',
   'amount', 'balance', 'currency', 'country', 'city', 'street', 'postcode',
   'company', 'job', 'card', 'cardbrand', 'cardexpiry', 'cvv', 'iban',
   'url', 'ipv4', 'lorem', 'product', 'color',

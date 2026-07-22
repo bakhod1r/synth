@@ -25,6 +25,22 @@ import (
 
 func init() {
 	registry[schema.KindSSN] = nationalID
+
+	// The same generator under the names people actually search for. Someone
+	// building an Uzbek schema looks for "pinfl", not "ssn", and finding
+	// nothing they either invent a text column or give up on the type — so
+	// the alias is not a convenience, it is the difference between the feature
+	// being found and not.
+	//
+	// Each alias still follows the locale: `pinfl` in a de_DE dataset produces
+	// a German tax ID, because the column means "this country's national
+	// identifier" and pinning it to Uzbekistan would be a different, worse
+	// behaviour hidden behind a familiar name.
+	for _, k := range []schema.Kind{
+		schema.KindPINFL, schema.KindNationalID, schema.KindTaxID,
+	} {
+		registry[k] = nationalID
+	}
 }
 
 func nationalID(c Ctx) any {

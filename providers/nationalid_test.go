@@ -137,3 +137,42 @@ func TestUnknownLocaleFallsBack(t *testing.T) {
 		}
 	}
 }
+
+// pinfl, nationalid and taxid are the names people search for. Someone building
+// an Uzbek schema looks for "pinfl", not "ssn", and finding nothing they invent
+// a text column instead — so the alias is the difference between the feature
+// being found and not.
+func TestNationalIDAliases(t *testing.T) {
+	for _, alias := range []string{"pinfl", "nationalid", "taxid"} {
+		y, err := synth.YAMLBytes([]byte(
+			"name: t\ncount: 50\nseed: 5\nfields:\n  a: { kind: " + alias + " }\n  b: { kind: ssn }\n"))
+		if err != nil {
+			t.Fatalf("%s: %v", alias, err)
+		}
+		rows, err := y.Generate(synth.WithLocale("uz_UZ"))
+		if err != nil {
+			t.Fatalf("%s: %v", alias, err)
+		}
+		for i, r := range rows {
+			v, _ := r["a"].(string)
+			if len(v) != 14 {
+				t.Fatalf("%s row %d: %q is not a 14-digit PINFL", alias, i, v)
+			}
+		}
+	}
+}
+
+// An alias must still follow the locale. Pinning "pinfl" to Uzbekistan would be
+// a different, worse behaviour hidden behind a familiar name.
+func TestAliasesFollowTheLocale(t *testing.T) {
+	y, _ := synth.YAMLBytes([]byte("name: t\ncount: 20\nseed: 5\nfields:\n  a: { kind: pinfl }\n"))
+	de, err := y.Generate(synth.WithLocale("de_DE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range de {
+		if v := r["a"].(string); len(v) != 11 {
+			t.Fatalf("row %d: pinfl in de_DE gave %q, want an 11-digit Steuer-ID", i, v)
+		}
+	}
+}

@@ -264,7 +264,8 @@ var categories = []struct {
 }{
 	{name: "person", kinds: []string{"name", "firstname", "lastname", "middlename",
 		"gender", "username", "email", "phone", "title", "namesuffix",
-		"maritalstatus", "education", "bloodtype", "nickname", "petname"}},
+		"maritalstatus", "education", "bloodtype", "nickname", "petname",
+		"birthdate", "age", "pinfl", "nationalid", "taxid", "ssn"}},
 	{name: "location", kinds: []string{"city", "region", "country", "postcode",
 		"street", "countryname", "countrycode", "continent", "timezone",
 		"latitude", "longitude", "airport", "airline"}, fragments: []string{"geo"}},

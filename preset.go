@@ -127,7 +127,8 @@ fields:
   city:          { kind: city }
   street:        { kind: street }
   postcode:      { kind: postcode }
-  date_of_birth: { kind: time, min: 1960-01-01, max: 2006-12-31 }
+  date_of_birth: { kind: birthdate, min: 18, max: 80 }
+  age:           { kind: age, from: date_of_birth }
   national_id:   { kind: ssn, mask: partial }
   is_active:     { kind: bool }
   created_at:    { kind: time }
@@ -249,7 +250,8 @@ fields:
   id:           { kind: uuid, pk: true }
   full_name:    { kind: name }
   gender:       { kind: gender }
-  date_of_birth: { kind: time, min: 1940-01-01, max: 2015-12-31 }
+  date_of_birth: { kind: birthdate, min: 1, max: 95 }
+  age:          { kind: age, from: date_of_birth }
   national_id:  { kind: ssn, mask: hash }
   phone:        { kind: phone, mask: partial }
   blood_type:   { kind: bloodtype }

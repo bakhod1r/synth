@@ -2,6 +2,7 @@ package synth_test
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -291,14 +292,19 @@ func digestRows(t *testing.T, fields string) []map[string]any {
 	return rows
 }
 
-// Every date bound in every preset must actually bind.
+// Every age bound in every preset must actually bind.
 //
 // The user preset shipped with dates of birth in 2025 despite asking for
 // 1960..2006, because an unparseable bound is ignored rather than rejected.
 // Counting rows and checking columns exist could not catch that; only reading
 // the values against the spec can.
-func TestPresetDateBoundsHold(t *testing.T) {
-	bound := regexp.MustCompile(`(\w+):\s*\{[^}]*kind:\s*time[^}]*min:\s*(\S+?),\s*max:\s*(\S+?)\s*\}`)
+//
+// The bounds are ages now rather than dates — a spec written as 1960-01-01
+// describes a different population every year it is re-run — so this reads them
+// the same way the provider does.
+func TestPresetAgeBoundsHold(t *testing.T) {
+	anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	bound := regexp.MustCompile(`(\w+):\s*\{[^}]*kind:\s*birthdate[^}]*min:\s*(\d+),\s*max:\s*(\d+)`)
 	checked := 0
 	for _, p := range synth.Presets() {
 		spec, _ := synth.PresetSpec(p)
@@ -307,31 +313,66 @@ func TestPresetDateBoundsHold(t *testing.T) {
 			t.Fatalf("%s: %v", p, err)
 		}
 		for _, m := range bound.FindAllStringSubmatch(spec, -1) {
-			col, lo, hi := m[1], mustDate(t, m[2]), mustDate(t, m[3])
+			col, lo, hi := m[1], mustInt(t, m[2]), mustInt(t, m[3])
 			checked++
 			for i, r := range rows {
-				got, ok := r[col].(time.Time)
+				born, ok := r[col].(time.Time)
 				if !ok {
 					t.Fatalf("%s.%s is %T, not a time", p, col, r[col])
 				}
-				if got.Before(lo) || got.After(hi) {
-					t.Fatalf("%s.%s row %d: %s is outside %s..%s",
-						p, col, i, got.Format("2006-01-02"),
-						lo.Format("2006-01-02"), hi.Format("2006-01-02"))
+				age := anchor.Year() - born.Year()
+				if anchor.YearDay() < born.YearDay() {
+					age--
+				}
+				if age < lo || age > hi {
+					t.Fatalf("%s.%s row %d: %s is age %d, outside %d..%d",
+						p, col, i, born.Format("2006-01-02"), age, lo, hi)
 				}
 			}
 		}
 	}
 	if checked == 0 {
-		t.Fatal("no preset date bounds were checked — the pattern stopped matching")
+		t.Fatal("no preset age bounds were checked — the pattern stopped matching")
 	}
 }
 
-func mustDate(t *testing.T, s string) time.Time {
+// An age column next to a birth date must agree with it. A row saying 34 beside
+// a 1990 birth date makes the whole fixture untrustworthy.
+func TestPresetAgeMatchesBirthDate(t *testing.T) {
+	anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	checked := 0
+	for _, p := range synth.Presets() {
+		rows, err := synth.Generate(p, 100, synth.WithSeed(19))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, r := range rows {
+			born, hasDOB := r["date_of_birth"].(time.Time)
+			got, hasAge := r["age"].(int)
+			if !hasDOB || !hasAge {
+				continue
+			}
+			checked++
+			want := anchor.Year() - born.Year()
+			if anchor.YearDay() < born.YearDay() {
+				want--
+			}
+			if got != want {
+				t.Fatalf("%s row %d: age %d does not match %s (want %d)",
+					p, i, got, born.Format("2006-01-02"), want)
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no preset pairs an age with a birth date — this test checks nothing")
+	}
+}
+
+func mustInt(t *testing.T, s string) int {
 	t.Helper()
-	v, err := time.Parse("2006-01-02", strings.Trim(s, `"'`))
+	v, err := strconv.Atoi(s)
 	if err != nil {
-		t.Fatalf("cannot read %q as a date: %v", s, err)
+		t.Fatalf("cannot read %q as a number: %v", s, err)
 	}
 	return v
 }
