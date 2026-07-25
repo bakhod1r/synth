@@ -21,6 +21,8 @@ import (
 type Engine struct {
 	schema *schema.Schema
 	loc    *locale.Locale
+	// base is the locale a field falls back to when it sets localize=false.
+	base *locale.Locale
 	order  []int // field indices in dependency order
 	// Chaos is the probability [0,1] that a string/numeric field carries an
 	// edge-case value instead of a normal one (see WithChaos).
@@ -53,7 +55,7 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 			return nil, fmt.Errorf("synth: field %q has unknown kind %q", f.Name, f.Kind)
 		}
 	}
-	e := &Engine{schema: s, loc: locale.Get(localeName), order: order}
+	e := &Engine{schema: s, loc: locale.Get(localeName), base: locale.Get(baseLocale), order: order}
 	// Compile nested object schemas recursively (sharing the same locale).
 	for i := range s.Fields {
 		f := &s.Fields[i]
@@ -200,12 +202,16 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 		return e.array(r, f, place, gender, values)
 	}
 	p := providers.Get(f.Kind)
+	loc, pl := e.loc, place
+	if !localizeField(f) {
+		loc, pl = e.base, basePlaceFor(e.base, place)
+	}
 	c := providers.Ctx{
 		Rand:   r,
-		Locale: e.loc,
+		Locale: loc,
 		Params: f.Params,
 		Field:  f,
-		Place:  place,
+		Place:  pl,
 		Gender: gender,
 		Sibling: func(name string) any {
 			if name == "__from__" {

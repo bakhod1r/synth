@@ -116,6 +116,25 @@ exactly which locales a type has data for, the workbench shows it on every
 type in the palette, and a test asserts that a type like `superhero` — the
 same word everywhere — never claims coverage it does not have.
 
+A single column can step out of the locale with `localize=false`, without
+dragging the rest of the dataset back to English with it:
+
+```go
+type Order struct {
+    Customer string `synth:"name"`                     // Uzbek
+    City     string `synth:"city"`                      // Tashkent district
+    Category string `synth:"productcategory,localize=false"` // English, for the partner's system
+}
+```
+
+The switch only bites on kinds a locale actually reaches — names, addresses,
+phone, currency, national IDs, and the catalog types with per-locale data.
+`providers.Localizable(kind)` answers whether a kind is one of them, and
+`providers.LocalizableKinds()` lists them all; on anything else `localize=` is a
+no-op because there was never anything locale-specific to turn off. A
+de-localized address field still agrees with its de-localized neighbours: they
+share one `en_US` place, so the city still matches the postcode.
+
 Within one record the choices are not independent. A single `locale.Place` is
 drawn first, and every place-derived field reads from it — which is why the city
 matches the postcode instead of merely both being Uzbek.
