@@ -319,8 +319,8 @@ go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest
 claude mcp add synth -- synth-mcp
 ```
 
-Seven tools: `generate`, `list_types`, `list_presets`, `verify`, `profile`,
-`mask`, `snapshot`.
+Eight tools: `generate`, `list_types`, `list_presets`, `verify`, `profile`,
+`mask`, `snapshot`, `diff`.
 
 The server is stdio-only and takes every input as an argument rather than a
 path — it opens no socket and reads no file, and a test forbids the imports that
@@ -616,6 +616,23 @@ mostly match what its name claims, so a column called `card` holding loyalty
 tiers is skipped rather than reported a million times. And a clean dataset must
 produce an **empty** report — a check that fires on correct data is a false
 positive and a bug here, not something for you to filter out.
+
+## Compare two datasets' shape (`synth diff`)
+
+After changing a generator, or to guard a real feed against drift, `synth diff`
+answers whether two files are shaped alike — columns, types, numeric ranges,
+null rates, category sets — without comparing rows:
+
+```sh
+synth diff baseline.csv candidate.csv
+synth diff baseline.csv candidate.csv --tolerance 0.2 -f json   # for CI
+```
+
+A column added, removed or retyped is an **error**; a range, null rate or
+category set that moved past tolerance is a **warning**. Exit code 1 on any
+error, 0 on warnings only — same contract as `verify`, so a pipeline fails on a
+structural break and passes on ordinary drift. The MCP server exposes the same
+as a `diff` tool over inline datasets.
 
 ## Anonymize a production dump (GDPR)
 

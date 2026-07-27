@@ -38,6 +38,12 @@ accident.
 - `kind: timeseries`: a numeric column that follows
   `base + trend + seasonality + noise` over a named timestamp `axis`, for
   metrics and IoT data.
+- `synth diff a.csv b.csv` compares two datasets by shape — columns, types,
+  numeric ranges, null rates, category sets — and exits non-zero on a
+  structural break, for CI regression guards. `--tolerance` and `--format json`
+  included. An MCP `diff` tool exposes the same over inline datasets.
+- Workbench **Share** button: encodes the schema in the URL fragment so a link
+  reopens it exactly, with nothing uploaded.
 
 ### Dependencies
 
