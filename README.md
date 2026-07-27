@@ -695,6 +695,18 @@ spec:
 synth cdc -s users.yaml -n 10000 --delete-rate 0.1 --soft-delete
 ```
 
+For a **referential cascade** across two tables, give a child spec and the
+column that references the parent. Deleting a parent then deletes its children
+first, then the parent — the order a foreign key requires:
+
+```sh
+synth cdc -s orders.yaml --child items.yaml --child-fk order_id --delete-rate 0.2
+```
+
+Inserts keep integrity (a child only ever references a parent that exists), one
+LSN and clock run across both tables, and the stream is deterministic under the
+seed.
+
 ## Time travel
 
 ```mermaid

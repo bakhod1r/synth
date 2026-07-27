@@ -49,6 +49,9 @@ accident.
   whether "anonymized" data can still be re-identified.
 - Differential-privacy masking: `mask --dp col:epsilon:sensitivity` adds Laplace
   noise to a numeric column, bounding how much one record shows through.
+- Cascade deletes in CDC: `cdc -s parent.yaml --child child.yaml --child-fk col`
+  produces a two-table change stream where deleting a parent deletes its
+  children first, then the parent — the order a foreign key requires.
 
 ### Dependencies
 
