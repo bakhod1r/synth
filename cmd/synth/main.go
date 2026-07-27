@@ -21,6 +21,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -324,15 +325,46 @@ func runCDC(args []string) error {
 	if table == "" {
 		table = "data"
 	}
-	stream, err := spec.CDC(synth.CDCConfig{
-		Table:      table,
-		UpdateRate: fs.updateRate,
-		DeleteRate: fs.deleteRate,
-		Snapshot:   fs.snapshot,
-		SoftDelete: fs.softDelete,
-	})
-	if err != nil {
-		return err
+
+	// A change stream over one table, or — with --child — a two-table stream
+	// where deleting a parent cascades to its children. Both write JSONL the
+	// same way.
+	type jsonlStream interface {
+		WriteJSONL(io.Writer, int) error
+	}
+	var stream jsonlStream
+	if fs.child != "" {
+		if fs.childFK == "" {
+			return fmt.Errorf("cdc: --child needs --child-fk (the child column " +
+				"that references the parent)")
+		}
+		childSpec, err := synth.LoadYAML(fs.child)
+		if err != nil {
+			return err
+		}
+		childTable := childSpec.Name()
+		if childTable == "" {
+			childTable = "child"
+		}
+		stream, err = spec.Cascade(childSpec, synth.CascadeConfig{
+			ParentTable: table, ChildTable: childTable, ChildFK: fs.childFK,
+			UpdateRate: fs.updateRate, DeleteRate: fs.deleteRate,
+			Snapshot: fs.snapshot, Seed: fs.seed, Locale: fs.locale,
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		stream, err = spec.CDC(synth.CDCConfig{
+			Table:      table,
+			UpdateRate: fs.updateRate,
+			DeleteRate: fs.deleteRate,
+			Snapshot:   fs.snapshot,
+			SoftDelete: fs.softDelete,
+		})
+		if err != nil {
+			return err
+		}
 	}
 	out, err := openSink(fs.out)
 	if err != nil {
@@ -358,7 +390,7 @@ func runCDC(args []string) error {
 type flags struct {
 	spec, in, out, format, locale, key, name string
 	refs, fks, dps                           []string
-	qi                                       string
+	qi, child, childFK                       string
 	at, from, to, port, preset               string
 	unmask, append, softDelete               bool
 	seed                                     uint64
@@ -434,6 +466,10 @@ func parseFlags(args []string) (flags, error) {
 			var v string
 			v, err = next(args, &i)
 			f.dps = append(f.dps, v)
+		case "--child":
+			f.child, err = next(args, &i)
+		case "--child-fk":
+			f.childFK, err = next(args, &i)
 		case "-n", "--rows":
 			err = scanInto(args, &i, &f.n)
 		case "--snapshot":
@@ -608,6 +644,7 @@ Usage:
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
   synth diff    <a.csv> <b.csv> [--tolerance 0.1] [-f text|json]   # compare two datasets' shape
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N] [--soft-delete]
+  synth cdc     -s <parent.yaml> --child <child.yaml> --child-fk <col>   # cascade deletes across two tables
 
 Flags:
   -s, --spec       YAML data-definition file
@@ -629,6 +666,7 @@ Flags:
       --append     extend the output file instead of overwriting it
       --update-rate, --delete-rate, --snapshot   CDC history shape
       --soft-delete   emit a delete as an update stamping deleted_at
+      --child, --child-fk   cascade CDC: child spec and its FK column to the parent
       --k, --qi    k-anonymity: require each --qi col,col combination k+ times
       --dp         Laplace-noise a numeric column while masking, col:epsilon:sensitivity (repeatable)
 

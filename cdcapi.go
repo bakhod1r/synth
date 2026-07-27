@@ -18,6 +18,13 @@ type CDCEvent = cdc.Event
 // CDCStream produces insert/update/delete events over a schema.
 type CDCStream = cdc.Stream
 
+// CascadeConfig controls a two-table change stream with cascade deletes.
+type CascadeConfig = cdc.CascadeConfig
+
+// CascadeStream produces an interleaved change stream over a parent and a child
+// table, where deleting a parent deletes its children too.
+type CascadeStream = cdc.CascadeStream
+
 // CDC builds a deterministic change-event stream for type T. The history is
 // coherent: a row is inserted before it is updated, updates carry the true
 // `before` image, and deleted rows are never touched again.
@@ -54,4 +61,13 @@ func WriteCDC[T any](path string, n int, cfg CDCConfig) error {
 func (y *YAMLSpec) CDC(cfg CDCConfig) (*CDCStream, error) {
 	s := &schema.Schema{Fields: append([]schema.Field(nil), y.spec.Schema.Fields...)}
 	return cdc.New(s, cfg)
+}
+
+// Cascade builds a two-table change stream from this spec (the parent) and a
+// child spec, where deleting a parent cascades to its children. The schemas are
+// copied so the streams do not mutate the parsed specs.
+func (y *YAMLSpec) Cascade(child *YAMLSpec, cfg CascadeConfig) (*CascadeStream, error) {
+	p := &schema.Schema{Fields: append([]schema.Field(nil), y.spec.Schema.Fields...)}
+	c := &schema.Schema{Fields: append([]schema.Field(nil), child.spec.Schema.Fields...)}
+	return cdc.Cascade(p, c, cfg)
 }
