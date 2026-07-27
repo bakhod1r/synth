@@ -23,6 +23,15 @@ accident.
   `char(n)` and JSON Schema / OpenAPI `maxLength` now reach the generator as
   `maxlen`, which truncates to them in runes; previously the length was parsed
   and discarded.
+- Cross-run foreign keys: `gen --fk col=parent.csv:key` fills a child column
+  from a key column in a parent file written by an earlier run, so tables
+  generated separately still join. `synth.RefValues` is the library equivalent.
+- `gen --append` extends an existing file instead of overwriting it, using a
+  `<out>.synthstate` sidecar to continue without repeating rows. `synth.Offset`
+  is the underlying option.
+- `cdc --soft-delete` emits a delete as an `op=u` update that stamps a
+  `deleted_at` column, rather than an `op=d`, so a consumer can be tested
+  against both delete workloads from one spec.
 
 ### Dependencies
 

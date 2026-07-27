@@ -79,6 +79,21 @@ synth.Orders(500_000, synth.BelongsTo(users, "user_id"))
 
 Foreign keys resolve. Cardinality is controllable (`OneToMany`, `Weighted`). Load the exported parent table into Postgres with your own loader and the child table's FK constraints pass on the first try.
 
+Keys resolve across runs too, not only within one process. Generate the parent
+today, the child next week, and point the child at the keys already on disk:
+
+```sh
+synth gen -s users.yaml  -o users.csv  -n 10000
+synth gen -s orders.yaml -o orders.csv -n 500000 --fk user_id=users.csv:id
+```
+
+And `--append` extends a dataset without regenerating it — a sidecar tracks how
+much exists so the new rows never repeat the old ones or their primary keys:
+
+```sh
+synth gen -s users.yaml -o users.csv -n 1000000 --append   # a million more, no collisions
+```
+
 ### Temporal causality
 Timestamps aren't random points in a range — they respect the order events can happen in. An order is `created → paid → shipped → delivered`, each strictly after the last, with realistic gaps. Accounts are never used before they're opened, and refunds never precede their charge.
 
@@ -613,6 +628,15 @@ synth.WriteCDC[User]("changes.jsonl", 10_000, synth.CDCConfig{
 
 A row exists before it is updated, updates carry the true `before` image, and
 deleted rows are never touched again. LSNs and timestamps advance monotonically.
+
+Deletes are hard by default (`op=d`). Pass `--soft-delete` (or
+`CDCConfig.SoftDelete`) to emit them as `op=u` updates that stamp a `deleted_at`
+column instead, so a consumer can be tested against either workload from one
+spec:
+
+```sh
+synth cdc -s users.yaml -n 10000 --delete-rate 0.1 --soft-delete
+```
 
 ## Time travel
 
