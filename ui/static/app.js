@@ -58,8 +58,16 @@ async function boot() {
   applyLanguage();
   renderTypes('');
 
-  addField('name');
-  addField('email');
+  // A shared link carries the whole schema in the URL fragment. If one is
+  // present, load it instead of the starter fields — that is the point of the
+  // link. A malformed fragment falls back to the default rather than throwing.
+  const shared = readSharedSpec();
+  if (shared) {
+    loadSharedSpec(shared);
+  } else {
+    addField('name');
+    addField('email');
+  }
 
   el('lang').addEventListener('change', (e) => {
     state.lang = e.target.value;
@@ -80,6 +88,7 @@ async function boot() {
   el('generate').addEventListener('click', generate);
   el('download').addEventListener('click', saveGenerated);
   el('copySpec').addEventListener('click', copySpec);
+  el('share').addEventListener('click', share);
   el('togglePalette').addEventListener('click', () => togglePane('palette'));
   el('viewStacked').addEventListener('click', () => setView('stacked'));
   el('viewTable').addEventListener('click', () => setView('table'));
@@ -715,6 +724,78 @@ async function copySpec() {
     const box = el('preview');
     box.textContent = '';
     box.appendChild(pre);
+  }
+}
+
+// ---------------------------------------------------------------- share link
+
+// The schema travels in the URL fragment, base64url-encoded. A fragment is
+// never sent to the server, so this keeps the workbench's "loopback only,
+// touches nothing" promise: the link is built and read entirely in the browser.
+
+function encodeSpec(spec) {
+  const json = JSON.stringify(spec);
+  // encodeURIComponent/unescape round-trips UTF-8 through btoa, which only
+  // handles Latin-1; then make it URL-safe.
+  return btoa(unescape(encodeURIComponent(json)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeSpec(s) {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(decodeURIComponent(escape(atob(b64))));
+}
+
+function readSharedSpec() {
+  const m = location.hash.match(/[#&]s=([^&]+)/);
+  if (!m) return null;
+  try {
+    return decodeSpec(m[1]);
+  } catch {
+    return null; // a truncated paste should not break the page
+  }
+}
+
+// loadSharedSpec restores the editor from a decoded spec object — the same
+// shape currentSpec() produces, so it round-trips exactly back into the
+// controls.
+function loadSharedSpec(spec) {
+  if (spec.name != null) el('name').value = spec.name;
+  if (spec.count != null) el('count').value = spec.count;
+  if (spec.seed != null) el('seed').value = spec.seed;
+  if (spec.locale && [...el('locale').options].some((o) => o.value === spec.locale)) {
+    el('locale').value = spec.locale;
+  }
+  if (spec.format) el('format').value = spec.format;
+  state.fields = [];
+  const order = spec.order && spec.order.length ? spec.order : Object.keys(spec.fields || {});
+  for (const name of order) {
+    const def = (spec.fields && spec.fields[name]) || {};
+    const params = {};
+    for (const [k, v] of Object.entries(def)) {
+      if (k === 'kind') continue;
+      params[k] = Array.isArray(v) ? v.join(',') : String(v);
+    }
+    state.fields.push({ name, kind: def.kind || 'name', params, auto: false });
+  }
+  renderFields();
+}
+
+async function share() {
+  const spec = currentSpec();
+  if (spec.order.length === 0) {
+    showError(t('addFieldFirst'));
+    return;
+  }
+  const link = location.origin + location.pathname + '#s=' + encodeSpec(spec);
+  // Reflect it in the address bar either way, so a refused clipboard still
+  // leaves a shareable URL the user can copy by hand.
+  history.replaceState(null, '', '#s=' + encodeSpec(spec));
+  try {
+    await navigator.clipboard.writeText(link);
+    toast(t('linkCopied'));
+  } catch {
+    showError(t('copyFailed'));
   }
 }
 
