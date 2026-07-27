@@ -7,8 +7,19 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
+
+// numberFromString turns a noised numeric string back into a JSON number, so
+// a DP-masked numeric field stays a number in the output rather than becoming a
+// quoted string. A value that does not parse is left as-is.
+func numberFromString(s string) any {
+	if f, err := strconv.ParseFloat(s, 64); err == nil {
+		return f
+	}
+	return s
+}
 
 // Report summarizes what a masking run changed, so you can prove which columns
 // were anonymized before sharing a dump.
@@ -72,6 +83,9 @@ func (m *Masker) CSV(r io.Reader, w io.Writer) (*Report, error) {
 				continue
 			}
 			masked := m.Value(header[i], rec[i])
+			if m.err != nil {
+				return nil, m.err
+			}
 			if masked != rec[i] {
 				rep.Masked[header[i]]++
 			}
@@ -106,9 +120,22 @@ func (m *Masker) JSONL(r io.Reader, w io.Writer) (*Report, error) {
 			}
 			s, ok := v.(string)
 			if !ok {
-				continue // numbers/bools carry no direct identity
+				// Numbers carry no direct identity, so they pass — unless the
+				// column has a DP rule, whose whole purpose is to noise a
+				// number. Route those through the masker as text.
+				if f, isNum := v.(float64); isNum && m.hasDP(k) {
+					obj[k] = numberFromString(m.Value(k, strconv.FormatFloat(f, 'f', -1, 64)))
+					if m.err != nil {
+						return nil, m.err
+					}
+					rep.Masked[k]++
+				}
+				continue
 			}
 			masked := m.Value(k, s)
+			if m.err != nil {
+				return nil, m.err
+			}
 			if masked != s {
 				rep.Masked[k]++
 			}

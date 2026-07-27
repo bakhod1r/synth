@@ -18,6 +18,7 @@ const (
 	MaskFake   = mask.Fake
 	MaskRedact = mask.Redact
 	MaskDrop   = mask.Drop
+	MaskDP     = mask.DP
 )
 
 // NewMasker returns a Masker. The key makes replacements deterministic: mask

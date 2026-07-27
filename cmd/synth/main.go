@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -283,6 +284,9 @@ func runMask(args []string) error {
 			"overwrite the original data")
 	}
 	m := synth.NewMasker(fs.key, fs.locale)
+	if err := applyDPRules(m, fs.dps); err != nil {
+		return err
+	}
 	rep, err := m.File(fs.in, fs.out)
 	if err != nil {
 		return err
@@ -733,6 +737,30 @@ func fkOptions(fks []string) ([]synth.Option, error) {
 		opts = append(opts, synth.RefValues(col, values))
 	}
 	return opts, nil
+}
+
+// applyDPRules registers a Laplace-noise rule per --dp col:epsilon:sensitivity
+// flag, so masking a numeric column can bound how much any one record shows
+// through the released number.
+func applyDPRules(m *synth.Masker, dps []string) error {
+	for _, spec := range dps {
+		parts := strings.Split(spec, ":")
+		if len(parts) != 3 {
+			return fmt.Errorf("--dp %q: want col:epsilon:sensitivity", spec)
+		}
+		eps, err := strconv.ParseFloat(parts[1], 64)
+		if err != nil || eps <= 0 {
+			return fmt.Errorf("--dp %q: epsilon must be a positive number", spec)
+		}
+		sens, err := strconv.ParseFloat(parts[2], 64)
+		if err != nil || sens <= 0 {
+			return fmt.Errorf("--dp %q: sensitivity must be a positive number", spec)
+		}
+		m.Rule(synth.MaskRule{
+			Column: parts[0], Strategy: synth.MaskDP, Epsilon: eps, Sensitivity: sens,
+		})
+	}
+	return nil
 }
 
 // parseRef reads a foreign key written as col=parent.csv:key.

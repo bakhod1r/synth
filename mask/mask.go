@@ -20,6 +20,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -41,6 +43,10 @@ const (
 	Redact Strategy = "redact"
 	// Drop blanks the column entirely.
 	Drop Strategy = "drop"
+	// DP adds Laplace noise to a numeric value, calibrated to an epsilon
+	// budget — the Laplace mechanism of differential privacy. It bounds how
+	// much any single record shows through the released number.
+	DP Strategy = "dp"
 )
 
 // Rule binds a column to a strategy (and, for Fake, to a kind).
@@ -50,6 +56,11 @@ type Rule struct {
 	// Kind is what Fake should generate. When empty it is inferred from the
 	// column name and the observed value's format.
 	Kind schema.Kind
+	// Epsilon is the per-column privacy budget for the DP strategy: smaller
+	// means more noise. Sensitivity is how much one record can move the value
+	// (for a released numeric column, its plausible range). Both are required
+	// for DP; the noise scale is Sensitivity/Epsilon.
+	Epsilon, Sensitivity float64
 }
 
 // Masker rewrites values according to its rules.
@@ -59,6 +70,10 @@ type Masker struct {
 	rules map[string]Rule
 	// cache keeps value→replacement stable within a run so joins survive.
 	cache map[string]string
+	// err holds the first fatal masking error (a DP rule on a non-numeric
+	// value). Value cannot return an error per cell, so it records here and the
+	// file layer surfaces it.
+	err error
 }
 
 // New returns a Masker. The key makes replacements deterministic across runs
@@ -75,6 +90,12 @@ func New(key string, localeName string) *Masker {
 
 // Rule registers how a column is handled.
 func (m *Masker) Rule(r Rule) { m.rules[strings.ToLower(r.Column)] = r }
+
+// hasDP reports whether a column carries a differential-privacy rule, so the
+// JSONL path knows to route its numeric values through the masker.
+func (m *Masker) hasDP(column string) bool {
+	return m.rules[strings.ToLower(column)].Strategy == DP
+}
 
 // Value masks one cell of a column.
 func (m *Masker) Value(column, value string) string {
@@ -102,8 +123,52 @@ func (m *Masker) Value(column, value string) string {
 		return redact(value)
 	case Fake:
 		return m.fake(column, value, r.Kind)
+	case DP:
+		return m.dpNoise(column, value, r)
 	}
 	return value
+}
+
+// dpNoise adds Laplace noise to a numeric value, calibrated to the rule's
+// epsilon budget — the Laplace mechanism. The noise is drawn from an
+// HMAC-of-the-value seed, so a masked file reproduces under the key: this is
+// input perturbation for testable fixtures, not query-time DP, and the
+// reproducibility is a deliberate trade (equal inputs get equal noise).
+//
+// A non-numeric value cannot be noised; the first one records an error the file
+// layer returns, rather than silently passing the raw value through.
+func (m *Masker) dpNoise(column, value string, r Rule) string {
+	v, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+	if err != nil {
+		if m.err == nil {
+			m.err = fmt.Errorf("mask: column %q has a DP rule but value %q is not numeric",
+				column, value)
+		}
+		return value
+	}
+	eps := r.Epsilon
+	if eps <= 0 {
+		eps = 1
+	}
+	scale := r.Sensitivity / eps
+	seed := binary.BigEndian.Uint64(m.mac(column + "\x00" + value)[:8])
+	noised := v + laplace(rng.New(seed), scale)
+	return strconv.FormatFloat(noised, 'f', -1, 64)
+}
+
+// laplace draws from a zero-mean Laplace distribution with the given scale,
+// using inverse-transform sampling: with u uniform on (-0.5, 0.5),
+// x = -scale*sign(u)*ln(1-2|u|).
+func laplace(r *rng.Rand, scale float64) float64 {
+	if scale <= 0 {
+		return 0
+	}
+	u := r.Float64() - 0.5
+	sign := 1.0
+	if u < 0 {
+		sign = -1
+	}
+	return -scale * sign * math.Log(1-2*math.Abs(u))
 }
 
 // fake produces a stable synthetic replacement for value.
