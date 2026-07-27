@@ -112,7 +112,12 @@ func topoOrder(s *schema.Schema) ([]int, error) {
 			return nil
 		}
 		color[i] = gray
-		for _, dep := range []string{s.Fields[i].From, s.Fields[i].Match} {
+		// derive (a correlated numeric reads another field) and axis (a
+		// time-series reads its timestamp) are dependency edges like from and
+		// match: the referenced field must be generated first.
+		deps := []string{s.Fields[i].From, s.Fields[i].Match,
+			s.Fields[i].Params["derive"], s.Fields[i].Params["axis"]}
+		for _, dep := range deps {
 			if dep == "" {
 				continue
 			}
