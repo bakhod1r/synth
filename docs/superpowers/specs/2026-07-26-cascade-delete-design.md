@@ -54,8 +54,10 @@ Each `Next()` step draws an action:
 - **update**: mutate a random live row — parent or child — and emit its `u`.
 - **delete**: pick a random live parent, delete each of its live children (a `d`
   per child), then delete the parent (`d`). Children first, so at no point does
-  a deleted parent still have children pointing at it. A parent with no children
-  is just a single `d`.
+  a deleted parent still have children pointing at it. `ChildrenPerParent`
+  defaults to 3; a zero-value config gets that default rather than childless
+  parents, since a cascade with no children is not what a zero value should
+  mean.
 
 Every event carries `Source.Table` set to the parent or child table, so a
 consumer routes by table. The stream is deterministic under the seed, like the
@@ -83,6 +85,6 @@ its `ChildFK` column is overwritten with the chosen parent's key — the same
   earlier in the stream, and none is touched afterward.
 - Ordering: in a cascade, all child deletes precede the parent delete, and LSNs
   are strictly increasing across the whole stream.
-- A childless parent deletes as a single event.
+- An update preserves a row's primary key and a child's foreign key.
 - Determinism: same seed, byte-identical event sequence.
 - `ChildFK` is required; its absence errors at construction.
