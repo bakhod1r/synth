@@ -44,6 +44,11 @@ accident.
   included. An MCP `diff` tool exposes the same over inline datasets.
 - Workbench **Share** button: encodes the schema in the URL fragment so a link
   reopens it exactly, with nothing uploaded.
+- k-anonymity check: `verify --k N --qi age,zip,gender` fails when any
+  quasi-identifier combination is shared by fewer than N rows, the measure of
+  whether "anonymized" data can still be re-identified.
+- Differential-privacy masking: `mask --dp col:epsilon:sensitivity` adds Laplace
+  noise to a numeric column, bounding how much one record shows through.
 
 ### Dependencies
 

@@ -653,6 +653,25 @@ report, _ := m.File("dump.csv", "safe.csv")
 - **Thorough** — PII is caught by column name, by value format, and inside free
   text (an email buried in a `notes` field is scrubbed too).
 
+Two measures go further than replacement. **k-anonymity** checks that no
+combination of quasi-identifiers singles anyone out — direct identifiers gone is
+not enough if one person is the only 99-year-old in their ZIP:
+
+```sh
+synth verify -i safe.csv --k 5 --qi age,zip,gender   # exit 1 if any group < 5
+```
+
+And **differential-privacy noise** perturbs a numeric column with the Laplace
+mechanism, so a released number cannot be pinned to one record:
+
+```sh
+synth mask -i dump.csv -o safe.csv --key team-key --dp salary:1.0:10000
+```
+
+`salary:1.0:10000` is column, epsilon (smaller = more noise), and sensitivity.
+The noise is reproducible under the key — input perturbation for fixtures, not
+query-time DP.
+
 ## Change events (CDC)
 
 Generate a coherent insert/update/delete history in Debezium's envelope shape —
