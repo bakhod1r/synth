@@ -8,6 +8,8 @@ accident.
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-07-27
+
 ### Added
 
 - Postgres `COPY` output: `--format pgcopy` (text) and `--format pgcopy-binary`,
@@ -52,6 +54,11 @@ accident.
 - Cascade deletes in CDC: `cdc -s parent.yaml --child child.yaml --child-fk col`
   produces a two-table change stream where deleting a parent deletes its
   children first, then the parent — the order a foreign key requires.
+- Per-field `localize=` opt-out: a field can be forced to the neutral locale
+  while the rest of the record stays localized, for columns that should not vary
+  by region.
+- Wider email generation: more provider domains and safe-character handling, so
+  addresses stay valid across the expanded name banks.
 
 ### Dependencies
 
@@ -140,5 +147,6 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/bakhod1r/synth/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bakhod1r/synth/releases/tag/v1.0.0
