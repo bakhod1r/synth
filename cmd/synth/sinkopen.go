@@ -30,10 +30,16 @@ import (
 // truncated multi-gigabyte export that reports success is worse than one that
 // fails loudly.
 func openSink(path string) (io.WriteCloser, error) {
+	return openSinkMode(path, false)
+}
+
+// openSinkMode opens the sink, appending to the file rather than truncating it
+// when appendMode is set. Appending never applies to stdout.
+func openSinkMode(path string, appendMode bool) (io.WriteCloser, error) {
 	if path == "" {
 		return nopCloser{os.Stdout}, nil
 	}
-	f, err := os.Create(path)
+	f, err := openFile(path, appendMode)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +56,16 @@ func openSink(path string) (io.WriteCloser, error) {
 	default:
 		return f, nil
 	}
+}
+
+// openFile creates the output file, or opens it for appending when appendMode
+// is set. A concatenated gzip or zstd stream is still valid — decoders read the
+// members in sequence — so appending works through the compressor too.
+func openFile(path string, appendMode bool) (*os.File, error) {
+	if appendMode {
+		return os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	}
+	return os.Create(path)
 }
 
 // sink pairs a compressor with the file underneath it.

@@ -121,10 +121,6 @@ func runGen(args []string) error {
 		return err
 	}
 	opts = append(opts, fkOpts...)
-	recs, err := spec.GenerateN(fs.n, opts...)
-	if err != nil {
-		return err
-	}
 
 	format := fs.format
 	if format == "" {
@@ -139,7 +135,31 @@ func runGen(args []string) error {
 		table = "data"
 	}
 
-	out, err := openSink(fs.out)
+	// Append: continue an existing file rather than overwriting it. The state
+	// sidecar carries the offset so the new rows differ from the ones already
+	// written, and the header is suppressed so it is not repeated mid-file.
+	var state genState
+	if fs.append {
+		if err := checkAppendable(format, fs.out); err != nil {
+			return err
+		}
+		state, err = readState(statePath(fs.out))
+		if err != nil {
+			return err
+		}
+		if state.Rows > 0 && state.Seed != fs.seed {
+			return fmt.Errorf("gen: --append seed %d does not match the file's "+
+				"seed %d; pass --seed %d to continue it", fs.seed, state.Seed, state.Seed)
+		}
+		opts = append(opts, synth.Offset(state.Rows))
+	}
+
+	recs, err := spec.GenerateN(fs.n, opts...)
+	if err != nil {
+		return err
+	}
+
+	out, err := openSinkMode(fs.out, fs.append)
 	if err != nil {
 		return err
 	}
@@ -151,7 +171,10 @@ func runGen(args []string) error {
 	case "sql":
 		writeSQL(w, table, spec.Columns(), recs)
 	case "csv":
-		writeCSV(w, spec.Columns(), recs)
+		// The header goes in only when starting a fresh file. A first --append
+		// against a file that does not exist yet (state.Rows == 0) still needs
+		// it; a later append into an existing file must not repeat it.
+		writeCSVRows(w, spec.Columns(), recs, !fs.append || state.Rows == 0)
 	case "pgcopy", "pgcopy-binary":
 		if err := writePgCopy(w, format, table, spec, recs, fs.out); err != nil {
 			return err
@@ -169,10 +192,34 @@ func runGen(args []string) error {
 	if err := out.Close(); err != nil {
 		return err
 	}
+	if fs.append {
+		state.Rows += len(recs)
+		state.Seed = fs.seed
+		if err := writeState(statePath(fs.out), state); err != nil {
+			return err
+		}
+	}
 	if fs.out != "" {
 		fmt.Fprintf(os.Stderr, "wrote %d rows to %s (%s)\n", len(recs), fs.out, format)
 	}
 	return nil
+}
+
+// checkAppendable rejects the format/target combinations append cannot handle.
+// Appending concatenates rows, which is meaningful only for the row-per-line
+// formats; a second pgcopy or parquet file embedded after the first would carry
+// its own header and trailer and be unreadable, and stdout cannot be appended
+// to a prior run.
+func checkAppendable(format, out string) error {
+	if out == "" {
+		return fmt.Errorf("gen: --append needs -o <file>, not stdout")
+	}
+	switch format {
+	case "csv", "jsonl", "sql":
+		return nil
+	default:
+		return fmt.Errorf("gen: --append supports csv, jsonl and sql, not %q", format)
+	}
 }
 
 // runProfile learns a spec from a real CSV/JSONL export. It reads the file;
@@ -471,9 +518,18 @@ func formatFromExt(path string) string {
 }
 
 func writeCSV(w *bufio.Writer, cols []string, recs []map[string]any) {
+	writeCSVRows(w, cols, recs, true)
+}
+
+// writeCSVRows writes rows, emitting the header only when asked. An --append
+// run writes into an existing file that already has its header, so a second one
+// mid-file would be read as a data row.
+func writeCSVRows(w *bufio.Writer, cols []string, recs []map[string]any, header bool) {
 	cw := csv.NewWriter(w)
 	defer cw.Flush()
-	cw.Write(cols)
+	if header {
+		cw.Write(cols)
+	}
 	row := make([]string, len(cols))
 	for _, r := range recs {
 		for i, c := range cols {

@@ -77,7 +77,7 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 	base := rng.New(cfg.seed)
 	out := make([]map[string]any, y.spec.Count)
 	for i := 0; i < y.spec.Count; i++ {
-		out[i] = eng.Record(base, i)
+		out[i] = eng.Record(base, cfg.offset+i)
 	}
 	if err := enforceAll(y.spec.Constraints, out); err != nil {
 		return nil, err

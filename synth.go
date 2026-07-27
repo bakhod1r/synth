@@ -29,6 +29,7 @@ type config struct {
 	weighted map[string]weightedSpec
 	chaos    float64
 	unmask   bool
+	offset   int
 }
 
 type weightedSpec struct {
@@ -82,6 +83,21 @@ func Ref[P any](parents []P, fkField string, opts ...RefOption) Option {
 		o(&rs)
 	}
 	return func(c *config) { c.refs = append(c.refs, rs) }
+}
+
+// Offset starts row generation at record index n instead of 0.
+//
+// Each row is seeded from its index, so the output is a deterministic function
+// of the index. Offsetting the index is what lets a second run extend a first
+// one: Offset(1000) produces rows 1000..1000+n, which differ from the first
+// run's rows 0..999 yet stay reproducible. This is the mechanism behind the
+// CLI's --append.
+func Offset(n int) Option {
+	return func(c *config) {
+		if n > 0 {
+			c.offset = n
+		}
+	}
 }
 
 // RefValues links a foreign-key field to values the caller already holds,
