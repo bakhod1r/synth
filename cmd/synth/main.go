@@ -69,6 +69,8 @@ func main() {
 		err = runCDC(os.Args[2:])
 	case "verify":
 		err = runVerify(os.Args[2:])
+	case "diff":
+		err = runDiff(os.Args[2:])
 	case "snapshot":
 		err = runSnapshot(os.Args[2:])
 	case "ui":
@@ -591,6 +593,7 @@ Usage:
   synth --version
   synth ui      [--port 8080]                               # browser workbench (loopback only)
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
+  synth diff    <a.csv> <b.csv> [--tolerance 0.1] [-f text|json]   # compare two datasets' shape
   synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N] [--soft-delete]
 
 Flags:
