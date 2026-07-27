@@ -54,6 +54,21 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 		if providers.Get(f.Kind) == nil {
 			return nil, fmt.Errorf("synth: field %q has unknown kind %q", f.Name, f.Kind)
 		}
+		// A correlated field is a linear function of its target, and a
+		// time-series field reads its axis, so the target must produce a
+		// number — an axis a time. topoOrder has already checked the target
+		// exists; here we check its type, at compile time, so a mistake is a
+		// clear error rather than a column of zeros.
+		if d := f.Params["derive"]; d != "" {
+			if t := s.FieldByName(d); t != nil && !providers.IsNumericKind(t.Kind) {
+				return nil, fmt.Errorf("synth: field %q derives from %q, which is not numeric", f.Name, d)
+			}
+		}
+		if a := f.Params["axis"]; a != "" {
+			if t := s.FieldByName(a); t != nil && t.Kind != schema.KindTime && t.Kind != schema.KindUnixTime {
+				return nil, fmt.Errorf("synth: field %q uses axis %q, which is not a time field", f.Name, a)
+			}
+		}
 	}
 	e := &Engine{schema: s, loc: locale.Get(localeName), base: locale.Get(baseLocale), order: order}
 	// Compile nested object schemas recursively (sharing the same locale).

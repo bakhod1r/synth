@@ -5,6 +5,7 @@ package providers
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -296,6 +297,9 @@ func phone(c Ctx) any {
 func intProvider(c Ctx) any {
 	min := paramInt(c.Params, "min", 0)
 	max := paramInt(c.Params, "max", 1000)
+	if v, ok := derived(c); ok {
+		return clampInt(int(math.Round(v)), min, max)
+	}
 	if v, ok := sampleDist(c); ok {
 		return clampInt(int(v), min, max)
 	}
@@ -305,11 +309,72 @@ func intProvider(c Ctx) any {
 func floatProvider(c Ctx) any {
 	min := paramInt(c.Params, "min", 0)
 	max := paramInt(c.Params, "max", 1000)
+	if v, ok := derived(c); ok {
+		return clampFloat(v, float64(min), float64(max))
+	}
 	if v, ok := sampleDist(c); ok {
 		return clampFloat(v, float64(min), float64(max))
 	}
 	return float64(min) + c.Rand.Float64()*float64(max-min)
 }
+
+// derived computes a numeric field as a linear function of another field in the
+// same row, plus gaussian noise — the correlated-numeric case (income rises
+// with age). It returns ok=false when the field has no derive= param, leaving
+// the field to its normal draw.
+//
+// The noise standard deviation scales with the value's magnitude (noise*|v|),
+// so a 10% spread stays 10% whether the line sits at 20 or 20000. With noise
+// omitted the relation is exact.
+func derived(c Ctx) (float64, bool) {
+	target := c.Params["derive"]
+	if target == "" || c.Sibling == nil {
+		return 0, false
+	}
+	x, ok := toFloat(c.Sibling(target))
+	if !ok {
+		// Compile checks the target is numeric; a nil here means the sibling
+		// was blanked. Fall back to no derivation rather than panic.
+		return 0, false
+	}
+	v := paramFloat(c.Params, "slope", 1)*x + paramFloat(c.Params, "intercept", 0)
+	if sd := paramFloat(c.Params, "noise", 0); sd > 0 {
+		v += dist.Normal{Mu: 0, Sigma: sd * math.Abs(v)}.Sample(c.Rand)
+	}
+	return v, true
+}
+
+// toFloat coerces a generated numeric value to float64.
+func toFloat(v any) (float64, bool) {
+	switch x := v.(type) {
+	case float64:
+		return x, true
+	case float32:
+		return float64(x), true
+	case int:
+		return float64(x), true
+	case int32:
+		return float64(x), true
+	case int64:
+		return float64(x), true
+	default:
+		return 0, false
+	}
+}
+
+// numericKinds are the kinds whose generated value is a number, so a derive= or
+// axis= target may point at them. Kept beside the providers that produce them.
+var numericKinds = map[schema.Kind]bool{
+	schema.KindInt: true, schema.KindFloat: true, schema.KindAge: true,
+	schema.KindYear: true, schema.KindUnixTime: true, schema.KindAmount: true,
+	schema.KindBalance: true, schema.KindSalary: true, schema.KindRating: true,
+	schema.KindLatitude: true, schema.KindLongitude: true, schema.KindPercentage: true,
+	schema.KindPort: true, schema.KindHTTPStatus: true, schema.KindTemperature: true,
+}
+
+// IsNumericKind reports whether a kind generates a number, so a correlated
+// field can derive from it.
+func IsNumericKind(k schema.Kind) bool { return numericKinds[k] }
 
 func clampInt(v, min, max int) int {
 	if v < min {
