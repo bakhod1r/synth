@@ -32,6 +32,12 @@ accident.
 - `cdc --soft-delete` emits a delete as an `op=u` update that stamps a
   `deleted_at` column, rather than an `op=d`, so a consumer can be tested
   against both delete workloads from one spec.
+- Correlated numerics: `derive: other` makes a numeric field a linear function
+  of another field in the same row (`slope`, `intercept`, `noise`), so related
+  columns like income and age come out correlated instead of independent.
+- `kind: timeseries`: a numeric column that follows
+  `base + trend + seasonality + noise` over a named timestamp `axis`, for
+  metrics and IoT data.
 
 ### Dependencies
 

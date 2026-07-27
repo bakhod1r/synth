@@ -196,6 +196,27 @@ explicit `weights` (enums).
 
 Long tails, hot keys, and skew are what break partitioning and query planners — uniform fakers never surface those bugs.
 
+### Correlated fields and time series
+Numeric columns don't have to be independent. `derive` makes one a linear
+function of another in the same row, so a scatter plot has a shape instead of a
+cloud:
+
+```yaml
+age:    { kind: int, min: 25, max: 65 }
+income: { kind: float, derive: age, slope: 1200, intercept: 20000, noise: 0.1 }
+```
+
+And `kind: timeseries` makes a column follow a curve over time — trend plus a
+seasonal cycle plus noise — for metrics and IoT data:
+
+```yaml
+ts:  { kind: time, min: 2026-01-01T00:00:00Z, max: 2026-02-01T00:00:00Z }
+cpu: { kind: timeseries, axis: ts, base: 40, trend: 0.5, amplitude: 20, period: 24h, noise: 3, min: 0, max: 100 }
+```
+
+Both are pure functions of the same row, so they generate in the same
+streaming, deterministic pass as everything else.
+
 ### Constant-memory streaming
 Records are pushed through a pipeline, never accumulated. Generating 100M rows uses the same memory as generating 1K. Generation is sharded across cores, and sinks batch and backpressure independently.
 
