@@ -84,6 +84,27 @@ func Ref[P any](parents []P, fkField string, opts ...RefOption) Option {
 	return func(c *config) { c.refs = append(c.refs, rs) }
 }
 
+// RefValues links a foreign-key field to values the caller already holds,
+// rather than to a parent slice generated in the same process. This is the
+// cross-run case: the parent was written to a file in an earlier run, its key
+// column read back, and passed here so the child points at rows that already
+// exist on disk.
+//
+//	users, _ := synth.Users(10000)                      // run 1, written out
+//	keys := readColumn("users.csv", "id")               // read back later
+//	orders, _ := spec.GenerateN(500000, synth.RefValues("user_id", keys))
+//
+// A nil or empty values slice is a no-op: with no parent keys there is nothing
+// to point at, and the field generates as it otherwise would.
+func RefValues(fkField string, values []any) Option {
+	return func(c *config) {
+		if len(values) == 0 {
+			return
+		}
+		c.refs = append(c.refs, refSpec{fkField: fkField, values: values})
+	}
+}
+
 // RefOption tunes a Ref.
 type RefOption func(*refSpec)
 
@@ -166,6 +187,22 @@ func applyRefs(s *schema.Schema, refs []refSpec) {
 			f.RefMin, f.RefMax = rs.min, rs.max
 		}
 	}
+}
+
+// applyRefsChecked binds ref specs like applyRefs, but reports a ref whose
+// field the schema does not have instead of ignoring it. A misspelled FK column
+// that silently leaves the field randomly generated is the kind of error that
+// passes generation and fails only when someone tries to join the tables.
+func applyRefsChecked(s *schema.Schema, refs []refSpec) error {
+	for _, rs := range refs {
+		f := s.FieldByName(rs.fkField)
+		if f == nil {
+			return fmt.Errorf("synth: ref field %q is not in the spec", rs.fkField)
+		}
+		f.FromRef = expandCardinality(rs.values, rs.min, rs.max)
+		f.RefMin, f.RefMax = rs.min, rs.max
+	}
+	return nil
 }
 
 // expandCardinality implements OneToMany: each parent appears a deterministic

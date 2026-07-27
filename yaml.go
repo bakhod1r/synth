@@ -63,6 +63,9 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 	// Clone schema so per-call overrides don't mutate the parsed spec.
 	s := &schema.Schema{Fields: append([]schema.Field(nil), y.spec.Schema.Fields...)}
 	applyWeighted(s, cfg.weighted)
+	if err := applyRefsChecked(s, cfg.refs); err != nil {
+		return nil, err
+	}
 	if cfg.unmask {
 		stripMasks(s)
 	}

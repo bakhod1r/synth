@@ -116,6 +116,11 @@ func runGen(args []string) error {
 	if fs.unmask {
 		opts = append(opts, synth.Unmasked())
 	}
+	fkOpts, err := fkOptions(fs.fks)
+	if err != nil {
+		return err
+	}
+	opts = append(opts, fkOpts...)
 	recs, err := spec.GenerateN(fs.n, opts...)
 	if err != nil {
 		return err
@@ -298,9 +303,9 @@ func runCDC(args []string) error {
 
 type flags struct {
 	spec, in, out, format, locale, key, name string
-	refs                                     []string
+	refs, fks                                []string
 	at, from, to, port, preset               string
-	unmask                                   bool
+	unmask, append, softDelete               bool
 	seed                                     uint64
 	n, snapshot                              int
 	chaos, updateRate, deleteRate, churn     float64
@@ -358,6 +363,14 @@ func parseFlags(args []string) (flags, error) {
 			var v string
 			v, err = next(args, &i)
 			f.refs = append(f.refs, v)
+		case "--fk":
+			var v string
+			v, err = next(args, &i)
+			f.fks = append(f.fks, v)
+		case "--append":
+			f.append = true
+		case "--soft-delete":
+			f.softDelete = true
 		case "-n", "--rows":
 			err = scanInto(args, &i, &f.n)
 		case "--snapshot":
@@ -597,6 +610,42 @@ func runVerify(args []string) error {
 		os.Exit(1)
 	}
 	return nil
+}
+
+// fkOptions turns each --fk col=parent.csv:key flag into a RefValues option by
+// reading the key column out of the parent file. This is what makes foreign
+// keys work across runs: the parent was written in an earlier run, and the
+// child now draws its FK from those written values.
+func fkOptions(fks []string) ([]synth.Option, error) {
+	var opts []synth.Option
+	for _, spec := range fks {
+		col, rest, ok := strings.Cut(spec, "=")
+		if !ok {
+			return nil, fmt.Errorf("--fk %q: want col=parent.csv:key", spec)
+		}
+		file, key, ok := strings.Cut(rest, ":")
+		if !ok {
+			return nil, fmt.Errorf("--fk %q: missing :key after the parent file", spec)
+		}
+		parent, err := constraint.LoadSample(file, 0)
+		if err != nil {
+			return nil, fmt.Errorf("--fk %q: %w", spec, err)
+		}
+		if len(parent) == 0 {
+			return nil, fmt.Errorf("--fk %q: parent file %s has no rows", spec, file)
+		}
+		values := make([]any, 0, len(parent))
+		for _, row := range parent {
+			v, ok := row[key]
+			if !ok {
+				return nil, fmt.Errorf("--fk %q: parent file %s has no column %q",
+					spec, file, key)
+			}
+			values = append(values, v)
+		}
+		opts = append(opts, synth.RefValues(col, values))
+	}
+	return opts, nil
 }
 
 // parseRef reads a foreign key written as col=parent.csv:key.
