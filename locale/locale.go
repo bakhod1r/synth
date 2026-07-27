@@ -161,7 +161,11 @@ var enUS = &Locale{
 		"Hall", "Nelson", "Carter", "Mitchell",
 	},
 	CountryCode: "+1",
-	EmailDomain: []string{"example.com", "mail.com", "test.org"},
+	EmailDomain: []string{
+		"example.com", "mail.com", "test.org",
+		"gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
+		"aol.com", "proton.me", "live.com", "msn.com", "gmx.com", "zoho.com",
+	},
 	CardBINs:    []string{"4539", "4556", "5425", "5105", "374245"},
 	IBANCountry: "US",
 	IBANLength:  24,
@@ -203,7 +207,10 @@ var uzUZ = &Locale{
 		"Abdullayeva", "Saidova", "Nazarova", "Xolmatova",
 	},
 	CountryCode: "+998",
-	EmailDomain: []string{"mail.uz", "umail.uz", "example.uz"},
+	EmailDomain: []string{
+		"mail.uz", "umail.uz", "example.uz", "inbox.uz", "bk.uz",
+		"gmail.com", "mail.ru", "yandex.ru", "outlook.com", "icloud.com",
+	},
 	// HUMO (9860...) and UZCARD (8600...) prefixes.
 	CardBINs:    []string{"8600", "9860"},
 	IBANCountry: "UZ",
@@ -246,7 +253,10 @@ var ruRU = &Locale{
 		"Михайлова", "Николаева", "Фёдорова", "Макарова",
 	},
 	CountryCode: "+7",
-	EmailDomain: []string{"mail.ru", "yandex.ru", "example.ru"},
+	EmailDomain: []string{
+		"mail.ru", "yandex.ru", "example.ru", "bk.ru", "list.ru", "inbox.ru",
+		"rambler.ru", "gmail.com", "outlook.com", "icloud.com",
+	},
 	CardBINs:    []string{"2200", "2202", "4276"},
 	IBANCountry: "RU",
 	IBANLength:  33,

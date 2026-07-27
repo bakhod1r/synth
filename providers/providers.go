@@ -237,8 +237,56 @@ func email(c Ctx) any {
 	if last == "" {
 		last = pick(c.Rand, c.Locale.LastNamesFor(c.Gender))
 	}
+	first, last = emailSafe(first), emailSafe(last)
 	dom := pick(c.Rand, c.Locale.EmailDomain)
-	return strings.ToLower(fmt.Sprintf("%s.%s%d@%s", first, last, c.Rand.IntRange(1, 99), dom))
+	return strings.ToLower(emailLocal(c.Rand, first, last) + "@" + dom)
+}
+
+// emailSafe strips characters that are legal in a name but not in the common
+// subset of a mailbox local-part (apostrophes, hyphens, spaces, dots).
+func emailSafe(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+			return r
+		case r > 127: // keep non-ASCII letters (Cyrillic &c.) as the locale wrote them
+			return r
+		default:
+			return -1
+		}
+	}, s)
+}
+
+// emailLocal builds the local-part in one of the shapes real mail providers
+// see in the wild, so a generated column is not one repeated pattern.
+func emailLocal(r *rng.Rand, first, last string) string {
+	fi, li := initial(first), initial(last)
+	n := r.IntRange(1, 99)
+	switch r.Pick(8) {
+	case 0:
+		return fmt.Sprintf("%s.%s", first, last)
+	case 1:
+		return fmt.Sprintf("%s.%s%d", first, last, n)
+	case 2:
+		return fmt.Sprintf("%s%s", first, last)
+	case 3:
+		return fmt.Sprintf("%s_%s%d", first, last, n)
+	case 4:
+		return fmt.Sprintf("%s%s", fi, last)
+	case 5:
+		return fmt.Sprintf("%s.%s", last, first)
+	case 6:
+		return fmt.Sprintf("%s%s%d", first, li, n)
+	default:
+		return fmt.Sprintf("%s%d", first, r.IntRange(1900, 2010))
+	}
+}
+
+func initial(s string) string {
+	for _, r := range s {
+		return string(r)
+	}
+	return ""
 }
 
 func phone(c Ctx) any {
