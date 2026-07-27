@@ -175,6 +175,10 @@ const (
 	KindTShirtSize     Kind = "tshirtsize"
 	KindPriority       Kind = "priority"
 
+	// KindTimeSeries is a numeric value that follows a curve over time —
+	// base + trend + seasonality + noise — read from a named timestamp axis.
+	KindTimeSeries Kind = "timeseries"
+
 	// Regulated-domain identifiers: healthcare, finance, networking.
 	KindICD10        Kind = "icd10"
 	KindNDC          Kind = "ndc"

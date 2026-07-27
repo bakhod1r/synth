@@ -57,6 +57,7 @@ func init() {
 	registry[schema.KindCountry] = func(c Ctx) any { return c.Locale.Country }
 	registry[schema.KindInt] = intProvider
 	registry[schema.KindFloat] = floatProvider
+	registry[schema.KindTimeSeries] = timeSeriesProvider
 	// true= is the share of true values, so a profiled column that was 90% true
 	// generates that way rather than an even split.
 	registry[schema.KindBool] = func(c Ctx) any {
@@ -316,6 +317,57 @@ func floatProvider(c Ctx) any {
 		return clampFloat(v, float64(min), float64(max))
 	}
 	return float64(min) + c.Rand.Float64()*float64(max-min)
+}
+
+// tsEpoch is the default origin for a time-series axis: t is measured from
+// here, so trend and seasonality are reproducible without a cross-row pass.
+var tsEpoch = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// timeSeriesProvider evaluates a numeric value that follows a curve over time:
+//
+//	base + trend*t_days + amplitude*sin(2π*t_sec/period) + noise
+//
+// t is the offset of the row's own axis timestamp from `start`, so every term
+// is local to the row — no knowledge of other rows is needed, and the result
+// is deterministic under the seed. This is what lets metrics and IoT series be
+// generated in the same streaming, constant-memory pass as everything else.
+func timeSeriesProvider(c Ctx) any {
+	base := paramFloat(c.Params, "base", 0)
+	axis := c.Params["axis"]
+	if axis == "" || c.Sibling == nil {
+		return base
+	}
+	ts, ok := c.Sibling(axis).(time.Time)
+	if !ok {
+		return base // axis blanked; Compile has already checked its type
+	}
+	start := tsEpoch
+	if s, ok := parseInstant(c.Params["start"]); ok {
+		start = s
+	}
+	off := ts.Sub(start)
+	v := base + paramFloat(c.Params, "trend", 0)*(off.Hours()/24)
+	if amp := paramFloat(c.Params, "amplitude", 0); amp != 0 {
+		if period, err := time.ParseDuration(strDefault(c.Params["period"], "24h")); err == nil && period > 0 {
+			v += amp * math.Sin(2*math.Pi*off.Seconds()/period.Seconds())
+		}
+	}
+	if sd := paramFloat(c.Params, "noise", 0); sd > 0 {
+		v += dist.Normal{Mu: 0, Sigma: sd}.Sample(c.Rand)
+	}
+	if min, ok := floatParam(c.Params, "min"); ok {
+		if max, ok := floatParam(c.Params, "max"); ok {
+			return clampFloat(v, min, max)
+		}
+	}
+	return v
+}
+
+func strDefault(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }
 
 // derived computes a numeric field as a linear function of another field in the
