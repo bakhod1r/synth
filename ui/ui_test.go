@@ -212,6 +212,10 @@ func TestGenerateIsNotCapped(t *testing.T) {
 func TestPageHasNoExternalResources(t *testing.T) {
 	for _, path := range []string{"/", "/app.js", "/app.css", "/i18n.js"} {
 		body := get(t, path).Body.String()
+		// The SVG XML namespace is a URI by spec, not a fetch: it identifies the
+		// vocabulary of an inline data: favicon, and the browser never requests
+		// it. Stripping it keeps the check on real external references.
+		body = strings.ReplaceAll(body, "http://www.w3.org/2000/svg", "")
 		for _, bad := range []string{"http://", "https://", "//cdn", "fonts.googleapis", "googletagmanager"} {
 			if strings.Contains(body, bad) {
 				t.Errorf("%s references an external origin: %q", path, bad)
