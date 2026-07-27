@@ -97,6 +97,19 @@ func New() *server.MCPServer {
 		mcp.WithString("locale", mcp.Description("Locale for the replacement values.")),
 	), typed(handleMask))
 
+	s.AddTool(mcp.NewTool("diff",
+		mcp.WithDescription("Compare the shape of two datasets — their columns, types, numeric "+
+			"ranges, null rates and category sets, not their rows. Reports what changed and "+
+			"how severe it is: a column added, removed or retyped is an error; a range, null "+
+			"rate or category set that drifted is a warning. Pass both datasets as text — it "+
+			"reads no files."),
+		mcp.WithString("a", mcp.Required(), mcp.Description("The baseline dataset, as text.")),
+		mcp.WithString("b", mcp.Required(), mcp.Description("The candidate dataset, as text.")),
+		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
+		mcp.WithNumber("tolerance", mcp.Description(
+			"Fraction a numeric bound may move before it warns. Default 0.10.")),
+	), typed(handleDiff))
+
 	s.AddTool(mcp.NewTool("snapshot",
 		mcp.WithDescription("Show a generated table as it stood at one instant (at=), or the "+
 			"change events between two (from= and to=). Useful for testing migrations and "+

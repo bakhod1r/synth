@@ -58,7 +58,7 @@ func TestNoFilesystemOrNetworkImports(t *testing.T) {
 func TestEveryToolIsRegisteredAndDescribed(t *testing.T) {
 	want := []string{
 		"generate", "list_types", "list_presets",
-		"verify", "profile", "mask", "snapshot",
+		"verify", "profile", "mask", "snapshot", "diff",
 	}
 	tools := listTools(t)
 	for _, name := range want {
@@ -80,7 +80,7 @@ func TestEveryToolIsRegisteredAndDescribed(t *testing.T) {
 // stops a model from trying a path first and reporting the failure as ours.
 func TestDataToolsSayTheyReadNoFiles(t *testing.T) {
 	tools := listTools(t)
-	for _, name := range []string{"generate", "verify", "profile", "mask", "snapshot"} {
+	for _, name := range []string{"generate", "verify", "profile", "mask", "snapshot", "diff"} {
 		tool, ok := tools[name]
 		if !ok {
 			t.Fatalf("tool %q is not registered", name)

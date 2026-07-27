@@ -40,6 +40,7 @@ Claude Desktop (`claude_desktop_config.json`):
 | `profile` | Infer a schema from an existing dataset |
 | `mask` | Replace personal data in a real export |
 | `snapshot` | State at an instant, or the changes between two |
+| `diff` | Compare two datasets' shape — columns, types, ranges, categories |
 
 ## What it does not do
 
