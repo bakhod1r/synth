@@ -323,6 +323,7 @@ func runCDC(args []string) error {
 		UpdateRate: fs.updateRate,
 		DeleteRate: fs.deleteRate,
 		Snapshot:   fs.snapshot,
+		SoftDelete: fs.softDelete,
 	})
 	if err != nil {
 		return err
@@ -580,6 +581,8 @@ Every subcommand reads and writes files. Synth never connects to a database.
 
 Usage:
   synth gen     -s <spec.yaml> [-o out] [-f csv|jsonl|sql] [-n rows] [-l locale] [--seed N] [--chaos p]
+  synth gen     -s <child.yaml> -o child.csv --fk col=parent.csv:key   # FK from a parent file
+  synth gen     -s <spec.yaml> -o out.csv --append                     # extend an existing file
   synth profile -i <export.csv> [-o spec.yaml] [--name table] [-n rows]
   synth mask    -i <export.csv> -o <safe.csv> --key <secret> [-l locale]
   synth snapshot -s <spec.yaml> --at <date> [-o out]        # the table at an instant
@@ -588,7 +591,7 @@ Usage:
   synth --version
   synth ui      [--port 8080]                               # browser workbench (loopback only)
   synth verify  -i <data.csv> [--ref col=parent.csv:key] [-s spec.yaml] [-f text|json]
-  synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N]
+  synth cdc     -s <spec.yaml> [-o changes.jsonl] [-n events] [--update-rate p] [--delete-rate p] [--snapshot N] [--soft-delete]
 
 Flags:
   -s, --spec       YAML data-definition file
@@ -606,7 +609,10 @@ Flags:
       --at, --from, --to   instants for snapshot (2026-01-01 or RFC 3339)
       --churn      mean updates per row over the window
       --ref        foreign key to resolve, as col=parent.csv:key (repeatable)
+      --fk         foreign key to fill from a parent file, col=parent.csv:key (repeatable)
+      --append     extend the output file instead of overwriting it
       --update-rate, --delete-rate, --snapshot   CDC history shape
+      --soft-delete   emit a delete as an update stamping deleted_at
 
 synth verify exits 1 when it finds an error, 0 when it finds only warnings,
 so it drops into CI without a wrapper.`)

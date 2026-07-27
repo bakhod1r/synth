@@ -66,6 +66,13 @@ type Config struct {
 	// Snapshot emits the initial rows as "r" (read) events, like Debezium's
 	// initial snapshot, before the change stream begins.
 	Snapshot int
+	// SoftDelete turns a drawn delete into an update that stamps
+	// SoftDeleteColumn with the event time, rather than an op=d that removes the
+	// row. The row is still logically gone — it is not touched again.
+	SoftDelete bool
+	// SoftDeleteColumn is the column stamped on a soft delete. Defaults to
+	// "deleted_at".
+	SoftDeleteColumn string
 }
 
 // Stream generates change events over a schema.
@@ -99,6 +106,9 @@ func New(s *schema.Schema, cfg Config) (*Stream, error) {
 	}
 	if cfg.UpdateRate+cfg.DeleteRate >= 1 {
 		return nil, fmt.Errorf("cdc: UpdateRate+DeleteRate must be < 1")
+	}
+	if cfg.SoftDeleteColumn == "" {
+		cfg.SoftDeleteColumn = "deleted_at"
 	}
 	eng, err := gen.Compile(s, cfg.Locale)
 	if err != nil {
@@ -149,8 +159,18 @@ func (s *Stream) Next() *Event {
 	case len(s.live) > 0 && u < s.cfg.UpdateRate+s.cfg.DeleteRate:
 		i := s.rnd.Pick(len(s.live))
 		before := s.live[i]
+		// Remove the row from the mutable pool either way — deleted, hard or
+		// soft, it is never touched again.
 		s.live = append(s.live[:i], s.live[i+1:]...)
 		s.seq++
+		if s.cfg.SoftDelete {
+			after := make(map[string]any, len(before)+1)
+			for k, v := range before {
+				after[k] = v
+			}
+			after[s.cfg.SoftDeleteColumn] = s.nextTs.UTC().Format(time.RFC3339)
+			return s.event(OpUpdate, before, after)
+		}
 		return s.event(OpDelete, before, nil)
 
 	default:
