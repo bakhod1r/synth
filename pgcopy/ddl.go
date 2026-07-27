@@ -48,6 +48,7 @@ var kindGoType = map[schema.Kind]string{
 	schema.KindSalary:      "int64",
 	schema.KindTemperature: "int64",
 	schema.KindFloat:       "float64",
+	schema.KindTimeSeries:  "float64",
 	schema.KindAmount:      "float64",
 	schema.KindBalance:     "float64",
 	schema.KindRating:      "float64",
