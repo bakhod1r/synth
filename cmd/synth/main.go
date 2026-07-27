@@ -353,11 +353,12 @@ func runCDC(args []string) error {
 
 type flags struct {
 	spec, in, out, format, locale, key, name string
-	refs, fks                                []string
+	refs, fks, dps                           []string
+	qi                                       string
 	at, from, to, port, preset               string
 	unmask, append, softDelete               bool
 	seed                                     uint64
-	n, snapshot                              int
+	n, snapshot, k                           int
 	chaos, updateRate, deleteRate, churn     float64
 }
 
@@ -421,6 +422,14 @@ func parseFlags(args []string) (flags, error) {
 			f.append = true
 		case "--soft-delete":
 			f.softDelete = true
+		case "--k":
+			err = scanInto(args, &i, &f.k)
+		case "--qi":
+			f.qi, err = next(args, &i)
+		case "--dp":
+			var v string
+			v, err = next(args, &i)
+			f.dps = append(f.dps, v)
 		case "-n", "--rows":
 			err = scanInto(args, &i, &f.n)
 		case "--snapshot":
@@ -616,6 +625,8 @@ Flags:
       --append     extend the output file instead of overwriting it
       --update-rate, --delete-rate, --snapshot   CDC history shape
       --soft-delete   emit a delete as an update stamping deleted_at
+      --k, --qi    k-anonymity: require each --qi col,col combination k+ times
+      --dp         Laplace-noise a numeric column while masking, col:epsilon:sensitivity (repeatable)
 
 synth verify exits 1 when it finds an error, 0 when it finds only warnings,
 so it drops into CI without a wrapper.`)
@@ -651,6 +662,17 @@ func runVerify(args []string) error {
 		}
 		for _, c := range y.Constraints() {
 			opts.Constraints = append(opts.Constraints, c)
+		}
+	}
+	if fs.k > 0 {
+		opts.KAnonymity = fs.k
+		for _, c := range strings.Split(fs.qi, ",") {
+			if c = strings.TrimSpace(c); c != "" {
+				opts.QuasiIdentifiers = append(opts.QuasiIdentifiers, c)
+			}
+		}
+		if len(opts.QuasiIdentifiers) == 0 {
+			return fmt.Errorf("verify: --k needs --qi col,col (the quasi-identifier columns)")
 		}
 	}
 

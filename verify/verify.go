@@ -62,6 +62,14 @@ type Options struct {
 	// collapses into one summary finding. A million broken rows should not
 	// produce a million lines. Zero means the default.
 	MaxFindingsPerCheck int
+	// KAnonymity, when > 1, requires every combination of QuasiIdentifiers to be
+	// shared by at least this many rows. A rarer combination re-identifies an
+	// individual even with direct identifiers removed.
+	KAnonymity int
+	// QuasiIdentifiers are the columns whose combination could single someone
+	// out — age, ZIP, gender. The k-anonymity check runs only when these are
+	// set.
+	QuasiIdentifiers []string
 }
 
 // Constraint is the subset of constraint.Constraint verify needs. It is
@@ -112,6 +120,7 @@ func Run(rows []map[string]any, opts Options) Report {
 	rep.Findings = append(rep.Findings, checkTemporal(rows, cols, opts)...)
 	rep.Findings = append(rep.Findings, checkDistribution(rows, cols)...)
 	rep.Findings = append(rep.Findings, checkConstraints(rows, opts)...)
+	rep.Findings = append(rep.Findings, checkKAnonymity(rows, cols, opts)...)
 
 	// Errors first, then row order — but a dataset-wide finding sorts after the
 	// individual rows it summarizes, so a report reads as examples followed by

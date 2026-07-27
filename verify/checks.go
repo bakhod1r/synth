@@ -422,3 +422,91 @@ func timeValue(v any) (time.Time, bool) {
 	}
 	return time.Time{}, false
 }
+
+// checkKAnonymity requires every combination of quasi-identifier columns to be
+// shared by at least k rows. A rarer combination re-identifies an individual
+// even after the direct identifiers are gone — a 1985-born person in a small
+// ZIP is often unique — so it is the measure of whether "anonymized" data is.
+//
+// It runs only when the caller asks for it (k > 1 and at least one QI column).
+// A named column that is not present is an error rather than a silent pass, so
+// a typo cannot read as "no violations".
+func checkKAnonymity(rows []map[string]any, cols []string, opts Options) []Finding {
+	if opts.KAnonymity <= 1 || len(opts.QuasiIdentifiers) == 0 {
+		return nil
+	}
+	present := map[string]bool{}
+	for _, c := range cols {
+		present[c] = true
+	}
+	var out []Finding
+	for _, qi := range opts.QuasiIdentifiers {
+		if !present[qi] {
+			out = append(out, Finding{
+				Check: "k-anonymity", Severity: SevError, Column: qi, Row: -1,
+				Detail: fmt.Sprintf("quasi-identifier column %q is not in the data", qi),
+			})
+		}
+	}
+	if len(out) > 0 {
+		return out // do not report bogus groups against a mistyped column set
+	}
+
+	// Group rows by the tuple of QI values. The joined key uses a NUL separator
+	// so ("a","bc") and ("ab","c") do not collide.
+	groups := map[string]int{}
+	sample := map[string][]string{}
+	for _, row := range rows {
+		vals := make([]string, len(opts.QuasiIdentifiers))
+		for i, qi := range opts.QuasiIdentifiers {
+			vals[i], _ = stringValue(row[qi])
+		}
+		key := strings.Join(vals, "\x00")
+		groups[key]++
+		if _, ok := sample[key]; !ok {
+			sample[key] = vals
+		}
+	}
+
+	max := opts.MaxFindingsPerCheck
+	if max <= 0 {
+		max = DefaultMaxFindings
+	}
+	shown, violations := 0, 0
+	for key, n := range groups {
+		if n >= opts.KAnonymity {
+			continue
+		}
+		violations++
+		if shown < max {
+			shown++
+			out = append(out, Finding{
+				Check: "k-anonymity", Severity: SevError, Row: -1,
+				Detail: fmt.Sprintf("%d row(s) share this quasi-identifier, need %d",
+					n, opts.KAnonymity),
+				Sample: labelTuple(opts.QuasiIdentifiers, sample[key]),
+			})
+		}
+	}
+	if violations > shown {
+		out = append(out, Finding{
+			Check: "k-anonymity", Severity: SevError, Row: -1,
+			Detail: fmt.Sprintf("%d quasi-identifier groups fall below k=%d (%d shown)",
+				violations, opts.KAnonymity, shown),
+		})
+	}
+	return out
+}
+
+// labelTuple renders a QI group as col=value pairs for a readable finding.
+func labelTuple(cols, vals []string) []string {
+	out := make([]string, len(cols))
+	for i := range cols {
+		v := ""
+		if i < len(vals) {
+			v = vals[i]
+		}
+		out[i] = cols[i] + "=" + v
+	}
+	return out
+}
