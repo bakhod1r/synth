@@ -166,6 +166,37 @@ func TestDigestSecretVsPlain(t *testing.T) {
 	}
 }
 
+func TestDigestAlgorithm(t *testing.T) {
+	def := mkField("c", schema.KindLorem, map[string]string{})
+	s256 := mkField("c", schema.KindLorem, map[string]string{"algo": "sha256"})
+	s512 := mkField("c", schema.KindLorem, map[string]string{"algo": "sha512"})
+
+	// Default is SHA-256: 64 hex characters, and unchanged by naming it.
+	if got := digest(&def, "v"); len(got) != 64 {
+		t.Fatalf("default digest len = %d, want 64", len(got))
+	}
+	if digest(&def, "v") != digest(&s256, "v") {
+		t.Fatal("algo=sha256 must equal the default, so old specs stay byte-identical")
+	}
+	// SHA-512 is 128 hex characters and a different value.
+	if got := digest(&s512, "v"); len(got) != 128 {
+		t.Fatalf("sha512 digest len = %d, want 128", len(got))
+	}
+	if digest(&s512, "v")[:64] == digest(&def, "v") {
+		t.Fatal("sha512 should not share a prefix with sha256 by construction")
+	}
+	// The algorithm carries through the HMAC (secret=) path too.
+	sec := mkField("c", schema.KindLorem, map[string]string{"algo": "sha512", "secret": "k"})
+	if got := digest(&sec, "v"); len(got) != 128 {
+		t.Fatalf("hmac-sha512 digest len = %d, want 128", len(got))
+	}
+	// Unknown algo falls back to the default rather than failing.
+	bad := mkField("c", schema.KindLorem, map[string]string{"algo": "crc32"})
+	if digest(&bad, "v") != digest(&def, "v") {
+		t.Fatal("unknown algo should fall back to sha256")
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	long := strings.Repeat("a", 64)
 	f8 := mkField("c", schema.KindLorem, map[string]string{"digest": "8"}) // floors to 16

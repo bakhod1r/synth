@@ -6,8 +6,10 @@ package gen
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"strconv"
 	"strings"
 
@@ -341,6 +343,21 @@ func scoped(f *schema.Field, s string) []byte {
 	return []byte(f.Name + "\x00" + f.Params["salt"] + "\x00" + s)
 }
 
+// hasher picks the digest's hash function from algo=. Both are in the standard
+// library, so the choice adds no dependency. SHA-256 stays the default, which
+// keeps every spec written before this option byte-identical.
+//
+//	algo=sha256   (default) 64 hex characters
+//	algo=sha512   128 hex characters, for callers who standardise on it
+func hasher(f *schema.Field) func() hash.Hash {
+	switch strings.ToLower(strings.TrimSpace(f.Params["algo"])) {
+	case "sha512":
+		return sha512.New
+	default:
+		return sha256.New
+	}
+}
+
 // digest hashes a value for the hash and token masks.
 //
 // With secret= it is an HMAC rather than a bare hash. That difference matters
@@ -349,13 +366,15 @@ func scoped(f *schema.Field, s string) []byte {
 // a plain hash of one hides nothing. A key the attacker does not have removes
 // that attack entirely.
 func digest(f *schema.Field, s string) string {
+	newHash := hasher(f)
 	if key := f.Params["secret"]; key != "" {
-		m := hmac.New(sha256.New, []byte(key))
+		m := hmac.New(newHash, []byte(key))
 		m.Write(scoped(f, s))
 		return hex.EncodeToString(m.Sum(nil))
 	}
-	sum := sha256.Sum256(scoped(f, s))
-	return hex.EncodeToString(sum[:])
+	h := newHash()
+	h.Write(scoped(f, s))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // truncate shortens a digest to digest=N characters.
