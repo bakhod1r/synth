@@ -65,9 +65,6 @@ func init() {
 		w, h := (c.Rand.Intn(8)+1)*100, (c.Rand.Intn(8)+1)*100
 		return fmt.Sprintf("https://picsum.photos/%d/%d", w, h)
 	}
-	registry[schema.KindSSN] = func(c Ctx) any {
-		return fmt.Sprintf("%03d-%02d-%04d", c.Rand.IntRange(1, 899), c.Rand.IntRange(1, 99), c.Rand.IntRange(1, 9999))
-	}
 	registry[schema.KindTimezone] = func(c Ctx) any { return pick(c.Rand, timezones) }
 }
 

@@ -76,15 +76,6 @@ func init() {
 		codes := []int{200, 201, 204, 301, 302, 400, 401, 403, 404, 409, 422, 429, 500, 502, 503}
 		return codes[c.Rand.Pick(len(codes))]
 	}
-	registry[schema.KindPassword] = func(c Ctx) any {
-		const cs = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%"
-		n := c.Rand.IntRange(10, 16)
-		b := make([]byte, n)
-		for i := range b {
-			b[i] = cs[c.Rand.Pick(len(cs))]
-		}
-		return string(b)
-	}
 	registry[schema.KindSlug] = func(c Ctx) any {
 		return fmt.Sprintf("%s-%s-%s", pick(c.Rand, loremWords), pick(c.Rand, loremWords), c.Rand.Digits(4))
 	}
