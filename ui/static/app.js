@@ -329,11 +329,23 @@ function settingsFor(field) {
       '': 'maskNone', partial: 'mask_partial', hash: 'mask_hash', redact: 'mask_redact', token: 'mask_token',
     } },
   ];
+  // A field whose values follow the locale can be opted out of it — an English
+  // category on an otherwise Uzbek record. Offered only where it does something:
+  // on a type the locale never reaches, localize= is a no-op (see gen/localize).
+  const meta = state.byKind.get(field.kind);
+  if (meta && meta.localized) {
+    list.push({ key: 'localize', type: 'select', options: ['', 'false'], labels: {
+      '': 'localizeOn', false: 'localizeOff',
+    } });
+  }
   // The digest options only exist for the two modes that produce a digest.
   // Showing them next to mask=redact would suggest a salt changes something
   // there, and it does not.
   const mode = field.params.mask;
   if (mode === 'hash' || mode === 'token') {
+    list.push({ key: 'algo', type: 'select', options: ['', 'sha256', 'sha512'], labels: {
+      '': 'algoDefault', sha256: 'SHA-256', sha512: 'SHA-512',
+    } });
     list.push({ key: 'salt', type: 'text' });
     list.push({ key: 'secret', type: 'text' });
     list.push({ key: 'digest', type: 'number' });
