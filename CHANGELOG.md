@@ -8,6 +8,33 @@ accident.
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-08-03
+
+### Added
+
+- Parquet is now a first-class CLI output: `synth gen -f parquet` or a
+  `.parquet` extension writes the file directly. It needs a real path — a
+  Parquet footer cannot stream to stdout or through the gzip/zstd sink, and
+  `--append` does not apply. The `sink/parquet` writer stays importable from Go.
+
+### Changed
+
+- The core module now requires `sink/parquet`, so an import of `synth` pulls the
+  Parquet dependency graph. The previous "core needs only `google/uuid` and
+  `yaml.v3`" guarantee no longer holds; docs updated to match. The `mcp` module
+  still stays out of the core graph.
+
+### Fixed
+
+- `reflectfe`: a `uuid.UUID` struct field (a `[16]byte` array) was treated as a
+  byte array instead of a scalar UUID; named scalars are now recognised before
+  the array path.
+- `synth.Ref`: an empty parent slice panicked later at `IntN(0)`; the ref is now
+  skipped so the foreign-key field generates normally, matching `RefValues`.
+- `yamlfe`: `mu`/`sigma`/`s`/`rate` were rendered as quoted strings, which YAML
+  would not unmarshal back into their `*float64` fields; they now round-trip as
+  bare numbers.
+
 ## [1.1.0] — 2026-07-27
 
 ### Added
