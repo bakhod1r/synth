@@ -1,7 +1,8 @@
-# Compiled binary. `go build ./cmd/synth` drops one here; it does not belong
+# Compiled binaries. `go build ./cmd/...` drops these; they do not belong
 # in the repository.
 /synth
 /synth.exe
+/cmd/synthdata/synthdata
 
 # Development-only Node packages for scripts/check-diagrams.mjs. Nothing in the
 # Go library or its tests needs them.
