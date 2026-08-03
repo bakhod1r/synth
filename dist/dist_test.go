@@ -194,4 +194,10 @@ func TestDegenerateParameters(t *testing.T) {
 			t.Errorf("an empty Zipf produced rank %d", rank)
 		}
 	}
+	// s<=0 defaults the skew; the Zipf must still be usable.
+	if z := NewZipf(5, 0); z != nil {
+		if rank := z.Rank(r); rank < 0 || rank >= 5 {
+			t.Errorf("Zipf with defaulted skew produced rank %d", rank)
+		}
+	}
 }
