@@ -58,26 +58,31 @@ header {
    the page matches the order of the work. */
 #shell {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 1px;
   background: var(--line);
   min-height: calc(100vh - 53px);
   align-items: stretch;
 }
 
-#palette, #tools {
+#palette {
   background: var(--panel);
   padding: 16px;
   overflow-y: auto;
   max-height: calc(100vh - 53px);
   position: sticky;
   top: 0;
+  width: 232px;
 }
-#palette { width: 232px; }
-#tools { width: 320px; }
-#palette[hidden], #tools[hidden] { display: none; }
+/* The palette is track 1 and main is track 2, pinned. Without pinning, hiding
+   the palette (display:none) lets main flow back into the auto-sized first
+   track — it collapses to its content width and leaves the right half of the
+   page empty. Pinning main to track 2 keeps it full-width either way. */
+#palette { grid-column: 1; }
+#palette[hidden] { display: none; }
 
 main {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -413,13 +418,6 @@ pre.yaml {
   box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
 }
 
-/* ---------------------------------------------------------------- narrow */
-
-@media (max-width: 1000px) {
-  main { grid-template-columns: 1fr; }
-  main > section { max-height: none; }
-}
-
 /* ---------------------------------------------------------------- narrow
 
    Three breakpoints, each for a real failure rather than a round number:
@@ -430,16 +428,18 @@ pre.yaml {
    thumb. */
 
 @media (max-width: 1100px) {
+  /* Collapse to one column: the palette stops being a sticky sidebar and sits
+     above the work area. Both children share the single track. */
   #shell { grid-template-columns: 1fr; }
-  #palette { width: auto; position: static; max-height: 42vh; }
-  main { grid-template-columns: 1fr; }
+  #palette { grid-column: 1; width: auto; position: static; max-height: 42vh; }
+  main { grid-column: 1; }
   main > section { max-height: none; }
 }
 
 @media (max-width: 900px) {
   header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
-  .controls { flex-wrap: wrap; }
-  .controls label { flex: 1 1 130px; }
+  .settings { flex-wrap: wrap; }
+  .settings label { flex: 1 1 130px; }
 
   /* The schema table becomes one card per column. A five-column table of
      inputs at this width leaves every field too narrow to read. */
@@ -463,7 +463,11 @@ pre.yaml {
   header { padding: 8px 12px; }
   .tag { display: none; }               /* the tagline is the first thing to go */
   main > section { padding: 12px; }
-  .controls label { flex: 1 1 100%; }
+  .settings label { flex: 1 1 100%; }
+  .settings input, .settings select { width: 100%; }
+  /* Stop pinning the actions to the right once things wrap — let them sit on
+     their own full-width row so the buttons stay finger-sized. */
+  .settings-actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
   #colSettings { min-width: 0; width: calc(100vw - 24px); }
   .setting { grid-template-columns: 1fr; gap: 4px; }
   #preview table { font-size: 11px; }
