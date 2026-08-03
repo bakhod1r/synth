@@ -8,10 +8,13 @@
 /scripts/node_modules
 /scripts/package-lock.json
 
-# Built by scripts/build-pages.sh.
-/dist
-./docs
-./scripts/node_modules
+# Built by scripts/build-pages.sh (default outdir dist/pages). Only the build
+# output is ignored, not the dist/ Go source package.
+/dist/pages/
+
+# Internal planning docs (superpowers plans/specs) — kept local, not shipped.
+/docs/
+
 # Built by scripts/build-npm.sh from the Go source; not committed, so a stale
 # binary cannot ship while the source it came from has moved on.
 /npm/synth.wasm
