@@ -62,6 +62,7 @@ banner = '''
 <div class="wasm-note">
   Running entirely in this tab — the generator is compiled to WebAssembly and
   there is no server to send anything to.
+  <a href="https://github.com/bakhod1r/synth#readme">Docs</a> ·
   <a href="https://github.com/bakhod1r/synth">Source</a> ·
   <a href="CHANGELOG.md">Changelog</a>
 </div>
