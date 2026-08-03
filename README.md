@@ -42,7 +42,7 @@ flowchart LR
 
   subgraph engine["Engine"]
     direction TB
-    E1["providers<br/>250 types"]
+    E1["providers<br/>264 types"]
     E2["locale<br/>52 locales"]
     E3["constraints<br/>+ coherence"]
     E4["per-instance PCG rng"]
@@ -874,30 +874,32 @@ What is already enforced rather than promised:
 
 ## Status & roadmap
 
-**Implemented:** struct frontend with tagless inference, referential integrity
-(`Ref`), temporal causality (`after=`/`gap=` lifecycle ordering), unique
-constraints (`unique` tag, PKs), nested structs and slices (objects and arrays,
-generated recursively), locale coherence (country → region → city → postcode → phone),
-Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, deterministic per-record RNG,
-parallel generation, CSV/JSONL/SQL encoders and streaming, `uz_UZ` + `en_US`.
+**Implemented:**
 
-statistical distributions (Normal/LogNormal/Exponential/Zipf/Weighted),
-**50+ locales** (native names, dialing codes, currencies, capital regions), and
-**custom types** via `Register`/`RegisterSet`, and **real-world datasets**
-(books, movies, celebrities, brands, foods, animals, sports, universities,
-languages, emoji) — recognizable values blended with combinatorial ones so
-repetition stays low across large datasets.
+- **Frontends** — Go structs with tagless inference, YAML specs and CLI
+  (`synth gen`), OpenAPI-driven payloads, SQL DDL, JSON Schema, Avro, Protobuf,
+  and real-data profiling.
+- **Coherence** — referential integrity (`Ref`), temporal causality
+  (`after=`/`gap=` lifecycle ordering), unique constraints (`unique` tag, PKs),
+  `OneToMany` cardinality, nested structs and slices generated recursively, and
+  locale coherence (country → region → city → postcode → phone).
+- **Validity** — Luhn-valid cards (HUMO/UZCARD), mod-97 IBANs, and
+  gender-coherent names.
+- **Statistics** — Normal/LogNormal/Exponential/Zipf/Weighted distributions and
+  chaos injection (`WithChaos`).
+- **Coverage** — 264 field types across 52 locales (native names, dialing codes,
+  currencies, capital regions), plus **real-world datasets** (books, movies,
+  celebrities, brands, foods, animals, sports, universities, languages, emoji) —
+  recognizable values blended with combinatorial ones so repetition stays low
+  across large datasets.
+- **Custom types** — `Register`/`RegisterSet` for your own values.
+- **Engine** — deterministic per-record RNG, parallel generation, and
+  CSV/JSONL/SQL encoders with streaming.
 
 ```go
 synth.RegisterSet("cinema", "Inception", "Interstellar", "Tenet", "Dune")
 synth.Register("rating", func(r synth.R) any { return r.IntRange(1, 5) })
 ```
-
-chaos injection (`WithChaos`), OpenAPI-driven payloads, a YAML frontend and CLI
-(`synth gen`), nested structs/slices, and `OneToMany` cardinality.
-
-a SQL-DDL frontend, JSON Schema and Avro frontends, real-data profiling,
-gender-coherent names, and 173 field types across 52 locales.
 
 **Roadmap:** locale datasets for the culturally-specific catalog types beyond
 the ten locales currently covered; protobuf `map<k,v>` fields.
