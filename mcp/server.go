@@ -28,11 +28,23 @@ import (
 // the user when asking whether to trust the connection.
 const Version = "0.1.0"
 
+// roTool is mcp.NewTool with the annotations every Synth tool shares: each one
+// only reads its arguments and returns a result — none writes a file, opens a
+// socket or touches a database — so all are read-only, non-destructive and not
+// open-world. The library defaults the opposite way, which mislabels them.
+func roTool(name string, opts ...mcp.ToolOption) mcp.Tool {
+	return mcp.NewTool(name, append(opts,
+		mcp.WithReadOnlyHintAnnotation(true),
+		mcp.WithDestructiveHintAnnotation(false),
+		mcp.WithOpenWorldHintAnnotation(false),
+	)...)
+}
+
 // New returns the server with every tool registered.
 func New() *server.MCPServer {
 	s := server.NewMCPServer("synth", Version)
 
-	s.AddTool(mcp.NewTool("generate",
+	s.AddTool(roTool("generate",
 		mcp.WithDescription("Generate synthetic records from a built-in preset or a YAML spec. "+
 			"Returns the rows in the response — it writes no file and touches no database. "+
 			"Card numbers and national identifiers come back masked unless unmasked=true."),
@@ -50,18 +62,18 @@ func New() *server.MCPServer {
 			"Return raw card numbers and identifiers. Off by default.")),
 	), typed(handleGenerate))
 
-	s.AddTool(mcp.NewTool("list_types",
+	s.AddTool(roTool("list_types",
 		mcp.WithDescription("List the generatable column types, optionally filtered by substring. "+
 			"Each entry says whether its values follow the locale."),
 		mcp.WithString("search", mcp.Description(
 			`Substring filter, e.g. "card" or "name".`)),
 	), typed(handleListTypes))
 
-	s.AddTool(mcp.NewTool("list_presets",
+	s.AddTool(roTool("list_presets",
 		mcp.WithDescription("List the built-in schemas with their YAML, as a starting point to edit."),
 	), nullary(handleListPresets))
 
-	s.AddTool(mcp.NewTool("verify",
+	s.AddTool(roTool("verify",
 		mcp.WithDescription("Check a dataset for broken checksums (Luhn, IBAN, EAN, UPC), "+
 			"malformed emails, URLs, UUIDs and IPs, and time anomalies. Pass the rows "+
 			"themselves — this tool reads no files."),
@@ -70,7 +82,7 @@ func New() *server.MCPServer {
 		mcp.WithString("format", mcp.Description("csv (default) or jsonl.")),
 	), typed(handleVerify))
 
-	s.AddTool(mcp.NewTool("profile",
+	s.AddTool(roTool("profile",
 		mcp.WithDescription("Infer a Synth schema from an existing dataset, so you can generate "+
 			"more data shaped like it without keeping the original. Returns the spec, the "+
 			"per-column statistics behind it, and any cross-column invariants found. "+
@@ -84,7 +96,7 @@ func New() *server.MCPServer {
 			"Row count the inferred spec should ask for. Default: as many as were profiled.")),
 	), typed(handleProfile))
 
-	s.AddTool(mcp.NewTool("mask",
+	s.AddTool(roTool("mask",
 		mcp.WithDescription("Replace personal data in a real export with generated values of the "+
 			"same shape, keeping the file usable as a fixture. Reports which columns it did "+
 			"not recognize — read that part. Reads and writes no files."),
@@ -97,7 +109,7 @@ func New() *server.MCPServer {
 		mcp.WithString("locale", mcp.Description("Locale for the replacement values.")),
 	), typed(handleMask))
 
-	s.AddTool(mcp.NewTool("diff",
+	s.AddTool(roTool("diff",
 		mcp.WithDescription("Compare the shape of two datasets — their columns, types, numeric "+
 			"ranges, null rates and category sets, not their rows. Reports what changed and "+
 			"how severe it is: a column added, removed or retyped is an error; a range, null "+
@@ -110,7 +122,7 @@ func New() *server.MCPServer {
 			"Fraction a numeric bound may move before it warns. Default 0.10.")),
 	), typed(handleDiff))
 
-	s.AddTool(mcp.NewTool("snapshot",
+	s.AddTool(roTool("snapshot",
 		mcp.WithDescription("Show a generated table as it stood at one instant (at=), or the "+
 			"change events between two (from= and to=). Useful for testing migrations and "+
 			"incremental ETL. An instant outside the table's lifetime returns nothing — set "+
