@@ -46,6 +46,15 @@ func TestRunGenFormats(t *testing.T) {
 	if err := runGen([]string{"--preset", "user", "-o", filepath.Join(dir, "p.csv"), "-n", "5"}); err != nil {
 		t.Fatalf("gen preset: %v", err)
 	}
+	// Parquet: written to a real path, and the file carries the PAR1 magic.
+	pq := filepath.Join(dir, "out.parquet")
+	if err := runGen([]string{"-s", spec, "-o", pq, "--seed", "1", "-n", "20"}); err != nil {
+		t.Fatalf("gen parquet: %v", err)
+	}
+	b, err := os.ReadFile(pq)
+	if err != nil || len(b) < 8 || string(b[:4]) != "PAR1" || string(b[len(b)-4:]) != "PAR1" {
+		t.Fatalf("parquet magic missing: err=%v len=%d", err, len(b))
+	}
 }
 
 func TestRunGenErrors(t *testing.T) {
@@ -58,8 +67,9 @@ func TestRunGenErrors(t *testing.T) {
 	if err := runGen([]string{"-s", "/nonexistent.yaml"}); err == nil {
 		t.Fatal("missing spec should error")
 	}
-	if err := runGen([]string{"-s", "x", "-f", "parquet", "--preset", "user"}); err == nil {
-		t.Fatal("parquet should be rejected")
+	// Parquet needs a real path; it cannot stream to stdout.
+	if err := runGen([]string{"-f", "parquet", "--preset", "user"}); err == nil {
+		t.Fatal("parquet to stdout should error")
 	}
 }
 

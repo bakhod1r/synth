@@ -101,9 +101,9 @@ go test ./...
 go vet ./...
 ```
 
-This is a separate Go module. `mcp-go` brings 20 transitive dependencies, and
-the core `synth` library has exactly two — anyone importing `synth` should not
-pay for an SDK they never call. The core module must never import anything under
+This is a separate Go module. `mcp-go` brings 20 transitive dependencies, so it
+stays out of the core module's graph — anyone importing `synth` should not pay
+for an SDK they never call. The core module must never import anything under
 `mcp/`:
 
 ```bash

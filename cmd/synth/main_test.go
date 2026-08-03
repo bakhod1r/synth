@@ -139,20 +139,28 @@ func TestMaskRefusesToOverwriteInput(t *testing.T) {
 
 // Parquet is a submodule, so the core CLI must say so rather than silently
 // writing some other format.
-func TestParquetPointsAtSubmodule(t *testing.T) {
+// Parquet is a first-class CLI output: the binary writes a real .parquet file
+// (PAR1 magic at both ends), but refuses to stream it to stdout.
+func TestParquetOutput(t *testing.T) {
 	bin := build(t)
 	dir := t.TempDir()
 	specPath := filepath.Join(dir, "spec.yaml")
 	os.WriteFile(specPath, []byte(spec), 0o644)
+	out := filepath.Join(dir, "out.parquet")
+
+	if err := exec.Command(bin, "gen", "-s", specPath, "-o", out, "-n", "20").Run(); err != nil {
+		t.Fatalf("gen parquet: %v", err)
+	}
+	b, err := os.ReadFile(out)
+	if err != nil || len(b) < 8 || string(b[:4]) != "PAR1" || string(b[len(b)-4:]) != "PAR1" {
+		t.Fatalf("parquet magic missing: err=%v len=%d", err, len(b))
+	}
 
 	cmd := exec.Command(bin, "gen", "-s", specPath, "-f", "parquet")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err == nil {
-		t.Fatal("expected an error for parquet output")
-	}
-	if !strings.Contains(stderr.String(), "sink/parquet") {
-		t.Fatalf("error does not point at the submodule: %s", stderr.String())
+		t.Fatal("parquet to stdout should error")
 	}
 }
 

@@ -33,6 +33,7 @@ import (
 
 	"github.com/bakhod1r/synth"
 	"github.com/bakhod1r/synth/constraint"
+	parquet "github.com/bakhod1r/synth/sink/parquet"
 	"github.com/bakhod1r/synth/ui"
 	"github.com/bakhod1r/synth/verify"
 )
@@ -145,10 +146,6 @@ func runGen(args []string) error {
 	if format == "" {
 		format = formatFromExt(fs.out)
 	}
-	if format == "parquet" {
-		return fmt.Errorf("parquet output lives in an optional submodule so the " +
-			"core stays dependency-light: go get github.com/bakhod1r/synth/sink/parquet")
-	}
 	table := spec.Name()
 	if table == "" {
 		table = "data"
@@ -178,6 +175,20 @@ func runGen(args []string) error {
 		return err
 	}
 
+	// Parquet writes a self-describing columnar file with a footer, so it needs a
+	// real seekable path and cannot stream through the gzip/zstd sink or stdout.
+	// It also carries its own schema, so there is no companion DDL to emit.
+	if format == "parquet" {
+		if fs.out == "" {
+			return fmt.Errorf("gen: parquet needs -o <file>, not stdout")
+		}
+		if err := parquet.WriteRows(fs.out, spec.Columns(), recs); err != nil {
+			return fmt.Errorf("gen: parquet: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "wrote %d rows to %s (parquet)\n", len(recs), fs.out)
+		return nil
+	}
+
 	out, err := openSinkMode(fs.out, fs.append)
 	if err != nil {
 		return err
@@ -200,7 +211,7 @@ func runGen(args []string) error {
 		}
 	default:
 		return fmt.Errorf("gen: unknown format %q "+
-			"(want csv, jsonl, sql, pgcopy or pgcopy-binary)", format)
+			"(want csv, jsonl, sql, parquet, pgcopy or pgcopy-binary)", format)
 	}
 	if err := w.Flush(); err != nil {
 		return err
@@ -665,7 +676,7 @@ Flags:
   -s, --spec       YAML data-definition file
   -i, --in         input file to profile or mask
   -o, --out        output file (default: stdout)
-  -f, --format     csv | jsonl | sql | pgcopy | pgcopy-binary
+  -f, --format     csv | jsonl | sql | parquet | pgcopy | pgcopy-binary
   -n, --rows       number of rows or events
   -l, --locale     locale (e.g. uz_UZ)
       --name       table name for a profiled spec

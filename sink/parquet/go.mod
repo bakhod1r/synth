@@ -1,5 +1,5 @@
-// Separate module: the Parquet writer pulls a sizeable dependency, so only
-// users who need Parquet take it on. The core synth library keeps its two.
+// Parquet writer module. It backs the CLI's `-f parquet` output and can be
+// imported directly for generating from Go.
 module github.com/bakhod1r/synth/sink/parquet
 
 go 1.25
@@ -12,7 +12,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/parquet-go/bitpack v1.0.0 // indirect
 	github.com/parquet-go/jsonlite v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect

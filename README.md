@@ -344,8 +344,8 @@ flowchart LR
 
 Data goes in as an argument and comes back in the response. Nothing else moves.
 
-It is a separate module: `mcp-go` brings 20 transitive dependencies and the core
-library has two.
+It is a separate module: `mcp-go` brings 20 transitive dependencies, kept out of
+the core module's graph.
 
 ## Install
 
@@ -527,8 +527,7 @@ function and is meant to be expensive. The same shape without it runs at roughly
 
 Reproduce with `cd benchcmp && go test -bench=. -benchmem -run=^$ .`
 (the comparison lives in its own module, so the competing fakers never enter
-this library's dependency graph — Synth depends only on `google/uuid` and
-`yaml.v3`).
+this library's dependency graph).
 
 Per-instance RNG means no global-`rand` mutex — parallel generation scales, and
 same-seed output is byte-identical regardless of worker count.
@@ -831,17 +830,22 @@ synth.Stream[User](100_000_000).ToCSV("users.csv") // constant memory
 
 ### Parquet
 
-Parquet lives in its own module, so its dependency stays optional — the core
-library still needs only `google/uuid` and `yaml.v3`:
+Parquet is a first-class output — pick it by extension or `-f parquet`:
 
-```bash
-go get github.com/bakhod1r/synth/sink/parquet
+```sh
+synth gen -s users.yaml -n 100000 -o users.parquet
+synth gen --preset user -n 50 -f parquet -o users.parquet
 ```
+
+The same writer is available from Go:
 
 ```go
 parquet.WriteStructs("users.parquet", users)              // from Go structs
 parquet.WriteRows("users.parquet", spec.Columns(), rows)  // from YAML/DDL/profiling
 ```
+
+A Parquet file carries a footer, so it needs a real path — it does not stream
+to stdout or through the gzip/zstd sink, and `--append` does not apply to it.
 
 Column types are inferred (int64, double, boolean, string), so query engines
 see real types rather than everything-as-string. Uploading the file to S3,

@@ -1,10 +1,8 @@
 // Package parquet writes generated data as Apache Parquet files — the format
 // analytics and data-lake tooling expects.
 //
-// This lives in its own module so its dependency stays optional: the core
-// synth library still needs only google/uuid and yaml.v3.
-//
-//	go get github.com/bakhod1r/synth/sink/parquet
+// The same writer backs the CLI's `-f parquet` output; this package exposes it
+// directly for callers generating from Go.
 //
 // Like every Synth output, this writes a FILE. Uploading it to S3, MinIO or a
 // warehouse is your loader's job.
