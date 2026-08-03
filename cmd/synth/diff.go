@@ -67,7 +67,7 @@ func runDiff(args []string) error {
 	// Exit non-zero only on structural breaks, so a CI step fails on those and
 	// passes on drift warnings — the same contract verify uses.
 	if diff.Errors(findings) > 0 {
-		os.Exit(1)
+		return errCheckFailed
 	}
 	return nil
 }

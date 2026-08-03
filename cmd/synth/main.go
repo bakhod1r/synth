@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -54,45 +55,59 @@ func versionString() string {
 	return "(devel)"
 }
 
-func main() {
-	if len(os.Args) < 2 {
+// errCheckFailed signals a data-quality failure — verify found defects, or diff
+// found structural breaks — that must exit non-zero. It carries no message: the
+// report itself has already been written, so run reports only the exit code.
+var errCheckFailed = errors.New("check failed")
+
+func main() { os.Exit(run(os.Args[1:])) }
+
+// run dispatches a subcommand and returns the process exit code, so every
+// path — including the error and usage exits — is reachable from a test without
+// terminating the process.
+func run(args []string) int {
+	if len(args) < 1 {
 		usage()
-		os.Exit(2)
+		return 2
 	}
 	var err error
-	switch os.Args[1] {
+	switch args[0] {
 	case "gen":
-		err = runGen(os.Args[2:])
+		err = runGen(args[1:])
 	case "profile":
-		err = runProfile(os.Args[2:])
+		err = runProfile(args[1:])
 	case "mask":
-		err = runMask(os.Args[2:])
+		err = runMask(args[1:])
 	case "cdc":
-		err = runCDC(os.Args[2:])
+		err = runCDC(args[1:])
 	case "verify":
-		err = runVerify(os.Args[2:])
+		err = runVerify(args[1:])
 	case "diff":
-		err = runDiff(os.Args[2:])
+		err = runDiff(args[1:])
 	case "snapshot":
-		err = runSnapshot(os.Args[2:])
+		err = runSnapshot(args[1:])
 	case "ui":
-		err = runUI(os.Args[2:])
+		err = runUI(args[1:])
 	case "-h", "--help", "help":
 		usage()
-		return
+		return 0
 	case "-v", "--version", "version":
 		fmt.Printf("synth %s %s/%s %s\n",
 			versionString(), runtime.GOOS, runtime.GOARCH, runtime.Version())
-		return
+		return 0
 	default:
-		fmt.Fprintf(os.Stderr, "unknown subcommand: %s\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "unknown subcommand: %s\n\n", args[0])
 		usage()
-		os.Exit(2)
+		return 2
+	}
+	if errors.Is(err, errCheckFailed) {
+		return 1
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "synth:", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // runGen generates records from a YAML spec.
@@ -733,10 +748,7 @@ func runVerify(args []string) error {
 		return err
 	}
 	if !rep.OK() {
-		// Close the report file before exiting: os.Exit skips deferred calls,
-		// and a truncated report is worse than none.
-		closeOut()
-		os.Exit(1)
+		return errCheckFailed
 	}
 	return nil
 }
