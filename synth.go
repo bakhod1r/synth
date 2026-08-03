@@ -78,6 +78,11 @@ func WithChaos(p float64) Option { return func(c *config) { c.chaos = p } }
 // child row points at a real parent. Pass OneToMany to control cardinality.
 func Ref[P any](parents []P, fkField string, opts ...RefOption) Option {
 	pkValues := extractPK(parents)
+	// No parent keys means nothing to point at; skip the ref entirely so the FK
+	// field generates normally instead of drawing from an empty slice (IntN(0)).
+	if len(pkValues) == 0 {
+		return func(c *config) {}
+	}
 	rs := refSpec{fkField: fkField, values: pkValues}
 	for _, o := range opts {
 		o(&rs)

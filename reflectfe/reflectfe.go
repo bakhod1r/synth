@@ -66,6 +66,11 @@ func isStructural(t reflect.Type) bool {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
+	// uuid.UUID is a [16]byte array; treat it (and time.Time) as a scalar, not
+	// as a nested array, so the Array case below never claims it.
+	if isScalarStruct(t) {
+		return false
+	}
 	switch t.Kind() {
 	case reflect.Struct:
 		return !isScalarStruct(t)
@@ -81,11 +86,11 @@ func enrichStructural(f *schema.Field, t reflect.Type) {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
+	if isScalarStruct(t) {
+		return
+	}
 	switch t.Kind() {
 	case reflect.Struct:
-		if isScalarStruct(t) {
-			return
-		}
 		f.Kind = schema.KindObject
 		f.Nested = build(t).schema
 	case reflect.Slice, reflect.Array:

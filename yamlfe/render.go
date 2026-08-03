@@ -109,6 +109,13 @@ func renderField(f schema.Field) string {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
+		// mu/sigma/s/rate are typed *float64 on the parse side; quoting them
+		// ("mu: \"8\"") makes YAML refuse to unmarshal them back into a float,
+		// so they must round-trip as bare numbers.
+		if numericParam[k] {
+			parts = append(parts, k+": "+f.Params[k])
+			continue
+		}
 		// A param value profiled from real data is arbitrary text — a date
 		// bound, a separator, a category name — so it is quoted like any other
 		// value that did not originate here.
@@ -116,6 +123,11 @@ func renderField(f schema.Field) string {
 	}
 	return strings.Join(parts, ", ")
 }
+
+// numericParam lists params that Parse reads into a typed *float64. They must
+// render as bare numbers so a re-parse can unmarshal them. min/max are excluded
+// because they may legitimately be date strings.
+var numericParam = map[string]bool{"mu": true, "sigma": true, "s": true, "rate": true}
 
 // quoteAll renders enum choices for an inline sequence.
 func quoteAll(vals []string) []string {
