@@ -310,16 +310,16 @@ func TestRunVerifyConstraintsAndKAnonError(t *testing.T) {
 
 func TestParseFlagErrors(t *testing.T) {
 	bad := [][]string{
-		{"-s"},                    // missing value
-		{"--bogus"},               // unknown flag
-		{"-n", "abc"},             // bad int
-		{"--seed", "xx"},          // bad uint
-		{"--chaos", "xx"},         // bad float
-		{"--update-rate", "xx"},   // bad float
-		{"--delete-rate", "xx"},   // bad float
-		{"--snapshot", "xx"},      // bad int
-		{"--churn", "xx"},         // bad float
-		{"--k", "xx"},             // bad int
+		{"-s"},                  // missing value
+		{"--bogus"},             // unknown flag
+		{"-n", "abc"},           // bad int
+		{"--seed", "xx"},        // bad uint
+		{"--chaos", "xx"},       // bad float
+		{"--update-rate", "xx"}, // bad float
+		{"--delete-rate", "xx"}, // bad float
+		{"--snapshot", "xx"},    // bad int
+		{"--churn", "xx"},       // bad float
+		{"--k", "xx"},           // bad int
 	}
 	for _, args := range bad {
 		if _, err := parseFlags(args); err == nil {
@@ -330,12 +330,12 @@ func TestParseFlagErrors(t *testing.T) {
 
 func TestSQLValueTypes(t *testing.T) {
 	cases := map[string]any{
-		"NULL":     nil,
-		"42":       42,
-		"3.5":      3.5,
-		"TRUE":     true,
-		"FALSE":    false,
-		"'O''Br'":  "O'Br",
+		"NULL":    nil,
+		"42":      42,
+		"3.5":     3.5,
+		"TRUE":    true,
+		"FALSE":   false,
+		"'O''Br'": "O'Br",
 	}
 	for want, in := range cases {
 		if got := sqlValue(in); got != want {

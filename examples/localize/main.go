@@ -16,7 +16,7 @@ import (
 type Address struct {
 	Country  string
 	Region   string
-	City      string
+	City     string
 	Postcode string
 }
 

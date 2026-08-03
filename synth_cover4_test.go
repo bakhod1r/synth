@@ -126,4 +126,3 @@ func TestNewMaskerDefaultLocale(t *testing.T) {
 		t.Fatal("NewMasker returned nil")
 	}
 }
-

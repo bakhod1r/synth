@@ -24,8 +24,8 @@ type Engine struct {
 	schema *schema.Schema
 	loc    *locale.Locale
 	// base is the locale a field falls back to when it sets localize=false.
-	base *locale.Locale
-	order  []int // field indices in dependency order
+	base  *locale.Locale
+	order []int // field indices in dependency order
 	// Chaos is the probability [0,1] that a string/numeric field carries an
 	// edge-case value instead of a normal one (see WithChaos).
 	Chaos float64

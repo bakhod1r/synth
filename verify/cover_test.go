@@ -55,9 +55,9 @@ func TestCheckDistribution(t *testing.T) {
 			val = "different" // degenerate: 96% one value
 		}
 		rows = append(rows, map[string]any{
-			"const": "K",     // every row identical
-			"deg":   val,     // one value dominates
-			"num":   "3.14",  // numeric, zero variance
+			"const": "K",    // every row identical
+			"deg":   val,    // one value dominates
+			"num":   "3.14", // numeric, zero variance
 		})
 	}
 	rep := Run(rows, Options{})

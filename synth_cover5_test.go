@@ -82,4 +82,3 @@ fields:
 		t.Fatalf("generateN: %v", err)
 	}
 }
-

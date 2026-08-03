@@ -23,7 +23,7 @@ type myInt int32
 type myFloat float64
 
 type coverAll struct {
-	unexported int //nolint
+	unexported int    //nolint
 	Skip       string `synth:"-"`
 	ID         string `synth:"pk"`
 	Seq        int64  `synth:"pk"`
