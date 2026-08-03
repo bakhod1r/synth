@@ -59,9 +59,6 @@ jobs:
       - name: Fuzz seed corpus
         run: go test -run='^Fuzz' ./...
 
-      - name: Build CLI
-        run: go build ./cmd/synth
-
       # The hosted demo runs the same generator the library does, so a module
       # that stops compiling for wasm is a broken release, not a broken page.
       - name: Build for WebAssembly
@@ -77,6 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - { name: CLI, dir: cmd/synth, test: true }
           - { name: MCP server, dir: mcp, test: true }
           - { name: Parquet sink, dir: sink/parquet, test: true }
           - { name: Benchmark comparison, dir: benchcmp, test: false }

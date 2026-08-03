@@ -2,6 +2,7 @@
 # in the repository.
 /synth
 /synth.exe
+/cmd/synth/synth
 /cmd/synthdata/synthdata
 
 # Development-only Node packages for scripts/check-diagrams.mjs. Nothing in the

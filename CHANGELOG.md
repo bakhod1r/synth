@@ -8,6 +8,19 @@ accident.
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-08-03
+
+### Changed
+
+- The `synth` CLI is now its own module (`cmd/synth`). Its output-format
+  dependencies — the Parquet writer and the zstd/gzip compressor — no longer
+  sit in the core library's module graph, so `go get github.com/bakhod1r/synth`
+  is back to exactly `google/uuid` and `yaml.v3`. This reverts the v1.2.0
+  regression that pulled the Parquet dependency tree into the core, and the CI
+  dependency-budget gate passes again. Installing the binary
+  (`go install github.com/bakhod1r/synth/cmd/synth@latest`) is unchanged and
+  still produces Parquet and compressed output.
+
 ## [1.3.0] — 2026-08-03
 
 ### Added
