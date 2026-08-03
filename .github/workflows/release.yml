@@ -61,7 +61,9 @@ jobs:
           # something anyone debugs from a release binary, and it halves the
           # download.
           flags="-s -w -X main.version=${version}"
-          go build -trimpath -ldflags "$flags" -o "$out/synth$ext" ./cmd/synth
+          # cmd/synth and mcp are their own modules, so each builds from its own
+          # directory. The output path is relative to the repo root.
+          (cd cmd/synth && go build -trimpath -ldflags "$flags" -o "../../$out/synth$ext" .)
           (cd mcp && go build -trimpath -ldflags "-s -w" -o "../$out/synth-mcp$ext" ./cmd/synth-mcp)
 
           cp README.md LICENSE "$out/"

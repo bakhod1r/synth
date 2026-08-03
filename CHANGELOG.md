@@ -8,6 +8,15 @@ accident.
 
 ## [Unreleased]
 
+## [1.3.2] — 2026-08-03
+
+### Fixed
+
+- Release workflow: the CLI binary is now built from inside the `cmd/synth`
+  module (it stopped being part of the root module in 1.3.1), so the
+  cross-platform release build succeeds again. No library or CLI behaviour
+  changes.
+
 ## [1.3.1] — 2026-08-03
 
 ### Changed
