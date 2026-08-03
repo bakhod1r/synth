@@ -710,6 +710,7 @@ seed.
 ## Time travel
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'cScaleLabel0':'#111','cScaleLabel1':'#111','cScaleLabel2':'#111','cScale0':'#4a90d9','cScale1':'#57b356','cScale2':'#9aa0a6','titleColor':'#ddd','textColor':'#ddd','lineColor':'#888'}}}%%
 timeline
   title One seed, many instants
   2026-01-01 : rows born so far
