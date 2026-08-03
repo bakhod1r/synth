@@ -112,6 +112,11 @@ Every generated identifier passes the check a real system would run on it:
 ### Locale coherence
 Locale isn't just a name list. Pick `uz_UZ` and you get Uzbek names, `+998` phone numbers, Tashkent districts, UZS amounts, and postcodes that match the city they're attached to — consistently across every field of the record.
 
+One struct, one seed, three locales — name, phone, card and the nested address
+all move together ([examples/localize](examples/localize)):
+
+![Locale coherence across uz_UZ, ja_JP and de_DE](examples/localize/demo.gif)
+
 All 52 locales carry at least **1000 distinct full-name combinations per
 gender**, drawn from real names in the language's own script. Male and female
 lists are kept apart, and where surnames inflect for gender the correct form is
