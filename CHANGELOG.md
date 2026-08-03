@@ -8,6 +8,25 @@ accident.
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-08-03
+
+### Added
+
+- Hash and token masks can pick their digest algorithm with `algo=`: `sha256`
+  (the default, unchanged) or `sha512`. Both come from the standard library, so
+  no dependency is added, and the choice carries through the `secret=` HMAC path.
+- Workbench: a localizable column can be opted out of the dataset locale from
+  its options dialog (`localize=false`, generated as `en_US`), shown only where
+  the type actually follows the locale. The hash/token mask gains an algorithm
+  select. The static build's banner now links to the docs.
+
+### Fixed
+
+- Workbench: with the palette hidden, the work area collapsed to its content
+  width and left the right of the page empty — the shell grid had a dead third
+  track and `main` fell back into the auto-sized first one. `main` is now pinned
+  to the flexible track, and the dead `#tools`/`.controls` rules are gone.
+
 ## [1.2.0] — 2026-08-03
 
 ### Added
