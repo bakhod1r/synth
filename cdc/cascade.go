@@ -148,14 +148,17 @@ func (s *CascadeStream) insertFamily(op Op) {
 	s.seq++
 	s.parents = append(s.parents, parent)
 	key := parent[s.cfg.ParentKey]
-	s.queue(op, s.cfg.ParentTable, nil, parent)
+	// The event carries a copy: the row stays live and a later update mutates
+	// it in place, which would otherwise change an event a consumer already
+	// holds.
+	s.queue(op, s.cfg.ParentTable, nil, cloneRow(parent))
 
 	for i := 0; i < s.cfg.ChildrenPerParent; i++ {
 		child := s.childEng.Record(s.base, s.seq)
 		s.seq++
 		child[s.cfg.ChildFK] = key // point the child at its parent
 		s.children[key] = append(s.children[key], child)
-		s.queue(op, s.cfg.ChildTable, nil, child)
+		s.queue(op, s.cfg.ChildTable, nil, cloneRow(child))
 	}
 }
 
