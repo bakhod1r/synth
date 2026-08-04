@@ -51,6 +51,11 @@ func (s *Streamer[T]) engine() (*gen.Engine, *rng.Rand, []string, error) {
 
 // ToCSV streams records into a CSV file in constant memory.
 func (s *Streamer[T]) ToCSV(path string) error {
+	// Compile before creating the file: a schema that cannot compile should
+	// leave no empty file behind for the caller to clean up.
+	if _, _, _, err := s.engine(); err != nil {
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -87,6 +92,9 @@ func (s *Streamer[T]) csvTo(w io.Writer) error {
 
 // ToJSONL streams records into a JSONL file in constant memory.
 func (s *Streamer[T]) ToJSONL(path string) error {
+	if _, _, _, err := s.engine(); err != nil { // see ToCSV
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err

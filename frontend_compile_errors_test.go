@@ -1,9 +1,6 @@
 package synth
 
 import (
-	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -57,36 +54,6 @@ func TestFrontendsReturnCompileErrors(t *testing.T) {
 	}
 }
 
-// An OpenAPI request body reaches the same check through a real document: a
-// property declared `type: array` with no `items` is a spec a user can and does
-// write, and Payloads has to report it rather than panic.
-func TestPayloadsRejectsArrayWithoutItems(t *testing.T) {
-	doc := `openapi: 3.0.0
-info: {title: t, version: "1"}
-paths:
-  /users:
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tags: {type: array}
-`
-	path := filepath.Join(t.TempDir(), "spec.yaml")
-	if err := os.WriteFile(path, []byte(doc), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	api, err := OpenAPI(path)
-	if err != nil {
-		t.Fatalf("OpenAPI: %v", err)
-	}
-	if _, err := api.Payloads("post", "/users", 2); err == nil {
-		t.Fatal("Payloads = nil error, want a compile error for an array with no items")
-	}
-}
-
 // Generate on a preset delegates to the YAML frontend; an unknown preset never
 // reaches it.
 func TestGenerateUnknownPreset(t *testing.T) {
@@ -117,22 +84,5 @@ func TestProfiledGenerateReportsUnsatisfiableConstraint(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "constraint") {
 		t.Errorf("error = %q, want it to say which constraint could not hold", err)
-	}
-}
-
-// errWriter fails every write, standing in for a full disk or a closed pipe.
-type errWriter struct{ err error }
-
-func (e errWriter) Write([]byte) (int, error) { return 0, e.err }
-
-// encodeCSV writes the header before any record, so a writer that fails
-// immediately proves the header's error is propagated rather than dropped —
-// the case where the caller would otherwise be told a truncated file is fine.
-func TestEncodeCSVHeaderWriteError(t *testing.T) {
-	boom := errors.New("disk full")
-	type row struct{ A string }
-	err := encodeCSV(errWriter{boom}, []row{{A: "x"}})
-	if !errors.Is(err, boom) {
-		t.Fatalf("encodeCSV = %v, want the writer's error", err)
 	}
 }

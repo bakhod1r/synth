@@ -8,6 +8,16 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.3] — 2026-08-04
+
+### Fixed
+
+- Build: `TestEncodeCSVHeaderWriteError` was declared twice, so `go vet` and
+  `go test` failed to compile the root package — the 1.4.2 release build never
+  produced binaries.
+- `Streamer.ToCSV` and `Streamer.ToJSONL` compile the schema before creating
+  the output file, so a schema error no longer leaves an empty file behind.
+
 ## [1.4.2] — 2026-08-04
 
 ### Changed
