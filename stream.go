@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"time"
@@ -50,16 +51,23 @@ func (s *Streamer[T]) engine() (*gen.Engine, *rng.Rand, []string, error) {
 
 // ToCSV streams records into a CSV file in constant memory.
 func (s *Streamer[T]) ToCSV(path string) error {
-	eng, base, cols, err := s.engine()
-	if err != nil {
-		return err
-	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	cw := csv.NewWriter(f)
+	return s.csvTo(f)
+}
+
+// csvTo is ToCSV against an already-open sink. The split is what makes the
+// write-error paths testable: a file that fails mid-stream needs a full disk to
+// reproduce, an io.Writer that fails needs three lines.
+func (s *Streamer[T]) csvTo(w io.Writer) error {
+	eng, base, cols, err := s.engine()
+	if err != nil {
+		return err
+	}
+	cw := csv.NewWriter(w)
 	defer cw.Flush()
 	if err := cw.Write(cols); err != nil {
 		return err
@@ -79,16 +87,21 @@ func (s *Streamer[T]) ToCSV(path string) error {
 
 // ToJSONL streams records into a JSONL file in constant memory.
 func (s *Streamer[T]) ToJSONL(path string) error {
-	eng, base, cols, err := s.engine()
-	if err != nil {
-		return err
-	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	enc := json.NewEncoder(f)
+	return s.jsonlTo(f)
+}
+
+// jsonlTo is ToJSONL against an already-open sink; see csvTo.
+func (s *Streamer[T]) jsonlTo(w io.Writer) error {
+	eng, base, cols, err := s.engine()
+	if err != nil {
+		return err
+	}
+	enc := json.NewEncoder(w)
 	for i := 0; i < s.n; i++ {
 		rec := eng.Record(base, i)
 		obj := make(map[string]any, len(cols))

@@ -656,7 +656,7 @@ const I18N = {
     digestHint: 'A salt keeps two datasets from sharing digests. A secret key makes the digest impossible to recompute — without it, a short value like a national id can simply be guessed and hashed until it matches.',
     algo: 'algorithm',
     algoDefault: 'SHA-256 (default)',
-    fieldLocale: 'locale',
+    fieldLocale: 'localize',
     localeInherit: 'dataset locale',
     blank: 'blank %',
     mask: 'mask',

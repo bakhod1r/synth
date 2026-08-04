@@ -8,6 +8,13 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.2] — 2026-08-04
+
+### Changed
+
+- The workbench labels the per-column locale picker `localize`, the name the
+  setting had before `locale=` replaced it.
+
 ## [1.4.1] — 2026-08-04
 
 ### Changed
