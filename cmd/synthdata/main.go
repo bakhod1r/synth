@@ -27,28 +27,38 @@ import (
 	"text/tabwriter"
 )
 
-const manifestPath = "sources.yaml"
-
-// noticePath is a variable rather than a constant so a test can point it at a
-// scratch file. It is a repository-relative path, and a test that redirected it
+// Both paths are variables rather than constants so a test can point them at
+// scratch files. They are repository-relative, and a test that redirected them
 // by changing the working directory would leave every other test — and the real
 // NOTICE — at the mercy of the order they run in.
-var noticePath = "../../NOTICE"
+var (
+	manifestPath = "sources.yaml"
+	noticePath   = "../../NOTICE"
+)
 
-func main() {
-	cache := flag.String("cache", defaultCache(), "where downloads are kept")
-	flag.Usage = usage
-	flag.Parse()
+func main() { os.Exit(run(os.Args[1:])) }
 
-	args := flag.Args()
+// run is main without the exit, so the command's behaviour — including the
+// exit codes, which are the part a script depends on — can be tested in
+// process. It parses its own flag set rather than the global one so a second
+// call does not see the first one's flags.
+func run(argv []string) int {
+	fs := flag.NewFlagSet("synthdata", flag.ContinueOnError)
+	cache := fs.String("cache", defaultCache(), "where downloads are kept")
+	fs.Usage = func() { usage(fs) }
+	if err := fs.Parse(argv); err != nil {
+		return 2
+	}
+
+	args := fs.Args()
 	if len(args) == 0 {
-		usage()
-		os.Exit(2)
+		usage(fs)
+		return 2
 	}
 
 	sources, err := LoadManifest(manifestPath)
 	if err != nil {
-		fail(err)
+		return fail(err)
 	}
 
 	switch args[0] {
@@ -56,25 +66,26 @@ func main() {
 		listSources(sources)
 	case "notice":
 		if err := writeNoticeFile(sources); err != nil {
-			fail(err)
+			return fail(err)
 		}
 		fmt.Println("wrote", noticePath)
 	case "verify":
 		if err := verify(sources, *cache, args[1:]); err != nil {
-			fail(err)
+			return fail(err)
 		}
 	case "import":
 		if err := runImport(sources, *cache, args[1:]); err != nil {
-			fail(err)
+			return fail(err)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", args[0])
-		usage()
-		os.Exit(2)
+		usage(fs)
+		return 2
 	}
+	return 0
 }
 
-func usage() {
+func usage(fs *flag.FlagSet) {
 	fmt.Fprint(os.Stderr, `synthdata — import Synth's datasets from open sources
 
 This is a developer tool. Its output is committed Go source; the library never
@@ -88,7 +99,7 @@ Usage:
 
 Flags:
 `)
-	flag.PrintDefaults()
+	fs.PrintDefaults()
 }
 
 func listSources(sources []Source) {
@@ -202,7 +213,9 @@ func defaultCache() string {
 	return ".cache"
 }
 
-func fail(err error) {
+// fail reports an error and returns the exit code that goes with it, so every
+// failing branch of run reads the same way.
+func fail(err error) int {
 	fmt.Fprintln(os.Stderr, "synthdata:", err)
-	os.Exit(1)
+	return 1
 }

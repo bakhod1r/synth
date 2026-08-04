@@ -98,3 +98,15 @@ func TestRateRunReportsCompileError(t *testing.T) {
 		t.Fatalf("Run = %v, want a compile error naming the struct requirement", err)
 	}
 }
+
+// The writer-level helpers are reachable on their own, and they carry the same
+// type check as the file entry points rather than assuming a caller went
+// through them.
+func TestStreamWriterHelpersRejectNonStructs(t *testing.T) {
+	if err := Stream[int](1).csvTo(&failWriter{after: 99}); err == nil {
+		t.Error("csvTo = nil error, want one for a non-struct type")
+	}
+	if err := Stream[int](1).jsonlTo(&failWriter{after: 99}); err == nil {
+		t.Error("jsonlTo = nil error, want one for a non-struct type")
+	}
+}

@@ -39,8 +39,14 @@ var nameBanks = func() map[string]nameBank {
 	return all
 }()
 
-func init() {
-	for code, b := range nameBanks {
+func init() { applyNameBanks(nameBanks) }
+
+// applyNameBanks copies each name bank onto the locale it belongs to. It is
+// separate from init so the skip — a bank whose locale is not registered, which
+// is how a bank added ahead of its locale fails — can be exercised; init itself
+// runs once, before any test can set up the case.
+func applyNameBanks(banks map[string]nameBank) {
+	for code, b := range banks {
 		l, ok := registry[code]
 		if !ok {
 			continue

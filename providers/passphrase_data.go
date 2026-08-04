@@ -14,8 +14,14 @@ import "github.com/bakhod1r/synth/schema"
 // The words are chosen to be short, concrete and unambiguous when spoken aloud,
 // which is what a passphrase is for.
 
-func init() {
-	for code, words := range passphraseBanks {
+func init() { registerPassphraseBanks(passphraseBanks) }
+
+// registerPassphraseBanks files each word bank under its locale, creating the
+// locale's catalog entry when this is the first dataset it has. It is separate
+// from init so both cases stay exercisable: init runs once, before a test can
+// arrange a locale that has no catalog yet.
+func registerPassphraseBanks(banks map[string][]string) {
+	for code, words := range banks {
 		if localeCatalog[code] == nil {
 			localeCatalog[code] = map[schema.Kind][]string{}
 		}

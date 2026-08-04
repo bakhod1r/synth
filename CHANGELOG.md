@@ -8,6 +8,24 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.5] — 2026-08-04
+
+### Changed
+
+- Test coverage: 98.5% → 99.5% for the library, 80.6% → 99.4% for the
+  `synthdata` import tool. What remains uncovered is unreachable defensive
+  code — error returns from functions that cannot fail, and `main` itself.
+- `synthdata`'s `main` is now a thin wrapper around `run`, which returns an
+  exit code instead of calling `os.Exit`. The exit codes are the part a script
+  depends on, and they can now be tested. `manifestPath` joins `noticePath` as
+  a variable so a test can point either at a scratch file.
+- `Streamer.ToCSV` and `Streamer.ToJSONL` delegate to internal `io.Writer`
+  helpers, so their write-error paths no longer need a full disk to exercise.
+  Both public methods behave exactly as before.
+- The name-bank and passphrase-bank registration each moved out of `init` into
+  a named function, so the case they skip — a dataset whose locale is not
+  registered — is testable. `init` runs before any test can arrange it.
+
 ## [1.4.4] — 2026-08-04
 
 ### Changed
@@ -274,7 +292,8 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.5...HEAD
+[1.4.5]: https://github.com/bakhod1r/synth/compare/v1.4.4...v1.4.5
 [1.4.0]: https://github.com/bakhod1r/synth/compare/v1.3.2...v1.4.0
 [1.1.0]: https://github.com/bakhod1r/synth/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bakhod1r/synth/releases/tag/v1.0.0
