@@ -8,6 +8,15 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.4] — 2026-08-04
+
+### Changed
+
+- `v1.4.2` is retracted in `go.mod`. It does not compile, and a module proxy
+  keeps serving a published version whether or not its tag still exists, so
+  the retraction — not the deleted tag — is what stops `go get` from picking
+  it up.
+
 ## [1.4.3] — 2026-08-04
 
 ### Fixed
