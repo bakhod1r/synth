@@ -162,6 +162,28 @@ func CategoryOf(k schema.Kind) string {
 	return "other"
 }
 
+// structurallyLocalized are the kinds whose values follow the locale through
+// their own data — a name bank, an address, a phone prefix, a bank's BIN
+// ranges — rather than through the word lists in providers.LocalesFor.
+var structurallyLocalized = map[schema.Kind]bool{
+	schema.KindName: true, schema.KindFirstName: true, schema.KindLastName: true,
+	schema.KindMiddleName: true, schema.KindCity: true, schema.KindRegion: true,
+	schema.KindCountry: true, schema.KindPostcode: true, schema.KindStreet: true,
+	schema.KindPhone: true, schema.KindIBAN: true, schema.KindCard: true,
+	schema.KindCompany: true, schema.KindCurrency: true, schema.KindIPv4: true,
+	schema.KindEmail: true, schema.KindUsername: true,
+}
+
+// IsLocalized reports whether a kind's values change with the locale, given
+// the locales that have their own word list for it. Both the server and the
+// WebAssembly build answer /api/types through this, so the palette's dot means
+// the same thing in either. Everything outside structurallyLocalized is
+// reported as localized only where a real dataset exists, so the UI never
+// implies coverage the engine does not have.
+func IsLocalized(k schema.Kind, covered []string) bool {
+	return structurallyLocalized[k] || len(covered) > 0
+}
+
 var categories = []struct {
 	name      string
 	kinds     []string

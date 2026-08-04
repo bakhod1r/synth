@@ -24,8 +24,11 @@ type Engine struct {
 	schema *schema.Schema
 	loc    *locale.Locale
 	// base is the locale a field falls back to when it sets localize=false.
-	base  *locale.Locale
-	order []int // field indices in dependency order
+	base *locale.Locale
+	// fieldLoc caches the locales named by locale= overrides, resolved once at
+	// compile time so generating a row is still a map lookup per field.
+	fieldLoc map[string]*locale.Locale
+	order    []int // field indices in dependency order
 	// Chaos is the probability [0,1] that a string/numeric field carries an
 	// edge-case value instead of a normal one (see WithChaos).
 	Chaos float64
@@ -50,6 +53,13 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 		if f.FromRef != nil {
 			continue // filled from a parent slice, no provider needed
 		}
+		if f.Kind == schema.KindArray && f.Elem == nil {
+			// An array declared without an element type — `kind: array` with no
+			// items, or a `synth:"array"` tag on a field whose element could
+			// not be inferred — has nothing to generate. Saying so at compile
+			// time beats a nil dereference on the first record.
+			return nil, fmt.Errorf("synth: field %q is an array with no element type", f.Name)
+		}
 		if f.Kind == schema.KindObject || f.Kind == schema.KindArray {
 			continue // handled by recursive sub-engines, not a provider
 		}
@@ -73,6 +83,22 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 		}
 	}
 	e := &Engine{schema: s, loc: locale.Get(localeName), base: locale.Get(baseLocale), order: order}
+	// Resolve every locale= override up front: an unknown name is a mistake in
+	// the spec, and reporting it here beats a column that silently generates in
+	// English because locale.Get fell back.
+	for i := range s.Fields {
+		name := localeParam(&s.Fields[i])
+		if name == "" {
+			continue
+		}
+		if !locale.Has(name) {
+			return nil, fmt.Errorf("synth: field %q names unknown locale %q", s.Fields[i].Name, name)
+		}
+		if e.fieldLoc == nil {
+			e.fieldLoc = map[string]*locale.Locale{}
+		}
+		e.fieldLoc[name] = locale.Get(name)
+	}
 	// Compile nested object schemas recursively (sharing the same locale).
 	for i := range s.Fields {
 		f := &s.Fields[i]
@@ -224,10 +250,7 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 		return e.array(r, f, place, gender, values)
 	}
 	p := providers.Get(f.Kind)
-	loc, pl := e.loc, place
-	if !localizeField(f) {
-		loc, pl = e.base, basePlaceFor(e.base, place)
-	}
+	loc, pl := e.fieldLocale(f, place)
 	c := providers.Ctx{
 		Rand:   r,
 		Locale: loc,

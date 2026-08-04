@@ -206,7 +206,7 @@ func types() []typeInfo {
 		out = append(out, typeInfo{
 			Kind:      string(k),
 			Category:  webspec.CategoryOf(k),
-			Localized: len(locales) > 0,
+			Localized: webspec.IsLocalized(k, locales),
 			Locales:   locales,
 		})
 	}

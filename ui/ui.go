@@ -117,7 +117,7 @@ func handleTypes(w http.ResponseWriter, r *http.Request) {
 		out = append(out, typeInfo{
 			Kind:      string(k),
 			Category:  webspec.CategoryOf(k),
-			Localized: structurallyLocalized[k] || len(covered) > 0,
+			Localized: webspec.IsLocalized(k, covered),
 			Locales:   covered,
 		})
 	}
@@ -226,18 +226,4 @@ func writeJSON(w http.ResponseWriter, v any) {
 	// ever be readable cross-origin.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	json.NewEncoder(w).Encode(v)
-}
-
-// structurallyLocalized are the kinds whose values follow the locale through
-// its own data — a name bank, an address, a phone prefix, a bank's BIN ranges
-// — rather than through the word lists in providers.LocalesFor. Everything
-// else is reported as localized only where a real dataset exists, so the UI
-// never implies coverage the engine does not have.
-var structurallyLocalized = map[schema.Kind]bool{
-	schema.KindName: true, schema.KindFirstName: true, schema.KindLastName: true,
-	schema.KindMiddleName: true, schema.KindCity: true, schema.KindRegion: true,
-	schema.KindCountry: true, schema.KindPostcode: true, schema.KindStreet: true,
-	schema.KindPhone: true, schema.KindIBAN: true, schema.KindCard: true,
-	schema.KindCompany: true, schema.KindCurrency: true, schema.KindIPv4: true,
-	schema.KindEmail: true, schema.KindUsername: true,
 }

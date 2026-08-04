@@ -164,3 +164,82 @@ func TestLocalizeField(t *testing.T) {
 		t.Error("a field with no params must stay localized")
 	}
 }
+
+// A named locale overrides the dataset's, per field, without disturbing its
+// neighbours or the rng stream they draw from.
+func TestFieldLocaleOverride(t *testing.T) {
+	s := &schema.Schema{Fields: []schema.Field{
+		field("Local", schema.KindFirstName, nil),
+		field("JP", schema.KindFirstName, map[string]string{"locale": "ja_JP"}),
+	}}
+	rows := genRows(t, s, "uz_UZ", 20)
+
+	plain := &schema.Schema{Fields: []schema.Field{field("Local", schema.KindFirstName, nil)}}
+	want := genRows(t, plain, "uz_UZ", 20)
+
+	jpNames := map[string]bool{}
+	for i, row := range rows {
+		if row["Local"] != want[i]["Local"] {
+			t.Fatalf("row %d: an override shifted a neighbouring field: %v vs %v",
+				i, row["Local"], want[i]["Local"])
+		}
+		jpNames[row["JP"].(string)] = true
+	}
+
+	ja := map[string]bool{}
+	for _, n := range locale.Get("ja_JP").MaleFirst {
+		ja[n] = true
+	}
+	for _, n := range locale.Get("ja_JP").FemaleFirst {
+		ja[n] = true
+	}
+	for name := range jpNames {
+		if !ja[name] {
+			t.Errorf("locale=ja_JP produced %q, which is not a Japanese first name", name)
+		}
+	}
+}
+
+// locale= wins over localize=false: naming a locale is the more specific
+// instruction, and honouring the vaguer one would silently drop it.
+func TestFieldLocaleBeatsLocalizeFalse(t *testing.T) {
+	s := &schema.Schema{Fields: []schema.Field{
+		field("Name", schema.KindFirstName, map[string]string{"locale": "ja_JP", "localize": "false"}),
+	}}
+	en := map[string]bool{}
+	for _, n := range locale.Get("en_US").MaleFirst {
+		en[n] = true
+	}
+	for _, row := range genRows(t, s, "uz_UZ", 20) {
+		if en[row["Name"].(string)] {
+			t.Fatalf("localize=false won over locale=ja_JP: %v", row["Name"])
+		}
+	}
+}
+
+// A typo in a locale name is a compile error, not a column that quietly
+// generates in English.
+func TestFieldLocaleUnknownIsAnError(t *testing.T) {
+	s := &schema.Schema{Fields: []schema.Field{
+		field("Name", schema.KindFirstName, map[string]string{"locale": "zz_ZZ"}),
+	}}
+	if _, err := Compile(s, "uz_UZ"); err == nil {
+		t.Fatal("Compile accepted an unknown locale name")
+	}
+}
+
+// Naming the dataset's own locale is a no-op rather than a reroute through the
+// place mapping, which would otherwise pin every row to one city.
+func TestFieldLocaleSameAsDataset(t *testing.T) {
+	s := &schema.Schema{Fields: []schema.Field{
+		field("City", schema.KindCity, map[string]string{"locale": "uz_UZ"}),
+	}}
+	plain := &schema.Schema{Fields: []schema.Field{field("City", schema.KindCity, nil)}}
+	got, want := genRows(t, s, "uz_UZ", 10), genRows(t, plain, "uz_UZ", 10)
+	for i := range got {
+		if got[i]["City"] != want[i]["City"] {
+			t.Fatalf("row %d: locale=uz_UZ on a uz_UZ dataset changed the value: %v vs %v",
+				i, got[i]["City"], want[i]["City"])
+		}
+	}
+}

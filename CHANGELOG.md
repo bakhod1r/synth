@@ -8,6 +8,29 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-08-03
+
+### Added
+
+- Per-field locale: `locale=ja_JP` on a struct tag, or `locale: ja_JP` in a YAML
+  field, generates that one column as if the dataset locale were that locale.
+  `localize=false` could only say "English instead"; a record that mixes voices
+  for any other reason — a Japanese phone number on an Uzbek customer, a German
+  shipping city on a Turkish order — now has a way to say so. It wins over
+  `localize=` when both are set, and an unknown locale name is a compile error
+  rather than a silent fall back to English.
+- The workbench offers the same setting per column, next to `localize`.
+- `locale.Has` reports whether a locale name is registered — `locale.Get` falls
+  back to `en_US`, which is right when generating and wrong when validating.
+
+### Fixed
+
+- The hosted WebAssembly workbench marked a type as locale-following only when
+  it had a per-locale word list, so structurally localized types — `name`,
+  `email`, `phone`, `country`, `city` and the rest — showed an unlit dot and
+  hid their `localize` setting. Both builds now answer `/api/types` through one
+  shared rule, so the palette means the same thing in either.
+
 ## [1.3.2] — 2026-08-03
 
 ### Fixed
@@ -215,6 +238,7 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/bakhod1r/synth/compare/v1.3.2...v1.4.0
 [1.1.0]: https://github.com/bakhod1r/synth/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bakhod1r/synth/releases/tag/v1.0.0

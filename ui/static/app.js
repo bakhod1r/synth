@@ -11,6 +11,7 @@ const DATE_BOUND_KINDS = new Set(['time', 'unixtime']);
 
 const state = {
   types: [],          // [{kind, category, localized, locales}]
+  locales: [],        // every locale the engine knows, for the per-field picker
   byKind: new Map(),
   fields: [],         // [{name, kind, params, auto}]
   lang: 'en',
@@ -45,6 +46,7 @@ async function boot() {
     fetch('/api/locales').then((r) => r.json()),
   ]);
   state.types = types;
+  state.locales = locales;
   for (const ty of types) state.byKind.set(ty.kind, ty);
 
   const sel = el('locale');
@@ -337,6 +339,11 @@ function settingsFor(field) {
     list.push({ key: 'localize', type: 'select', options: ['', 'false'], labels: {
       '': 'localizeOn', false: 'localizeOff',
     } });
+    // Or name a locale outright: a Japanese phone number on an Uzbek record is
+    // a real dataset, and localize= alone can only say "English instead".
+    list.push({ key: 'locale', type: 'select', label: 'fieldLocale', options: ['', ...state.locales], labels: {
+      '': 'localeInherit',
+    } });
   }
   // The digest options only exist for the two modes that produce a digest.
   // Showing them next to mask=redact would suggest a salt changes something
@@ -374,7 +381,9 @@ function control(field, index, spec) {
   const row = document.createElement('label');
   row.className = 'setting';
   const label = document.createElement('span');
-  label.textContent = t(spec.key);
+  // A setting names its own label only where the param key already means
+  // something else in the dictionary: "locale" is the dataset-wide picker.
+  label.textContent = t(spec.label || spec.key);
   row.appendChild(label);
 
   let input;
@@ -394,7 +403,11 @@ function control(field, index, spec) {
     for (const value of spec.options) {
       const o = document.createElement('option');
       o.value = value;
-      o.textContent = spec.labels ? t(spec.labels[value]) : (value === '' ? '—' : value);
+      // A labels map may cover only some options — the locale list is dozens of
+      // codes with one translated entry at the top — so a missing label falls
+      // back to the value rather than rendering "undefined".
+      const key = spec.labels && spec.labels[value];
+      o.textContent = key ? t(key) : (value === '' ? '—' : value);
       input.appendChild(o);
     }
     input.value = field.params[spec.key] ?? '';

@@ -125,6 +125,14 @@ func Names() []string {
 	return out
 }
 
+// Has reports whether a locale is registered. Get falls back to en_US for an
+// unknown name, which is the right default when generating and the wrong one
+// when validating a spec — a caller that wants to reject a typo needs this.
+func Has(name string) bool {
+	_, ok := registry[name]
+	return ok
+}
+
 // Get returns a locale by name, falling back to en_US.
 func Get(name string) *Locale {
 	l, ok := registry[name]

@@ -2,6 +2,9 @@
 
 ![Synth](assets/banner.png)
 
+**[Demo — bakhod1r.github.io/synth](https://bakhod1r.github.io/synth)** — the
+workbench, generator compiled to WebAssembly, nothing uploaded.
+
 **Fakers give you random strings. Synth gives you a dataset that holds together.**
 
 A user's email matches their name. A transaction points at a real account, in that account's currency, with a timestamp after the account was opened. Every card passes Luhn, every IBAN passes its checksum. That's the difference: fakers generate *fields*, Synth generates *records that reference each other* — at millions of rows per run, streamed, in constant memory.
@@ -154,6 +157,29 @@ phone, currency, national IDs, and the catalog types with per-locale data.
 no-op because there was never anything locale-specific to turn off. A
 de-localized address field still agrees with its de-localized neighbours: they
 share one `en_US` place, so the city still matches the postcode.
+
+A column can also name a locale of its own, which is the same lever pointed
+somewhere other than English — a Japanese phone number on an Uzbek customer, a
+German shipping city on a Turkish order:
+
+```go
+type Order struct {
+    Customer string `synth:"name"`                 // Uzbek
+    Phone    string `synth:"phone,locale=ja_JP"`   // +81…
+    ShipCity string `synth:"city,locale=de_DE"`    // Berlin
+}
+```
+
+```yaml
+fields:
+  customer: {kind: name}
+  phone:    {kind: phone, locale: ja_JP}
+```
+
+`locale=` wins over `localize=` when both are set — naming a locale is the more
+specific instruction. An unknown name is a compile error rather than a silent
+fall back to English, because a typo that quietly changes a column's language is
+the failure this option exists to prevent.
 
 Within one record the choices are not independent. A single `locale.Place` is
 drawn first, and every place-derived field reads from it — which is why the city

@@ -28,8 +28,44 @@ import (
 // not inherited by its members: the members carry their own setting, so that
 // opting one column out never silently de-localizes a whole sub-record.
 
+// Per-field locale: locale=xx_XX.
+//
+// localize=false answers "not in the dataset's language", which covers the
+// common case and nothing beyond it. A record can legitimately mix voices for
+// a reason other than falling back to English: an Uzbek customer with a
+// Japanese phone number, a German shipping city on an otherwise Turkish order.
+//
+//	locale: ja_JP    generate this field as if the dataset locale were ja_JP
+//
+// It wins over localize= when both are set — naming a locale is the more
+// specific instruction. An unknown name is a compile error rather than a
+// silent fall back to English, because a typo that quietly changes a column's
+// language is the exact failure this option exists to prevent.
+
 // baseLocale is what a de-localized field generates as.
 const baseLocale = "en_US"
+
+// localeParam returns the field's explicit locale= override, empty when unset.
+func localeParam(f *schema.Field) string {
+	return strings.TrimSpace(f.Params["locale"])
+}
+
+// fieldLocale resolves the locale a field generates in, and the place within
+// it. The record's place is mapped rather than redrawn, so that two fields
+// sharing an override still agree on a city and no override shifts the rng
+// stream for the fields after it.
+func (e *Engine) fieldLocale(f *schema.Field, place *locale.Place) (*locale.Locale, *locale.Place) {
+	if name := localeParam(f); name != "" {
+		if loc := e.fieldLoc[name]; loc != nil && loc != e.loc {
+			return loc, basePlaceFor(loc, place)
+		}
+		return e.loc, place
+	}
+	if !localizeField(f) {
+		return e.base, basePlaceFor(e.base, place)
+	}
+	return e.loc, place
+}
 
 // localizeField reports whether the field follows the dataset locale. Anything
 // other than an explicit false keeps the default (localized) behaviour: a typo

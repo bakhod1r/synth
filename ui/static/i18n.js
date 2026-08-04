@@ -659,6 +659,8 @@ const I18N = {
     localize: 'localize',
     localizeOn: 'follow locale',
     localizeOff: 'always en_US',
+    fieldLocale: 'locale',
+    localeInherit: 'dataset locale',
     blank: 'blank %',
     mask: 'mask',
     done: 'Done',
