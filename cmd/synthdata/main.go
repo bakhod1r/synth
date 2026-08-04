@@ -27,10 +27,13 @@ import (
 	"text/tabwriter"
 )
 
-const (
-	manifestPath = "sources.yaml"
-	noticePath   = "../../NOTICE"
-)
+const manifestPath = "sources.yaml"
+
+// noticePath is a variable rather than a constant so a test can point it at a
+// scratch file. It is a repository-relative path, and a test that redirected it
+// by changing the working directory would leave every other test — and the real
+// NOTICE — at the mercy of the order they run in.
+var noticePath = "../../NOTICE"
 
 func main() {
 	cache := flag.String("cache", defaultCache(), "where downloads are kept")
