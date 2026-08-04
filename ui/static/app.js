@@ -331,16 +331,11 @@ function settingsFor(field) {
       '': 'maskNone', partial: 'mask_partial', hash: 'mask_hash', redact: 'mask_redact', token: 'mask_token',
     } },
   ];
-  // A field whose values follow the locale can be opted out of it — an English
-  // category on an otherwise Uzbek record. Offered only where it does something:
-  // on a type the locale never reaches, localize= is a no-op (see gen/localize).
+  // A field whose values follow the locale can name a locale outright: a Japanese
+  // phone number on an Uzbek record is a real dataset. Offered only where it does
+  // something: on a type the locale never reaches it is a no-op (see gen/localize).
   const meta = state.byKind.get(field.kind);
   if (meta && meta.localized) {
-    list.push({ key: 'localize', type: 'select', options: ['', 'false'], labels: {
-      '': 'localizeOn', false: 'localizeOff',
-    } });
-    // Or name a locale outright: a Japanese phone number on an Uzbek record is
-    // a real dataset, and localize= alone can only say "English instead".
     list.push({ key: 'locale', type: 'select', label: 'fieldLocale', options: ['', ...state.locales], labels: {
       '': 'localeInherit',
     } });

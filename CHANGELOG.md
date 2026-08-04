@@ -8,6 +8,16 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-08-04
+
+### Changed
+
+- The workbench no longer shows a `localize` dropdown per column. Per-field
+  `locale=` says everything `localize=false` could — `locale: en_US` is the
+  same opt-out — so two controls for one decision only invited setting both
+  and wondering which won. `localize=` is untouched in struct tags, YAML and
+  the API; only the workbench control is gone.
+
 ## [1.4.0] — 2026-08-03
 
 ### Added
