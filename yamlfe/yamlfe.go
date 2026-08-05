@@ -85,7 +85,9 @@ type fieldDef struct {
 	Choices []string  `yaml:"choices"`
 	Weights []float64 `yaml:"weights"`
 	Unique  bool      `yaml:"unique"`
-	PK      bool      `yaml:"pk"`
+	// UniqueMode selects how unique is enforced ("" or "counter").
+	UniqueMode string `yaml:"unique_mode"`
+	PK         bool   `yaml:"pk"`
 }
 
 // Load parses a YAML spec file.
@@ -154,11 +156,13 @@ var knownKeys = map[string]bool{
 	"kind": true, "from": true, "match": true, "min": true, "max": true,
 	"dist": true, "mu": true, "sigma": true, "s": true, "rate": true,
 	"gap": true, "choices": true, "weights": true, "unique": true, "pk": true,
+	"unique_mode": true,
 }
 
 func toField(name string, fd fieldDef, extra map[string]any) schema.Field {
 	f := schema.Field{Name: name, Params: map[string]string{}, From: fd.From, Match: fd.Match,
-		Choices: fd.Choices, Weights: fd.Weights, Unique: fd.Unique, PK: fd.PK}
+		Choices: fd.Choices, Weights: fd.Weights, Unique: fd.Unique,
+		UniqueMode: fd.UniqueMode, PK: fd.PK}
 	if fd.PK {
 		f.Unique = true
 		if fd.Kind == "" {

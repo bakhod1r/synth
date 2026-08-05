@@ -143,3 +143,19 @@ func TestGoTypeNameNamed(t *testing.T) {
 		t.Fatalf("named type = %q", got)
 	}
 }
+
+// `unique=counter` picks the enforcement strategy, where a bare `unique` leaves
+// it at the default.
+func TestParseTagUniqueMode(t *testing.T) {
+	type row struct {
+		Slug  string `synth:"username,unique=counter"`
+		Plain string `synth:"username,unique"`
+	}
+	s, _ := Build(reflect.TypeOf(row{}))
+	if f := s.FieldByName("Slug"); !f.Unique || f.UniqueMode != "counter" {
+		t.Fatalf("unique=counter = %+v", f)
+	}
+	if f := s.FieldByName("Plain"); !f.Unique || f.UniqueMode != "" {
+		t.Fatalf("bare unique = %+v", f)
+	}
+}

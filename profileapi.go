@@ -106,6 +106,9 @@ func (p *Profiled) Generate(n int, opts ...Option) ([]map[string]any, error) {
 	for i := 0; i < n; i++ {
 		out[i] = eng.Record(base, i)
 	}
+	if err := eng.Err(); err != nil {
+		return nil, err
+	}
 	if err := enforceAll(p.cons, out); err != nil {
 		return nil, err
 	}

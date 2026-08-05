@@ -87,7 +87,7 @@ func (s *Streamer[T]) csvTo(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+	return eng.Err()
 }
 
 // ToJSONL streams records into a JSONL file in constant memory.
@@ -120,7 +120,7 @@ func (s *Streamer[T]) jsonlTo(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+	return eng.Err()
 }
 
 // Each calls fn for every generated record, one at a time (constant memory).
@@ -136,5 +136,5 @@ func (s *Streamer[T]) Each(fn func(T) error) error {
 			return err
 		}
 	}
-	return nil
+	return eng.Err()
 }

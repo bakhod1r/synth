@@ -40,7 +40,7 @@ func MakeParallel[T any](n, workers int, opts ...Option) ([]T, error) {
 	}
 	eng.Chaos = cfg.chaos
 	if eng.HasUnique() {
-		return nil, fmt.Errorf("synth: MakeParallel does not support unique fields; use Make")
+		return nil, fmt.Errorf("synth: MakeParallel does not support tracked unique fields; use Make, or declare them unique=counter")
 	}
 
 	out := make([]T, n)

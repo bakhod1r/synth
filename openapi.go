@@ -62,6 +62,8 @@ func (a *APISpec) Payloads(method, path string, n int, opts ...Option) ([]map[st
 	for i := 0; i < n; i++ {
 		out[i] = eng.Record(base, i)
 	}
+	// No eng.Err check: OpenAPI has no way to declare a scalar unique, so the
+	// generation errors that need reporting elsewhere cannot arise here.
 	return out, nil
 }
 

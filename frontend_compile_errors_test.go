@@ -86,3 +86,48 @@ func TestProfiledGenerateReportsUnsatisfiableConstraint(t *testing.T) {
 		t.Errorf("error = %q, want it to say which constraint could not hold", err)
 	}
 }
+
+// exhaustibleSchema declares a column unique whose value space holds two
+// values, so a run of any length must report exhaustion instead of repeating
+// one of them.
+func exhaustibleSchema() *schema.Schema {
+	return &schema.Schema{Fields: []schema.Field{{
+		Name:    "status",
+		Kind:    schema.KindEnum,
+		Choices: []string{"new", "open"},
+		Unique:  true,
+		Params:  map[string]string{},
+	}}}
+}
+
+// Exhaustion is found while generating, not while compiling, so every frontend
+// has to check for it after its loop — a frontend that forgets returns rows
+// with a duplicate in a column it promised was unique. As above, the frontends
+// are driven through their own structs: most parsers have no syntax for
+// uniqueness, but they all share the generation step that enforces it.
+func TestFrontendsReturnExhaustionErrors(t *testing.T) {
+	bad := exhaustibleSchema()
+	cases := []struct {
+		name string
+		gen  func(int, ...Option) ([]map[string]any, error)
+	}{
+		{"ddl", (&DDLTable{name: "t", order: []string{"status"}, schema: bad}).Generate},
+		{"schemafile", (&SchemaFile{tbl: &schemafe.Table{Name: "t", Order: []string{"status"}, Schema: bad}}).Generate},
+		{"proto", (&ProtoMessage{msg: &protofe.Message{Name: "T", Order: []string{"status"}, Schema: bad}}).Generate},
+		{"profiled", (&Profiled{res: &profile.Result{Schema: bad, Order: []string{"status"}}}).Generate},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rows, err := tc.gen(50)
+			if err == nil {
+				t.Fatalf("Generate = %v, want an exhaustion error", rows)
+			}
+			if !strings.Contains(err.Error(), "ran out of unique values") {
+				t.Errorf("error = %q, want it to name the exhausted field", err)
+			}
+			if rows != nil {
+				t.Errorf("rows = %v, want nil alongside the error", rows)
+			}
+		})
+	}
+}

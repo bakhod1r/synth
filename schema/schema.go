@@ -336,6 +336,13 @@ type Field struct {
 	Match string
 	// Unique requests distinct values across the generated set.
 	Unique bool
+	// UniqueMode selects how Unique is enforced. The empty string means
+	// rejection sampling against a set of every value generated so far: values
+	// stay natural, but memory grows with the row count and a field whose value
+	// space is smaller than the row count fails with an exhaustion error.
+	// "counter" instead derives distinctness from the record index — constant
+	// memory, safe under parallel generation, at the cost of a visible suffix.
+	UniqueMode string
 	// PK marks the primary key, used as the join target for Ref.
 	PK bool
 	// FromRef, when set, means this field is a foreign key filled from a

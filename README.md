@@ -104,6 +104,35 @@ Timestamps aren't random points in a range — they respect the order events can
 synth.Orders(1_000, synth.Timeline("2026-01-01", "2026-07-01"), synth.Lifecycle(synth.OrderFlow))
 ```
 
+### Unique columns
+A column marked `unique` gets distinct values. By default Synth resamples until
+it finds a fresh one, tracking everything generated so far — values stay natural,
+but memory grows with the row count, and a column with fewer possible values than
+rows is an error rather than a silent duplicate:
+
+```
+synth: field "status" ran out of unique values after 3 rows; its value space is
+too small for the row count (use unique=counter, or widen the field)
+```
+
+`unique=counter` instead derives distinctness from the record index. It costs a
+visible suffix (`ivanov.dilnoza41293@gmail.com`) and buys constant memory, any
+row count, and parallel generation — `MakeParallel` accepts it, where tracked
+unique fields must go through `Make`.
+
+```go
+type Row struct {
+	ID    uuid.UUID `synth:"pk"`                    // unique by construction
+	Email string    `synth:"email,unique"`          // tracked, natural values
+	Slug  string    `synth:"username,unique=counter"` // constant memory at 1B rows
+}
+```
+
+```yaml
+fields:
+  slug: { kind: username, unique: true, unique_mode: counter }
+```
+
 ### Format-valid values
 Every generated identifier passes the check a real system would run on it:
 

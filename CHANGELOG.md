@@ -8,6 +8,38 @@ accident.
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-08-05
+
+### Added
+
+- `unique=counter`, a second way to enforce a unique column. The default keeps
+  a set of every value generated so far and resamples on a collision, which
+  costs memory proportional to the row count and rules out parallel workers.
+  Counter mode derives distinctness from the record index instead — constant
+  memory at any row count, safe inside `MakeParallel`, at the cost of a visible
+  suffix (`dilnoza.ivanova41293@gmail.com`). Available as a struct tag
+  (`synth:"email,unique=counter"`), as YAML (`unique_mode: counter`), and as
+  `schema.Field.UniqueMode` for anything built on the schema directly.
+
+### Fixed
+
+- A unique column whose value space was smaller than the row count emitted
+  duplicates without saying so: the resampling loop gave up after 1000
+  collisions and kept the last value it drew. It now reports the exhaustion,
+  naming the field and the row count it reached, and every generating surface
+  — `Make`/`TryMake`, `Stream`, `Rate`, and the DDL, YAML, Protobuf and
+  profile frontends — returns that error instead of rows that quietly break
+  the constraint they were generated under.
+
+  Datasets generated before this release from a unique column with a small
+  value space (an enum, a boolean, a narrow integer range) may contain
+  duplicates. Regenerating them will now either succeed or tell you why not.
+
+### Changed
+
+- `MakeParallel` rejects only tracked unique fields; counter-mode ones are
+  parallel-safe and now go through. Its error says so.
+
 ## [1.4.6] — 2026-08-05
 
 ### Fixed

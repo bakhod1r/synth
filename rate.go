@@ -73,6 +73,11 @@ func (r *RateStream[T]) Run(ctx context.Context, fn func(T) error) error {
 			}
 			var rec T
 			scatter(&rec, eng.Record(base, emitted))
+			// A rate stream has no end to check at, so a generation failure
+			// stops it at the record that hit it.
+			if err := eng.Err(); err != nil {
+				return err
+			}
 			if err := fn(rec); err != nil {
 				return err
 			}

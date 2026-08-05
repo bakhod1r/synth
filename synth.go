@@ -174,6 +174,9 @@ func TryMake[T any](n int, opts ...Option) ([]T, error) {
 		rec := eng.Record(base, i)
 		scatter(&out[i], rec)
 	}
+	if err := eng.Err(); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 

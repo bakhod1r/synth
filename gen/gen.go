@@ -34,6 +34,13 @@ type Engine struct {
 	Chaos float64
 	// seen tracks generated values per unique field, to enforce distinctness.
 	seen map[string]map[any]bool
+	// counter lists the unique fields enforced by record-index suffix rather
+	// than by tracking, keyed by field name (see schema.Field.UniqueMode).
+	counter map[string]bool
+	// err records the first generation failure. Record cannot return an error
+	// without changing every caller, so the failure is held here and reported
+	// by Err once the run is over.
+	err error
 	// sub holds compiled engines for nested object schemas, keyed by the
 	// nested *schema.Schema pointer.
 	sub map[*schema.Schema]*Engine
@@ -122,11 +129,27 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 	for _, f := range s.Fields {
 		// UUIDs are unique by construction — no stateful tracking needed, which
 		// also keeps them safe for parallel generation.
-		if f.Unique && f.Kind != schema.KindUUID {
+		if !f.Unique || f.Kind == schema.KindUUID {
+			continue
+		}
+		switch f.UniqueMode {
+		case "":
 			if e.seen == nil {
 				e.seen = map[string]map[any]bool{}
 			}
 			e.seen[f.Name] = map[any]bool{}
+		case "counter":
+			// The suffix is applied to the rendered value, so the kind only has
+			// to produce something printable. Composite kinds are not.
+			if f.Kind == schema.KindObject || f.Kind == schema.KindArray {
+				return nil, fmt.Errorf("synth: field %q: unique=counter needs a scalar field, got %s", f.Name, f.Kind)
+			}
+			if e.counter == nil {
+				e.counter = map[string]bool{}
+			}
+			e.counter[f.Name] = true
+		default:
+			return nil, fmt.Errorf("synth: field %q: unknown unique mode %q (want %q or %q)", f.Name, f.UniqueMode, "", "counter")
 		}
 	}
 	return e, nil
@@ -193,34 +216,93 @@ func (e *Engine) Record(base *rng.Rand, seq int) map[string]any {
 	if r.Bool(0.5) {
 		gender = "female"
 	}
-	return e.generate(r, &place, gender)
+	return e.generate(r, &place, gender, seq)
 }
 
+// uniqueAttempts caps the resampling loop for tracked unique fields. Past this
+// many collisions in a row the field's value space is, for practical purposes,
+// used up, and more draws would only burn time before landing on a duplicate.
+const uniqueAttempts = 1000
+
 // generate fills one record using the given rng, locale place and gender
-// (shared so nested objects and name/gender fields stay coherent).
-func (e *Engine) generate(r *rng.Rand, place *locale.Place, gender string) map[string]any {
+// (shared so nested objects and name/gender fields stay coherent). seq is the
+// record index, used by unique=counter fields to derive distinctness.
+func (e *Engine) generate(r *rng.Rand, place *locale.Place, gender string, seq int) map[string]any {
 	values := make(map[string]any, len(e.schema.Fields))
 	for _, i := range e.order {
 		f := &e.schema.Fields[i]
-		v := e.field(r, f, place, gender, values)
+		v := e.field(r, f, place, gender, values, seq)
 		if e.Chaos > 0 && f.FromRef == nil && r.Bool(e.Chaos) {
 			v = chaosValue(r, v)
 		}
-		// Unique enforcement: resample until a fresh value is found. Uses a
-		// generous cap; on exhaustion it keeps the last value (callers should
-		// ensure the field's space exceeds the row count).
+		// Unique enforcement: resample until a fresh value is found. Running out
+		// of values is reported rather than papered over — a silent duplicate in
+		// a column declared unique is the kind of defect that surfaces later, in
+		// somebody else's database, as a failed import.
 		if seen := e.seen[f.Name]; seen != nil {
-			for attempt := 0; seen[v] && attempt < 1000; attempt++ {
-				v = e.field(r, f, place, gender, values)
+			attempt := 0
+			for seen[v] && attempt < uniqueAttempts {
+				v = e.field(r, f, place, gender, values, seq)
+				attempt++
+			}
+			if seen[v] {
+				e.fail(fmt.Errorf("synth: field %q ran out of unique values after %d rows; its value space is too small for the row count (use unique=counter, or widen the field)", f.Name, len(seen)))
 			}
 			seen[v] = true
+		}
+		if e.counter[f.Name] {
+			v = withCounter(v, seq)
 		}
 		values[f.Name] = v
 	}
 	return values
 }
 
-func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any) any {
+// withCounter makes a value distinct by folding in the record index. Numbers
+// become the index itself, so an integer key stays an integer; everything else
+// is rendered and suffixed, with emails keeping their domain so the result is
+// still a valid address.
+func withCounter(v any, seq int) any {
+	switch t := v.(type) {
+	case nil:
+		return seq
+	case int:
+		return seq
+	case int64:
+		return int64(seq)
+	case float64:
+		return float64(seq)
+	case string:
+		if local, domain, ok := strings.Cut(t, "@"); ok {
+			return local + strconv.Itoa(seq) + "@" + domain
+		}
+		return t + "_" + strconv.Itoa(seq)
+	default:
+		return fmt.Sprint(t) + "_" + strconv.Itoa(seq)
+	}
+}
+
+// elemSeq derives a distinct index for element i of a repeated field, so that
+// unique=counter inside an array stays distinct between elements of the same
+// record as well as between records. The shift bounds arrays at 65536 elements
+// before two elements could share an index, which is far past any array a
+// generated record has reason to hold.
+func elemSeq(seq, i int) int { return seq<<16 | i&0xffff }
+
+// fail records the first generation error; later ones are dropped, since they
+// are almost always the same problem repeating once per row.
+func (e *Engine) fail(err error) {
+	if e.err == nil {
+		e.err = err
+	}
+}
+
+// Err reports the first error hit while generating records, if any. Record
+// cannot return one, so callers that can surface an error check this after
+// their generation loop.
+func (e *Engine) Err() error { return e.err }
+
+func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any, seq int) any {
 	// A blank share applies to every kind, so it is handled here rather than
 	// asked of each provider. Real tables have missing values, and code that
 	// has only ever seen complete rows breaks the first time it meets a null.
@@ -241,13 +323,13 @@ func (e *Engine) field(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 	// Nested object: generate a sub-record with the same rng, place and gender.
 	if f.Kind == schema.KindObject {
 		if sub := e.sub[f.Nested]; sub != nil {
-			return sub.generate(r, place, gender)
+			return sub.generate(r, place, gender, seq)
 		}
 		return nil
 	}
 	// Array: generate a slice of elements (scalars or nested objects).
 	if f.Kind == schema.KindArray {
-		return e.array(r, f, place, gender, values)
+		return e.array(r, f, place, gender, values, seq)
 	}
 	p := providers.Get(f.Kind)
 	loc, pl := e.fieldLocale(f, place)
@@ -478,7 +560,7 @@ func cardMask(s string) string {
 }
 
 // array generates a slice value for a KindArray field.
-func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any) []any {
+func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, gender string, values map[string]any, seq int) []any {
 	min, max := f.ArrMin, f.ArrMax
 	if max < min {
 		max = min
@@ -491,13 +573,13 @@ func (e *Engine) array(r *rng.Rand, f *schema.Field, place *locale.Place, gender
 	for i := 0; i < n; i++ {
 		if f.Elem.Kind == schema.KindObject {
 			if sub := e.sub[f.Elem.Nested]; sub != nil {
-				out[i] = sub.generate(r, place, gender)
+				out[i] = sub.generate(r, place, gender, elemSeq(seq, i))
 				continue
 			}
 			out[i] = nil
 			continue
 		}
-		out[i] = e.field(r, f.Elem, place, gender, values)
+		out[i] = e.field(r, f.Elem, place, gender, values, elemSeq(seq, i))
 	}
 	return out
 }

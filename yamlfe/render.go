@@ -84,6 +84,10 @@ func renderField(f schema.Field) string {
 	} else if f.Unique {
 		parts = append(parts, "unique: true")
 	}
+	if f.UniqueMode != "" {
+		// The mode is a fixed keyword, not user text, so it needs no quoting.
+		parts = append(parts, "unique_mode: "+f.UniqueMode)
+	}
 	// from= and match= name other columns, so they carry the same hazards as a
 	// key does.
 	if f.From != "" {

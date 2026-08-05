@@ -239,7 +239,7 @@ func TestArrayDefaults(t *testing.T) {
 		Elem: &schema.Field{Name: "xs", Kind: schema.KindInt, Params: map[string]string{}}}
 	s := &schema.Schema{Fields: []schema.Field{f}}
 	e, _ := Compile(s, "en")
-	got := e.array(rng.New(1), &e.schema.Fields[0], &e.loc.Places[0], "male", map[string]any{})
+	got := e.array(rng.New(1), &e.schema.Fields[0], &e.loc.Places[0], "male", map[string]any{}, 0)
 	if len(got) < 1 || len(got) > 3 {
 		t.Fatalf("array len = %d", len(got))
 	}
@@ -250,7 +250,7 @@ func TestArrayObjectWithoutSubEngine(t *testing.T) {
 	f := schema.Field{Name: "xs", Kind: schema.KindArray, ArrMin: 2, ArrMax: 2, Params: map[string]string{},
 		Elem: &schema.Field{Name: "xs", Kind: schema.KindObject, Nested: &schema.Schema{}, Params: map[string]string{}}}
 	e := &Engine{schema: &schema.Schema{}, loc: locale.Get("en")}
-	out := e.array(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{})
+	out := e.array(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{}, 0)
 	for _, v := range out {
 		if v != nil {
 			t.Fatalf("expected nil element, got %v", v)
@@ -326,7 +326,7 @@ func TestUniqueResampleOnSmallSpace(t *testing.T) {
 func TestFieldObjectWithoutSubEngine(t *testing.T) {
 	f := schema.Field{Name: "Home", Kind: schema.KindObject, Nested: &schema.Schema{}, Params: map[string]string{}}
 	e := &Engine{schema: &schema.Schema{}, loc: locale.Get("en")}
-	if got := e.field(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{}); got != nil {
+	if got := e.field(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{}, 0); got != nil {
 		t.Fatalf("object without sub-engine should be nil, got %v", got)
 	}
 }
@@ -365,7 +365,7 @@ func TestArrayMaxBelowMin(t *testing.T) {
 	f := schema.Field{Name: "xs", Kind: schema.KindArray, ArrMin: 3, ArrMax: 1, Params: map[string]string{},
 		Elem: &schema.Field{Name: "xs", Kind: schema.KindInt, Params: map[string]string{}}}
 	e := &Engine{schema: &schema.Schema{}, loc: locale.Get("en")}
-	out := e.array(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{})
+	out := e.array(rng.New(1), &f, &e.loc.Places[0], "male", map[string]any{}, 0)
 	if len(out) != 3 {
 		t.Fatalf("max<min should clamp to min=3, got %d", len(out))
 	}

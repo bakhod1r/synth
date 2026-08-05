@@ -185,3 +185,27 @@ func TestParseErrors(t *testing.T) {
 		})
 	}
 }
+
+// unique_mode names how uniqueness is enforced, so it has to survive the round
+// trip: a spec that came back as default-mode would build a tracking set for a
+// column meant to run in constant memory.
+func TestUniqueModeRoundTrip(t *testing.T) {
+	s := &schema.Schema{Fields: []schema.Field{{
+		Name: "slug", Kind: schema.KindUsername, Unique: true,
+		UniqueMode: "counter", Params: map[string]string{},
+	}}}
+	doc, err := Render(s, []string{"slug"}, "rows", 10, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(doc), "unique_mode: counter") {
+		t.Fatalf("unique_mode not rendered:\n%s", doc)
+	}
+	back, err := Parse(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f := back.Schema.Fields[0]; !f.Unique || f.UniqueMode != "counter" {
+		t.Fatalf("unique_mode lost in the round trip: %+v", f)
+	}
+}

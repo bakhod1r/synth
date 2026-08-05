@@ -79,6 +79,9 @@ func (y *YAMLSpec) Generate(opts ...Option) ([]map[string]any, error) {
 	for i := 0; i < y.spec.Count; i++ {
 		out[i] = eng.Record(base, cfg.offset+i)
 	}
+	if err := eng.Err(); err != nil {
+		return nil, err
+	}
 	if err := enforceAll(y.spec.Constraints, out); err != nil {
 		return nil, err
 	}

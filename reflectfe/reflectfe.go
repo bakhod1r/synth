@@ -170,6 +170,10 @@ func parseTag(f *schema.Field, tag string) {
 				f.From = v
 			case "match":
 				f.Match = v
+			case "unique":
+				// `unique=counter` picks the enforcement strategy; a bare
+				// `unique` keeps the default (see schema.Field.UniqueMode).
+				f.Unique, f.UniqueMode = true, v
 			case "choices":
 				f.Choices = strings.Split(v, "|")
 			case "weights":
