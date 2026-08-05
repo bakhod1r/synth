@@ -8,6 +8,17 @@ accident.
 
 ## [Unreleased]
 
+## [1.4.6] — 2026-08-05
+
+### Fixed
+
+- Data race in `locale.Get`. It filled in a locale's `IPBlocks` on first call,
+  writing to a `*Locale` shared by every caller, so two goroutines generating
+  records at once raced on the same locale — which is what a worker pool does
+  on its first record. `Get` now only reads; `IPBlocks` is filled for every
+  registered locale at startup. Callers working around this by warming each
+  locale before starting workers can drop the warm-up.
+
 ## [1.4.5] — 2026-08-04
 
 ### Changed
@@ -292,8 +303,16 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.5...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.6...HEAD
+[1.4.6]: https://github.com/bakhod1r/synth/compare/v1.4.5...v1.4.6
 [1.4.5]: https://github.com/bakhod1r/synth/compare/v1.4.4...v1.4.5
+[1.4.4]: https://github.com/bakhod1r/synth/compare/v1.4.3...v1.4.4
+[1.4.3]: https://github.com/bakhod1r/synth/compare/v1.4.1...v1.4.3
+[1.4.1]: https://github.com/bakhod1r/synth/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/bakhod1r/synth/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/bakhod1r/synth/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/bakhod1r/synth/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/bakhod1r/synth/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/bakhod1r/synth/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bakhod1r/synth/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bakhod1r/synth/releases/tag/v1.0.0

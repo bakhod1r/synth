@@ -134,19 +134,38 @@ func Has(name string) bool {
 }
 
 // Get returns a locale by name, falling back to en_US.
+//
+// Get only reads. It used to fill in IPBlocks lazily on first call, which wrote
+// to a *Locale shared by every caller — two generator workers asking for the
+// same locale at once was a data race. IPBlocks is filled once at startup by
+// applyIPBlocks instead.
 func Get(name string) *Locale {
 	l, ok := registry[name]
 	if !ok {
 		return enUS
 	}
-	if l.IPBlocks == nil {
-		if b, ok := countryIPBlocks[name]; ok {
+	return l
+}
+
+// applyIPBlocks gives every registered locale its IPv4 blocks, defaulting to
+// the en_US ranges for a locale with no entry in countryIPBlocks. A locale that
+// declares its own IPBlocks keeps them.
+//
+// It is separate from init, and takes the map it reads, so a test can exercise
+// it directly; init itself runs before any test can arrange a case. The call
+// site is the init in locales_ext.go, because that is the last place a locale
+// is registered — name banks only decorate locales that already exist.
+func applyIPBlocks(blocks map[string][]int) {
+	for name, l := range registry {
+		if l.IPBlocks != nil {
+			continue
+		}
+		if b, ok := blocks[name]; ok {
 			l.IPBlocks = b
 		} else {
-			l.IPBlocks = countryIPBlocks["en_US"]
+			l.IPBlocks = blocks["en_US"]
 		}
 	}
-	return l
 }
 
 var enUS = &Locale{

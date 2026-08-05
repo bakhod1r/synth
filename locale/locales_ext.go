@@ -67,6 +67,8 @@ func init() {
 			registry[s.key] = mk(s)
 		}
 	}
+	// Last registration point in the package, so every locale exists by now.
+	applyIPBlocks(countryIPBlocks)
 }
 
 var extLocales = []seed{
