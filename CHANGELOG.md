@@ -8,6 +8,8 @@ accident.
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-08-06
+
 ### Added
 
 - Drawn images. Four new kinds — `avatar`, `productimage`, `logo` and
@@ -362,7 +364,9 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.4.6...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/bakhod1r/synth/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/bakhod1r/synth/compare/v1.4.6...v1.5.0
 [1.4.6]: https://github.com/bakhod1r/synth/compare/v1.4.5...v1.4.6
 [1.4.5]: https://github.com/bakhod1r/synth/compare/v1.4.4...v1.4.5
 [1.4.4]: https://github.com/bakhod1r/synth/compare/v1.4.3...v1.4.4
