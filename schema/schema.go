@@ -298,18 +298,27 @@ const (
 	KindCSC              Kind = "csc"
 	KindCID              Kind = "cid"
 	KindNationalID       Kind = "nationalid"
-	KindTaxID            Kind = "taxid"
-	KindAge              Kind = "age"
-	KindRiver            Kind = "river"
-	KindIMEI             Kind = "imei"
-	KindUPC              Kind = "upc"
-	KindRoutingNumber    Kind = "routingnumber"
-	KindAccountNumber    Kind = "accountnumber"
-	KindErrorCode        Kind = "errorcode"
-	KindCron             Kind = "cron"
-	KindFileSize         Kind = "filesize"
-	KindDuration         Kind = "duration"
-	KindGitTag           Kind = "gittag"
+
+	// Drawn images. Unlike KindImageURL, which points at a placeholder service,
+	// these are rendered locally from the row's own data: the image is a pure
+	// function of the subject, so the same person keeps the same face across
+	// runs and the dataset needs no network to be usable.
+	KindAvatar        Kind = "avatar"
+	KindProductImage  Kind = "productimage"
+	KindIdenticon     Kind = "identicon"
+	KindLogo          Kind = "logo"
+	KindTaxID         Kind = "taxid"
+	KindAge           Kind = "age"
+	KindRiver         Kind = "river"
+	KindIMEI          Kind = "imei"
+	KindUPC           Kind = "upc"
+	KindRoutingNumber Kind = "routingnumber"
+	KindAccountNumber Kind = "accountnumber"
+	KindErrorCode     Kind = "errorcode"
+	KindCron          Kind = "cron"
+	KindFileSize      Kind = "filesize"
+	KindDuration      Kind = "duration"
+	KindGitTag        Kind = "gittag"
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""

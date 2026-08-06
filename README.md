@@ -141,6 +141,47 @@ Every generated identifier passes the check a real system would run on it:
 - National IDs, VAT numbers, tax IDs — country-specific check digits
 - Emails, URLs, phone numbers — RFC / E.164 conformant
 
+### Images that belong to their row
+An `avatar` column that points at `picsum.photos` is a placeholder twice over:
+it needs the network, and it depicts nobody. Synth draws the picture instead,
+from the row's own text.
+
+```go
+type User struct {
+    ID     uuid.UUID `synth:"pk"`
+    Name   string
+    Avatar string `synth:"avatar,from=Name"`      // initials, colour, shape from the name
+    Icon   string `synth:"identicon,from=ID"`     // the GitHub-style pixel mark
+}
+```
+
+Four kinds: `avatar` (a person), `productimage` (a catalogue thumbnail),
+`logo` (a company monogram), `identicon` (a symmetric mark for any key).
+
+The image is a **pure function of the subject**, so the same person keeps the
+same face across runs, across formats and across datasets — regenerate the
+fixture and the diff is empty. `from=` is what ties it to the row; without it
+the picture depicts an unrelated name.
+
+| Param | Meaning |
+| --- | --- |
+| `from=<field>` | take the subject from a sibling column |
+| `format=` | `dataurl` (default, base64 SVG), `svg`, `png` |
+| `size=` | edge length in pixels (default 128, max 1024) |
+| `dir=` | write files there, put the path in the column |
+| `seed=` | a different but equally stable image |
+| `vary=true` | let repeated subjects differ (off by default) |
+
+Nothing is fetched and no font is required: text is rasterized from a built-in
+5×7 bitmap into plain rectangles, so the SVG renders identically everywhere and
+matches the PNG exactly. The renderer is usable on its own as
+[`imagegen`](imagegen), and the `dataurl` default drops straight into a browser
+with no file to ship alongside it. Worked example:
+[examples/images](examples/images), [examples/catalog.yaml](examples/catalog.yaml).
+
+The `imageurl` kind is unchanged — it still returns a placeholder-service URL
+for cases that want one.
+
 ### Locale coherence
 Locale isn't just a name list. Pick `uz_UZ` and you get Uzbek names, `+998` phone numbers, Tashkent districts, UZS amounts, and postcodes that match the city they're attached to — consistently across every field of the record.
 

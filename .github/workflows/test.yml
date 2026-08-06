@@ -1,0 +1,104 @@
+name: Test
+
+# ci.yml is the merge gate: it runs the suite once, on the Go version and the
+# OS the project targets. This workflow answers the other question — does the
+# same suite still pass somewhere other than that one box? A failure here is
+# almost always a portability bug (a path separator, a temp directory, an
+# assumption about goroutine scheduling) and it is worth finding on a schedule
+# rather than in an issue.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      # Race detection on every platform: the generator forks a PRNG per record
+      # and runs records in parallel, so a data race is the failure mode that
+      # would hurt most and show up least.
+      - name: Test
+        run: go test -race ./...
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Test with coverage
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      # Printed, not gated. A coverage threshold turns into a race to write
+      # tests that execute lines without asserting anything; the number is here
+      # to be looked at, and the per-package breakdown is where a gap shows.
+      - name: Report
+        run: |
+          go tool cover -func=coverage.out | tail -n 1
+          echo '### Coverage' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          go tool cover -func=coverage.out | tail -n 20 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      # Every example has a smoke test that calls main(), so an example that
+      # stopped compiling — or stopped working — fails here instead of being
+      # discovered by someone copying it out of the README.
+      - name: Run every example
+        run: go test ./examples/...
+
+      # The CLI is its own module, so it is built from its own directory.
+      - name: Build the CLI
+        run: go build -o /tmp/synth .
+        working-directory: cmd/synth
+
+      - name: Generate from every shipped YAML spec
+        run: |
+          for spec in examples/*.yaml; do
+            echo "--- $spec"
+            /tmp/synth gen -s "$spec" -n 5 -o /tmp/out.csv
+            head -c 200 /tmp/out.csv; echo
+          done

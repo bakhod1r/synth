@@ -1,0 +1,29 @@
+# A product catalogue whose rows carry their own pictures.
+#
+# Every image is drawn locally from the row's own text, so this file generates
+# the same catalogue on a laptop, in CI and on an air-gapped machine.
+#
+# Generate with:  synth gen -s examples/catalog.yaml -o catalog.csv
+name: catalog
+count: 200
+seed: 42
+fields:
+  id:        { kind: uuid, pk: true }
+  title:     { kind: product }
+  # from: title is what makes the thumbnail belong to this row rather than to a
+  # random one. Drop it and the picture stops meaning anything.
+  thumbnail: { kind: productimage, from: title, size: 96 }
+  brand:     { kind: company }
+  logo:      { kind: logo, from: brand, size: 64 }
+  price:     { kind: amount, min: 500, max: 400000 }
+  in_stock:  { kind: bool, true: 0.8 }
+
+# Other options the image kinds accept:
+#
+#   format: dataurl   base64 SVG in the column (default) — renders in a browser
+#   format: svg       raw SVG markup
+#   format: png       PNG bytes
+#   size: 128         edge length in pixels
+#   dir: ./images     write files there and put the path in the column instead
+#   seed: 7           a different but equally stable image per subject
+#   vary: "true"      let repeated subjects differ (off by default)
