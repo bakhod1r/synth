@@ -4,6 +4,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/bakhod1r/synth"
@@ -40,9 +42,12 @@ func main() {
 	orders := synth.Make[Order](10, synth.WithSeed(7), synth.Ref(users, "UserID"))
 	fmt.Printf("\ngenerated %d orders, first UserID=%v\n", len(orders), orders[0].UserID)
 
-	// Stream a million rows to CSV in constant memory (writes to /tmp).
-	if err := synth.Stream[User](1_000_000, synth.WithLocale("uz_UZ")).ToCSV("/tmp/synth_users.csv"); err != nil {
+	// Stream a million rows to CSV in constant memory. os.TempDir rather than a
+	// literal "/tmp": Windows has no such directory, and this example is run as
+	// a test on every platform.
+	out := filepath.Join(os.TempDir(), "synth_users.csv")
+	if err := synth.Stream[User](1_000_000, synth.WithLocale("uz_UZ")).ToCSV(out); err != nil {
 		panic(err)
 	}
-	fmt.Println("\nstreamed 1,000,000 users to /tmp/synth_users.csv")
+	fmt.Println("\nstreamed 1,000,000 users to", out)
 }
