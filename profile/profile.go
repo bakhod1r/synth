@@ -223,7 +223,7 @@ func build(order []string, stats map[string]*ColumnStats, rows int) *Result {
 		// a UUID or email column as categorical would copy real identifiers into
 		// a file meant to be committed — and profiling promises the opposite.
 		// isIdentifierLike needs twenty rows to be sure; a format match does not.
-		case c.Values != nil && len(c.Values) > 0 && !isIdentifierLike(c) && !hasRecognizableFormat(c):
+		case len(c.Values) > 0 && !isIdentifierLike(c) && !hasRecognizableFormat(c):
 			c.Categorical = true
 			f.Kind = schema.KindEnum
 			for v, n := range c.Values {

@@ -1,0 +1,100 @@
+name: Lint
+
+# Static checks only: nothing here executes the generator. Keeping them in
+# their own workflow means a formatting slip reports as "Lint failed" in one
+# second of reading, instead of hiding three jobs deep in a run that also
+# happened to test, build for wasm and render diagrams.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Format and vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # A go.mod that is not tidy is a dependency list nobody can trust, and
+      # this repository's whole dependency argument rests on that list.
+      - name: go mod tidy is a no-op
+        run: |
+          cp go.mod go.mod.bak && cp go.sum go.sum.bak
+          go mod tidy
+          if ! diff -q go.mod go.mod.bak >/dev/null || ! diff -q go.sum go.sum.bak >/dev/null; then
+            echo "::error::go.mod/go.sum are not tidy — run 'go mod tidy'"
+            diff go.mod.bak go.mod || true
+            diff go.sum.bak go.sum || true
+            exit 1
+          fi
+
+  staticcheck:
+    name: staticcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Install
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      # staticcheck is installed as a tool, not required by go.mod: the core
+      # library's dependency budget is two, and a linter is not one of them.
+      - name: Run
+        run: staticcheck ./...
+
+  modules:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: CLI, dir: cmd/synth }
+          - { name: MCP server, dir: mcp }
+          - { name: Parquet sink, dir: sink/parquet }
+          - { name: Data importer, dir: cmd/synthdata }
+          - { name: Benchmark comparison, dir: benchcmp }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      # Nested modules have their own go.mod, so `go vet ./...` at the root
+      # never sees them. A module missing from this list is a module nobody is
+      # linting.
+      - name: go vet
+        run: go vet ./...
+        working-directory: ${{ matrix.dir }}

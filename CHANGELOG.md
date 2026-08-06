@@ -8,6 +8,33 @@ accident.
 
 ## [Unreleased]
 
+### Added
+
+- Drawn images. Four new kinds — `avatar`, `productimage`, `logo` and
+  `identicon` — render a small picture from the row's own text instead of
+  pointing at a placeholder service. The image is a pure function of its
+  subject, so the same person keeps the same face across runs, formats and
+  datasets, and a regenerated fixture diffs clean. `from=` ties the image to a
+  sibling column (`synth:"avatar,from=Name"`); `format=` selects `dataurl`
+  (default), `svg` or `png`; `size=`, `dir=`, `seed=` and `vary=` cover the
+  rest. Available as struct tags, as YAML, and as `schema.Kind` values.
+- The `imagegen` package, which draws those images and is usable on its own.
+  It has no dependencies beyond the standard library and needs no font: text
+  is rasterized from a built-in 5×7 bitmap into rectangles, so an SVG renders
+  identically on every machine and matches the PNG exactly.
+- `examples/images` and `examples/catalog.yaml`, a worked Go and YAML pair.
+- `tests/`, for end-to-end checks that cross package boundaries, and
+  `benchmarks/`, for measurements that belong to no single package.
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` and `SECURITY.md`.
+- Separate `test` and `lint` workflows alongside the existing `ci` one.
+
+### Unchanged
+
+- `imageurl` still returns a placeholder-service URL. Nothing that used it
+  changes behaviour, and a column named `avatar` is still inferred as
+  `imageurl` — inference is not retargeted at the new kinds, because that
+  would silently change the output of existing specs.
+
 ## [1.5.0] — 2026-08-05
 
 ### Added
