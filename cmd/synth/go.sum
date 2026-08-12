@@ -6,6 +6,12 @@ github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc
 github.com/alecthomas/repr v0.4.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.1.1 h1:PR2pgnyFznKEugtsUo0xLdDop5SKXd5Qf5ysW+7XdTA=
 github.com/andybalholm/brotli v1.1.1/go.mod h1:05ib4cKhjx3OQYUY22hTVd34Bc8upXjOLL2rKwwZBoA=
+github.com/bakhod1r/devicex v0.2.1 h1:yBn/wKBVz88AekX8sduShG0nuZ6Rpi/XAUv6Uk2jGE0=
+github.com/bakhod1r/devicex v0.2.1/go.mod h1:PJeMTr55ThTCaExQW+uaEYSE0k8/ZWhBvdKGrnPkT8w=
+github.com/bakhod1r/emailx v0.4.0 h1:S3VV47b8SFsT/u1SXrVTGyP6k2rv21UTPcjSUG1wW6E=
+github.com/bakhod1r/emailx v0.4.0/go.mod h1:lPK7Gfy0x+O+3UC/tPY0Vatf8tC7VEnpB1gZuren9S8=
+github.com/bakhod1r/phonex v0.1.0 h1:VblnmDNE9Yntb3/Zfp/+bYEMD9LJLdDZGfp6GG170gc=
+github.com/bakhod1r/phonex v0.1.0/go.mod h1:MZHLHpIV3QIy/m/7jL20sFWlJXazxASypbPHJuReBXI=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=

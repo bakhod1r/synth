@@ -240,23 +240,44 @@ func email(c Ctx) any {
 		last = pick(c.Rand, c.Locale.LastNamesFor(c.Gender))
 	}
 	first, last = emailSafe(first), emailSafe(last)
+	// A name in a script foldASCII has no table for — Chinese, Thai, Arabic —
+	// leaves nothing to build a local part from. Rather than emit an address
+	// with no mailbox in front of the @, fall back to a Latin handle, which is
+	// what speakers of those languages tend to register anyway.
+	if first == "" {
+		first = latinHandle(c.Rand)
+	}
+	if last == "" {
+		last = latinHandle(c.Rand)
+	}
 	dom := pick(c.Rand, c.Locale.EmailDomain)
 	return strings.ToLower(emailLocal(c.Rand, first, last) + "@" + dom)
 }
 
-// emailSafe strips characters that are legal in a name but not in the common
-// subset of a mailbox local-part (apostrophes, hyphens, spaces, dots).
-func emailSafe(s string) string {
-	return strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
-			return r
-		case r > 127: // keep non-ASCII letters (Cyrillic &c.) as the locale wrote them
-			return r
-		default:
-			return -1
-		}
-	}, s)
+// emailSafe reduces a name to what a mailbox local part may hold: ASCII letters
+// and digits. Punctuation that is legal in a name but not here — apostrophes,
+// hyphens, spaces, dots — is dropped, and non-ASCII letters are transliterated.
+//
+// The transliteration is the point. A local part is ASCII unless the whole mail
+// path speaks SMTPUTF8 (RFC 6531), which most of it still does not, so
+// "денис.борисов@example.com" is a fixture that the first validator it meets
+// rejects. See asciifold.go.
+func emailSafe(s string) string { return foldASCII(s) }
+
+// latinHandle builds a pronounceable Latin handle for names that do not
+// transliterate. It is syllables rather than random letters because an address
+// is read by people as often as by code.
+func latinHandle(r *rng.Rand) string {
+	onsets := []string{"b", "d", "j", "k", "l", "m", "n", "r", "s", "t", "v", "z",
+		"ch", "sh", "th", "kr", "pl", "st"}
+	nuclei := []string{"a", "e", "i", "o", "u", "ai", "ei", "ia", "oo"}
+	n := r.IntRange(2, 3)
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		b.WriteString(pick(r, onsets))
+		b.WriteString(pick(r, nuclei))
+	}
+	return b.String()
 }
 
 // emailLocal builds the local-part in one of the shapes real mail providers

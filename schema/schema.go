@@ -319,6 +319,51 @@ const (
 	KindFileSize      Kind = "filesize"
 	KindDuration      Kind = "duration"
 	KindGitTag        Kind = "gittag"
+
+	// Catalogue-backed types. Unlike the kinds above, which draw from lists
+	// kept here, these answer from published reference data: Google's
+	// libphonenumber ranges and a catalogue of 25,000 handsets.
+	//
+	// KindPhoneE164 is a number valid under its region's numbering plan, in
+	// E.164 form. Unlike KindPhone, which has the shape of a number and not
+	// the substance, it passes the check a real system would run on it. It
+	// carries the area or operator code of the record's own city where the
+	// plan allows one.
+	KindPhoneE164 Kind = "phone_e164"
+	// KindPhoneNational and KindPhoneInternational are the same number written
+	// the way its country writes it. With from=<phone column> they reformat
+	// that number rather than inventing a second one.
+	KindPhoneNational      Kind = "phone_national"
+	KindPhoneInternational Kind = "phone_international"
+	// KindPhoneType is the range a number falls in — mobile, fixed_line,
+	// toll_free. It reports fixed_line_or_mobile where the numbering plan does
+	// not separate the two, as North America's does not.
+	KindPhoneType Kind = "phone_type"
+
+	// KindEmailDisposable is an address at a throwaway mail service, from the
+	// list of 8,000-odd domains such services are known to run. Sign-up flows,
+	// fraud rules and retention reports all treat these differently, and code
+	// that has only ever seen ordinary addresses has never exercised that path.
+	KindEmailDisposable Kind = "email_disposable"
+	// KindEmailProvider is the mail provider an address belongs to — gmail,
+	// outlook, yandex — or empty for a domain that is nobody's public service.
+	// With from=<email column> it reports that address's provider.
+	KindEmailProvider Kind = "email_provider"
+	// KindEmailNormalized is the canonical form of an address: lower-cased,
+	// with the provider's own aliasing rules applied, so two spellings that
+	// reach one mailbox compare equal. With from=<email column> it normalizes
+	// that address.
+	KindEmailNormalized Kind = "email_normalized"
+
+	// KindDeviceCode is an Android model code as it appears in a User-Agent:
+	// SM-G973F, CPH2451, 2201116SG.
+	KindDeviceCode Kind = "device_code"
+	// KindDeviceBrand and KindDeviceName are the manufacturer and the name the
+	// handset is sold as. With from=<code column> they describe that model
+	// code's device; a code the catalogue does not hold is never guessed at.
+	KindDeviceBrand Kind = "device_brand"
+	KindDeviceName  Kind = "device_name"
+
 	// KindUnknown marks a field the frontend could not infer. The engine
 	// leaves it at its zero value and records a Warning.
 	KindUnknown Kind = ""

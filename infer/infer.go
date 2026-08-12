@@ -100,6 +100,21 @@ var synonyms = map[string]schema.Kind{
 	"os": schema.KindOS, "operatingsystem": schema.KindOS,
 	"browser": schema.KindBrowser,
 	"device":  schema.KindDevice,
+	// Catalogue-backed types. The plain names (phone, device) keep their older
+	// meanings so that inference does not change under existing structs; these
+	// are reached by the fuller names a schema uses when it means the real
+	// thing.
+	"phonee164": schema.KindPhoneE164, "e164": schema.KindPhoneE164,
+	"phonenational":      schema.KindPhoneNational,
+	"phoneinternational": schema.KindPhoneInternational,
+	"phonetype":          schema.KindPhoneType, "linetype": schema.KindPhoneType,
+	"emaildisposable": schema.KindEmailDisposable, "disposableemail": schema.KindEmailDisposable,
+	"emailprovider": schema.KindEmailProvider, "mailprovider": schema.KindEmailProvider,
+	"emailnormalized": schema.KindEmailNormalized, "normalizedemail": schema.KindEmailNormalized,
+	"canonicalemail": schema.KindEmailNormalized,
+	"devicecode":     schema.KindDeviceCode, "modelcode": schema.KindDeviceCode,
+	"devicebrand": schema.KindDeviceBrand,
+	"devicename":  schema.KindDeviceName, "devicemodel": schema.KindDeviceName,
 	"airport": schema.KindAirport, "airportcode": schema.KindAirport,
 	"airline":     schema.KindAirline,
 	"stockticker": schema.KindStockTicker, "ticker": schema.KindStockTicker, "symbol": schema.KindStockTicker,

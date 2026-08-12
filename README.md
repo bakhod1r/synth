@@ -139,7 +139,47 @@ Every generated identifier passes the check a real system would run on it:
 - Credit cards — Luhn-valid, issued from real BIN ranges per brand
 - IBANs — mod-97 checksum, correct per-country length and BBAN layout
 - National IDs, VAT numbers, tax IDs — country-specific check digits
-- Emails, URLs, phone numbers — RFC / E.164 conformant
+- Emails — RFC 5322 conformant in every locale, including the ones whose names
+  are not written in Latin: a mailbox is ASCII unless the whole mail path speaks
+  SMTPUTF8, so names are transliterated the way their owners transliterate them
+- URLs, phone numbers — RFC / E.164 conformant
+
+### Catalogue-backed types
+
+The built-in `phone` has E.164 shape; the built-in `device` picks from a short
+hand-written list. Where that is not enough, these types answer from published
+reference data instead — Google's libphonenumber ranges, and a catalogue of
+25,000 Android handsets. No import, no registration:
+
+```go
+type Session struct {
+    Phone    string `synth:"phone_e164"`
+    Display  string `synth:"phone_national,from=Phone"`
+    LineType string `synth:"phone_type,from=Phone"`
+
+    Code  string `synth:"device_code"`
+    Brand string `synth:"device_brand,from=Code"`
+    Model string `synth:"device_name,from=Code"`
+}
+// +998912341024  91 234 10 24  mobile   SM-T500  Samsung  Galaxy Tab A7
+```
+
+- Phones — valid under the region's numbering plan, carrying the area code of
+  the record's own city where the plan allows it: a Houston row gets `+1 713`,
+  an Andijon row `+998 94`, a Roma row `+39 06`.
+  Types: `phone_e164`, `phone_national`, `phone_international`, `phone_type`.
+- Devices — model codes as they appear in a User-Agent, with the brand and
+  handset name they actually belong to. Types: `device_code`, `device_brand`,
+  `device_name`.
+- Mail domains — the provider that owns an address, its canonical form, and
+  addresses at the 8,000-odd throwaway services. Types: `email_provider`,
+  `email_normalized`, `email_disposable`.
+
+In both, one field draws and the others read it through `from=`, so the record
+describes one phone and one handset rather than several.
+
+A number valid under a numbering plan may well be somebody's. Generated numbers
+are for fixtures and demos — never dial or message them.
 
 ### Images that belong to their row
 An `avatar` column that points at `picsum.photos` is a placeholder twice over:

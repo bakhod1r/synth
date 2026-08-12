@@ -88,8 +88,15 @@ func TestEmailSafeAndInitial(t *testing.T) {
 	if emailSafe("O'Br-ien.") != "OBrien" {
 		t.Fatalf("emailSafe = %q", emailSafe("O'Br-ien."))
 	}
-	if emailSafe("Иван") != "Иван" {
-		t.Fatal("non-ASCII should survive")
+	// Non-ASCII is transliterated, not kept: a local part outside ASCII needs
+	// SMTPUTF8, which most of the mail path does not speak.
+	if got := emailSafe("Иван"); got != "Ivan" {
+		t.Fatalf("emailSafe(Cyrillic) = %q, want %q", got, "Ivan")
+	}
+	// A script with no transliteration table folds away entirely, and the
+	// caller substitutes a handle.
+	if got := emailSafe("蕭哲瑋"); got != "" {
+		t.Fatalf("emailSafe(Han) = %q, want empty", got)
 	}
 	if initial("") != "" {
 		t.Fatal("initial of empty")

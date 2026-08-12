@@ -8,6 +8,63 @@ accident.
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-08-12
+
+### Added
+
+- Catalogue-backed types, which answer from published reference data rather
+  than from a list kept in this repository. Ten new kinds, available as struct
+  tags, as YAML and as `schema.Kind` values.
+- Phone numbers that a numbering plan accepts: `phone_e164`,
+  `phone_national`, `phone_international` and `phone_type`. The ranges come
+  from the metadata Google's libphonenumber uses, so every generated number
+  passes `IsValid` — the older `phone` has the shape of a number and not the
+  substance. A number carries the area or operator code of the record's own
+  city where the plan allows one, so a Houston row gets `+1 713`, an Andijon
+  row `+998 94` and a Roma row `+39 06`. `from=` reformats one number rather
+  than inventing a second.
+- Android devices: `device_code`, `device_brand` and `device_name`, from a
+  catalogue of 25,000 handsets. The code is the one a User-Agent actually
+  carries (`SM-G973F`), and with `from=` the brand and name are that model's,
+  not another's. A code the catalogue does not hold is never guessed at.
+- Mail-domain fields: `email_provider` and `email_normalized`, both reading an
+  address through `from=`, and `email_disposable`, which draws from the 8,000
+  domains throwaway mail services run — the path a sign-up flow treats
+  differently and that fixtures rarely exercise.
+- `synth.Env`, a wider surface a custom provider can assert for when
+  randomness alone is not enough: the record's locale, its place's dialling
+  prefix, and the fields already generated for it. `synth.R` is unchanged, so
+  existing providers keep working.
+
+### Fixed
+
+- Generated email addresses were invalid in 40 of the 52 locales, and in 17 of
+  them every single one: the local part kept the name's own script, and a
+  mailbox is ASCII unless the whole mail path speaks SMTPUTF8 (RFC 6531),
+  which most of it does not. Names are now transliterated — Cyrillic, Greek,
+  Georgian and every Latin diacritic — so `Владимир Николаев` becomes
+  `vladimir_nikolaev13@yandex.ru`. Scripts a table cannot romanise correctly
+  (Chinese, Japanese kanji, Korean, Thai, Arabic, Hebrew, Devanagari) get a
+  Latin handle instead, which is what their speakers commonly register anyway.
+  A test now checks every locale against a validator rather than a regexp.
+
+### Changed
+
+- The module requires Go 1.26.
+- `email` output changes in every locale whose names are not written in Latin.
+  A dataset regenerated from the same seed will differ in that column, and a
+  test asserting an exact address will fail. The old output was rejected by
+  the first validator it met, so there is nothing to preserve.
+
+  In the seven locales that fall back to a Latin handle — `zh_CN`, `ja_JP`,
+  `ko_KR`, `th_TH`, `ar_EG`, `he_IL`, `hi_IN` — the handle is drawn from the
+  record's own stream, so every field generated after the email address shifts
+  with it. Those records differ in full, not only in the email column.
+- The core's dependencies go from two to five. The three additions —
+  `phonex`, `devicex` and `emailx` — are reference data, each with no
+  dependencies of its own. The engine still depends on `google/uuid` and
+  `yaml.v3` alone, and CI still fails the build if the list grows past five.
+
 ## [1.6.0] — 2026-08-06
 
 ### Added
@@ -364,7 +421,8 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/bakhod1r/synth/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/bakhod1r/synth/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/bakhod1r/synth/compare/v1.4.6...v1.5.0
 [1.4.6]: https://github.com/bakhod1r/synth/compare/v1.4.5...v1.4.6

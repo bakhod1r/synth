@@ -4,7 +4,7 @@
 // pulls the heavier set, but importing the library never does.
 module github.com/bakhod1r/synth/cmd/synth
 
-go 1.25
+go 1.26.2
 
 require (
 	github.com/bakhod1r/synth v0.0.0
@@ -14,6 +14,9 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
+	github.com/bakhod1r/devicex v0.2.1 // indirect
+	github.com/bakhod1r/emailx v0.4.0 // indirect
+	github.com/bakhod1r/phonex v0.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/parquet-go/bitpack v1.0.0 // indirect
 	github.com/parquet-go/jsonlite v1.0.0 // indirect
