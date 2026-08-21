@@ -2,7 +2,7 @@
 // jaswdr) never enter the main library's dependency graph.
 module github.com/bakhod1r/synth/benchcmp
 
-go 1.26.0
+go 1.26.2
 
 require (
 	github.com/bakhod1r/synth v0.0.0
@@ -11,6 +11,9 @@ require (
 )
 
 require (
+	github.com/bakhod1r/devicex v0.2.1 // indirect
+	github.com/bakhod1r/emailx v0.4.0 // indirect
+	github.com/bakhod1r/phonex v0.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

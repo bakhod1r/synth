@@ -39,6 +39,11 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      # A go.mod that has drifted from its imports fails every later job with a
+      # bare "updates to go.mod needed". Say so here, with the diff.
+      - name: Tidy go.mod
+        run: go mod tidy -diff
+
       - name: Test
         run: go test -race ./...
 
@@ -89,6 +94,12 @@ jobs:
           cache: true
       - name: Vet
         run: go vet ./...
+        working-directory: ${{ matrix.dir }}
+      # A nested module's go.mod drifts whenever the core gains a dependency,
+      # because the core is pulled in through a replace. Catch it as a stale
+      # go.mod rather than as a broken build three jobs later.
+      - name: Tidy go.mod
+        run: go mod tidy -diff
         working-directory: ${{ matrix.dir }}
       - name: Test
         if: matrix.test
