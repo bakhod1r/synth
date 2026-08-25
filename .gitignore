@@ -15,7 +15,12 @@
 /dist/pages/
 
 # Internal planning docs (superpowers plans/specs) — kept local, not shipped.
-/docs/
+# These used to live in /docs, which is now the published documentation source.
+/.plans/
+
+# Fetched by scripts/fetch-mermaid.sh so the docs serve mermaid from their own
+# origin instead of a CDN. 4 MB, and reproducible from the script.
+/docs/assets/js/mermaid.min.js
 
 # Built by scripts/build-npm.sh from the Go source; not committed, so a stale
 # binary cannot ship while the source it came from has moved on.

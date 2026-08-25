@@ -1,0 +1,12 @@
+# Documentation-site build only. Nothing here enters the Go module graph.
+#
+#   pip install -r docs/requirements.txt
+#   mkdocs serve            # local preview
+#   scripts/build-pages.sh  # workbench + docs, as CI builds them
+#
+# Pinned rather than floating: MkDocs 2.0 removes the plugin and theming systems
+# Material depends on, so an unpinned install would break the site build without
+# a commit touching it.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+pymdown-extensions==11.0.2

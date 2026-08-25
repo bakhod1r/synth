@@ -1,0 +1,125 @@
+site_name: Synth
+site_description: Realistic, coherent, locale-aware synthetic data — streamed at millions of rows.
+site_url: https://bakhod1r.github.io/synth/docs/
+repo_url: https://github.com/bakhod1r/synth
+repo_name: bakhod1r/synth
+edit_uri: edit/main/docs/
+copyright: MIT — Synth contributors
+
+# The workbench lives at the site root; the docs are a subdirectory of it, so
+# the generated links must be relative to /synth/docs/.
+site_dir: dist/pages/docs
+docs_dir: docs
+strict: true
+
+theme:
+  name: material
+  language: en
+  # Material otherwise links Google Fonts. The workbench ships with no external
+  # origin at all; its docs should not be the one page that phones out.
+  font: false
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Follow the system theme
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/bakhod1r/synth
+  # Material otherwise loads its analytics/consent assets; neither is wanted —
+  # the hosted page's whole claim is that it sends nothing anywhere.
+  generator: false
+
+# Material lazy-loads mermaid from unpkg unless a global `mermaid` already
+# exists. This file is the same build, served from this origin, and it assigns
+# that global — so the CDN request never happens. scripts/fetch-mermaid.sh
+# puts it there; it is not checked in.
+extra_javascript:
+  - assets/js/mermaid.min.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Overview: index.md
+  - Getting started:
+      - Install: getting-started/install.md
+      - Quick start: getting-started/quickstart.md
+      - CLI and YAML specs: getting-started/cli.md
+      - Input formats: getting-started/inputs.md
+  - Guide:
+      - Referential integrity: guide/referential-integrity.md
+      - Temporal causality: guide/temporal.md
+      - Unique columns: guide/unique.md
+      - Format-valid values: guide/validity.md
+      - Catalogue-backed types: guide/catalogues.md
+      - Images: guide/images.md
+      - Locales: guide/locales.md
+      - Statistical shape: guide/statistics.md
+      - Streaming and determinism: guide/streaming.md
+      - Outputs: guide/outputs.md
+      - Edge-case injection: guide/chaos.md
+      - Custom types: guide/custom-types.md
+  - Tools:
+      - Profiling: tools/profile.md
+      - Constraint mining: tools/constraints.md
+      - Verify: tools/verify.md
+      - Diff: tools/diff.md
+      - Mask (GDPR): tools/mask.md
+      - CDC: tools/cdc.md
+      - Snapshots: tools/snapshot.md
+      - Real-time pacing: tools/rate.md
+  - Integrations:
+      - Browser workbench: workbench.md
+      - MCP: mcp.md
+  - Reference:
+      - Benchmarks: reference/benchmarks.md
+      - Data domains: reference/domains.md
+      - Versioning and stability: reference/versioning.md
+      - Status and roadmap: reference/roadmap.md

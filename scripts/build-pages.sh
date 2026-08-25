@@ -62,7 +62,7 @@ banner = '''
 <div class="wasm-note">
   Running entirely in this tab — the generator is compiled to WebAssembly and
   there is no server to send anything to.
-  <a href="https://github.com/bakhod1r/synth#readme">Docs</a> ·
+  <a href="docs/">Docs</a> ·
   <a href="https://github.com/bakhod1r/synth">Source</a> ·
   <a href="CHANGELOG.md">Changelog</a>
 </div>
@@ -83,6 +83,17 @@ css = (out / 'app.css').read_text() + '''
 '''
 (out / 'app.css').write_text(css)
 PY
+
+# The documentation site, served under /docs of the same origin. mkdocs writes
+# into $out/docs, so it must run after the workbench is in place — its site_dir
+# is cleaned on every build and would otherwise take the workbench with it.
+if command -v mkdocs >/dev/null 2>&1; then
+  scripts/fetch-mermaid.sh
+  mkdocs build --strict --site-dir "$out/docs"
+else
+  echo "mkdocs not installed — skipping the docs site" >&2
+  echo "  pip install -r docs/requirements.txt" >&2
+fi
 
 # GitHub Pages serves this repository under /synth, and Jekyll would otherwise
 # swallow files it does not recognise.
