@@ -1,4 +1,4 @@
-// Renders every mermaid block in README.md and fails if any produces mermaid's
+// Renders every mermaid block in README.md and docs/ and fails if any produces mermaid's
 // error graphic. A broken diagram is not a build failure — it is a red box on
 // the project's front page that nobody notices until someone else points at it.
 //
@@ -37,15 +37,35 @@ proto.getScreenCTM = () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: () =>
 const mermaid = (await import('mermaid')).default;
 mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
 
-const readme = fs.readFileSync(process.argv[2] || 'README.md', 'utf8');
-const blocks = [...readme.matchAll(/```mermaid\n([\s\S]*?)```/g)].map((m) => m[1]);
+// Every markdown file given, or README.md plus the documentation site. A
+// diagram that only exists on the docs site fails just as visibly as one on the
+// front page, so both are checked by the same run.
+// Defaults are resolved against the repository, not the working directory, so
+// `npm run check-diagrams` from scripts/ checks the same files CI does.
+const root = new URL('..', import.meta.url).pathname;
+const files = process.argv.length > 2
+  ? process.argv.slice(2)
+  : [`${root}README.md`, ...docsMarkdown(`${root}docs`)];
+
+function docsMarkdown(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = `${dir}/${e.name}`;
+    if (e.isDirectory()) return docsMarkdown(p);
+    return e.name.endsWith('.md') ? [p] : [];
+  });
+}
+
+const blocks = files.flatMap((file) =>
+  [...fs.readFileSync(file, 'utf8').matchAll(/```mermaid\n([\s\S]*?)```/g)]
+    .map((m) => ({ file, text: m[1] })));
 if (blocks.length === 0) {
   console.log('no mermaid blocks found — is the path right?');
   process.exit(1);
 }
 let bad = 0;
-for (const [i, text] of blocks.entries()) {
-  const kind = text.split('\n')[0].trim();
+for (const [i, { file, text }] of blocks.entries()) {
+  const kind = `${file}: ${text.split('\n')[0].trim()}`;
   try {
     const { svg } = await mermaid.render(`d${i}`, text);
     // Strip the stylesheet first: mermaid injects an .error-icon CSS rule into

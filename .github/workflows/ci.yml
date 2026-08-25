@@ -123,7 +123,7 @@ jobs:
         working-directory: scripts
       # A broken mermaid block is not a build failure — it is a red error box on
       # the front page that nobody notices until someone else points at it.
-      - name: Render every diagram in the README
+      - name: Render every diagram in the README and the docs
         run: npm run check-diagrams
         working-directory: scripts
 
@@ -141,10 +141,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      # Same toolchain the Pages deploy uses, so a docs build that would break
+      # the deploy breaks the pull request instead.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+      - name: Install the docs toolchain
+        run: pip install -r docs/requirements.txt
       - name: Build
         run: scripts/build-pages.sh dist/pages
       - name: Check the module answers
         run: node scripts/check-wasm.mjs dist/pages
+      - name: The docs must not reach off-origin
+        run: |
+          if grep -rhoE '(src|href)="https?://[^"]+' --include='*.html' dist/pages/docs \
+             | grep -qE 'unpkg|jsdelivr|cdnjs|fonts\.(googleapis|gstatic)\.com'; then
+            echo "the docs site links a CDN; see mkdocs.yml (font: false, vendored mermaid)" >&2
+            exit 1
+          fi
 
   npm:
     name: npm package
