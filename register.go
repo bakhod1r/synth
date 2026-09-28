@@ -2,8 +2,8 @@ package synth
 
 import (
 	"github.com/bakhod1r/synth/infer"
-	"github.com/bakhod1r/synth/reflectfe"
 	"github.com/bakhod1r/synth/providers"
+	"github.com/bakhod1r/synth/reflectfe"
 	"github.com/bakhod1r/synth/schema"
 )
 
