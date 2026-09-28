@@ -8,6 +8,24 @@ accident.
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-09-28
+
+### Added
+
+- OpenAPI request bodies: nested objects, arrays (`items`, `minItems`, `maxItems`), `$ref` chains, and recursive schemas (a property that refers back to a schema being expanded is left out).
+- The CLI, MCP server and Parquet sink are installable: `go install github.com/bakhod1r/synth/cmd/synth@latest` and `go install github.com/bakhod1r/synth/mcp/cmd/synth-mcp@latest` now work (the submodules no longer carry `replace` directives).
+
+### Fixed
+
+- Same seed, same output: `Weighted` and the OpenAPI frontend depended on Go map order.
+- OpenAPI/JSON Schema bounds: `maximum: 1000000` was read as 1; fractional float bounds collapsed to 0.
+- `WriteCSV`/`WriteSQL` panicked or shifted columns on unexported fields; pointer fields were written as memory addresses; NaN/±Inf are now `NULL`.
+- CSV flush and file close errors are returned instead of reporting success on a full disk.
+- Self-referencing structs no longer crash with a stack overflow; the recursive field is left zero with a warning.
+- `MakeParallel` refuses a nested `unique` field instead of racing on it.
+- `Register` is safe while other goroutines generate, and refreshes schemas cached before it.
+- No panics on very wide integer ranges, negative record counts, or `unique` on an object/array field.
+
 ## [1.7.0] — 2026-08-12
 
 ### Added
@@ -421,7 +439,8 @@ Found while preparing this release, all of them the quiet kind:
 - `locale.Names()` ranged over a map, so the locale list came out in a different
   order on every run.
 
-[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/bakhod1r/synth/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/bakhod1r/synth/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/bakhod1r/synth/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/bakhod1r/synth/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/bakhod1r/synth/compare/v1.4.6...v1.5.0
