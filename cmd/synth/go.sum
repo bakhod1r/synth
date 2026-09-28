@@ -12,6 +12,10 @@ github.com/bakhod1r/emailx v0.4.0 h1:S3VV47b8SFsT/u1SXrVTGyP6k2rv21UTPcjSUG1wW6E
 github.com/bakhod1r/emailx v0.4.0/go.mod h1:lPK7Gfy0x+O+3UC/tPY0Vatf8tC7VEnpB1gZuren9S8=
 github.com/bakhod1r/phonex v0.1.0 h1:VblnmDNE9Yntb3/Zfp/+bYEMD9LJLdDZGfp6GG170gc=
 github.com/bakhod1r/phonex v0.1.0/go.mod h1:MZHLHpIV3QIy/m/7jL20sFWlJXazxASypbPHJuReBXI=
+github.com/bakhod1r/synth v1.8.0 h1:Iv6g05A1hH5Kcc2QhpfocyK8X4jlXTGzWUC2NdYVx4U=
+github.com/bakhod1r/synth v1.8.0/go.mod h1:dBBaOEFhkJOYW2peiu5Fby73R+H6HM/W7bNE3KbafzE=
+github.com/bakhod1r/synth/sink/parquet v1.8.0 h1:4AVUM5CYaVTivt6xVBbFmxGHJl7W3q8ipPmwK1j5ppA=
+github.com/bakhod1r/synth/sink/parquet v1.8.0/go.mod h1:dLsPsSpMbJxs94L8U6j9FjwUMS+HDhEd7E+OHJzNb4s=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=

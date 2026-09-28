@@ -7,8 +7,8 @@ module github.com/bakhod1r/synth/cmd/synth
 go 1.26.2
 
 require (
-	github.com/bakhod1r/synth v0.0.0
-	github.com/bakhod1r/synth/sink/parquet v0.0.0
+	github.com/bakhod1r/synth v1.8.0
+	github.com/bakhod1r/synth/sink/parquet v1.8.0
 	github.com/klauspost/compress v1.19.1
 )
 
@@ -27,7 +27,3 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/bakhod1r/synth => ../..
-
-replace github.com/bakhod1r/synth/sink/parquet => ../../sink/parquet
