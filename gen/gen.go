@@ -134,6 +134,11 @@ func Compile(s *schema.Schema, localeName string) (*Engine, error) {
 		}
 		switch f.UniqueMode {
 		case "":
+			// Tracking keys a map by the value; a slice or map value is not
+			// hashable and panicked on the first record.
+			if f.Kind == schema.KindObject || f.Kind == schema.KindArray {
+				return nil, fmt.Errorf("synth: field %q: unique needs a scalar field, got %s", f.Name, f.Kind)
+			}
 			if e.seen == nil {
 				e.seen = map[string]map[any]bool{}
 			}

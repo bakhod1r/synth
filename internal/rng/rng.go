@@ -31,11 +31,19 @@ func (r *Rand) Fork(i uint64) *Rand {
 func (r *Rand) Intn(n int) int { return r.src.IntN(n) }
 
 // IntRange returns an int in [min,max].
+//
+// The span is computed in uint64: max-min+1 in int overflows for wide ranges
+// (min near MinInt64) and IntN panicked. Uint64N draws exactly as IntN does
+// for a span that fits, so seeded output is unchanged.
 func (r *Rand) IntRange(min, max int) int {
 	if max <= min {
 		return min
 	}
-	return min + r.src.IntN(max-min+1)
+	span := uint64(max) - uint64(min)
+	if span == math.MaxUint64 {
+		return int(r.src.Uint64())
+	}
+	return int(uint64(min) + r.src.Uint64N(span+1))
 }
 
 // Float64 returns a float in [0,1).

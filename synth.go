@@ -156,6 +156,9 @@ func Make[T any](n int, opts ...Option) []T {
 
 // TryMake is Make that returns configuration errors instead of panicking.
 func TryMake[T any](n int, opts ...Option) ([]T, error) {
+	if n < 0 {
+		return nil, fmt.Errorf("synth: negative record count %d", n)
+	}
 	cfg := config{seed: uint64(time.Now().UnixNano()), locale: "en_US"}
 	for _, o := range opts {
 		o(&cfg)

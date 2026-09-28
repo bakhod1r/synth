@@ -18,6 +18,9 @@ import (
 // independent of worker count — no shared-rand mutex, and still reproducible.
 // workers <= 0 uses GOMAXPROCS.
 func MakeParallel[T any](n, workers int, opts ...Option) ([]T, error) {
+	if n < 0 {
+		return nil, fmt.Errorf("synth: negative record count %d", n)
+	}
 	if workers <= 0 {
 		workers = runtime.GOMAXPROCS(0)
 	}

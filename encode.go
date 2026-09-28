@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -109,7 +111,11 @@ func sqlValue(v any) string {
 	switch x := v.(type) {
 	case nil:
 		return "NULL"
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+	case float32:
+		return sqlFloat(float64(x))
+	case float64:
+		return sqlFloat(x)
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprint(x)
 	case bool:
 		if x {
@@ -139,4 +145,13 @@ func exportedFields(rt reflect.Type) (idx []int, cols []string) {
 		cols = append(cols, rt.Field(i).Name)
 	}
 	return idx, cols
+}
+
+// sqlFloat writes a float literal. NaN and ±Inf have no SQL literal, so they
+// are written as NULL rather than as a statement the database rejects.
+func sqlFloat(f float64) string {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return "NULL"
+	}
+	return strconv.FormatFloat(f, 'g', -1, 64)
 }
