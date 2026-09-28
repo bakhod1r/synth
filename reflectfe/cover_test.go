@@ -130,7 +130,7 @@ func TestEnrichStructuralScalarStruct(t *testing.T) {
 	// Called directly with time.Time: the isScalarStruct guard returns early,
 	// leaving the field unchanged (not an object).
 	f := &schema.Field{Name: "T"}
-	enrichStructural(f, reflect.TypeOf(time.Time{}))
+	enrichStructural(f, reflect.TypeOf(time.Time{}), map[reflect.Type]bool{})
 	if f.Kind == schema.KindObject {
 		t.Fatalf("time.Time enriched as object: %+v", f)
 	}

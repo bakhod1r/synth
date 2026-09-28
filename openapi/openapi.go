@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -91,8 +92,17 @@ func (s *Spec) Schema(method, path string) (*schema.Schema, error) {
 	for _, r := range root.Required {
 		required[r] = true
 	}
+	// Sorted: map order is random, and the order fields are drawn in decides
+	// the values, so an unsorted walk gives different payloads per run for
+	// one seed.
+	names := make([]string, 0, len(root.Properties))
+	for name := range root.Properties {
+		names = append(names, name)
+	}
+	sort.Strings(names)
 	out := &schema.Schema{}
-	for name, prop := range root.Properties {
+	for _, name := range names {
+		prop := root.Properties[name]
 		p := s.resolve(prop)
 		f := schema.Field{Name: name, Params: map[string]string{}, Kind: mapKind(p)}
 		if len(p.Enum) > 0 {
@@ -100,10 +110,10 @@ func (s *Spec) Schema(method, path string) (*schema.Schema, error) {
 			f.Choices = p.Enum
 		}
 		if p.Minimum != nil {
-			f.Params["min"] = fmt.Sprintf("%g", *p.Minimum)
+			f.Params["min"] = strconv.FormatFloat(*p.Minimum, 'f', -1, 64)
 		}
 		if p.Maximum != nil {
-			f.Params["max"] = fmt.Sprintf("%g", *p.Maximum)
+			f.Params["max"] = strconv.FormatFloat(*p.Maximum, 'f', -1, 64)
 		}
 		// maxLength is a real constraint on the endpoint: a payload that
 		// exceeds it is one the API would reject. The generator truncates to

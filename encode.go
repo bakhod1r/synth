@@ -17,29 +17,38 @@ func WriteCSV[T any](path string, records []T) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return encodeCSV(f, records)
+	return closeAfter(f, encodeCSV(f, records))
+}
+
+// closeAfter closes f and returns the first error. A Close error is a lost
+// write too: on some filesystems it is where a full disk is reported.
+func closeAfter(f *os.File, err error) error {
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 func encodeCSV[T any](w io.Writer, records []T) error {
 	cw := csv.NewWriter(w)
-	defer cw.Flush()
 	var zero T
-	cols := fieldNames(reflect.TypeOf(zero))
+	idx, cols := exportedFields(reflect.TypeOf(zero))
 	if err := cw.Write(cols); err != nil {
 		return err
 	}
 	for i := range records {
 		rv := reflect.ValueOf(records[i])
 		row := make([]string, len(cols))
-		for j := range cols {
-			row[j] = fmt.Sprint(rv.Field(j).Interface())
+		for j, fi := range idx {
+			row[j] = fmt.Sprint(rv.Field(fi).Interface())
 		}
 		if err := cw.Write(row); err != nil {
 			return err
 		}
 	}
-	return nil
+	// csv.Writer buffers: the last block's write error only surfaces here.
+	cw.Flush()
+	return cw.Error()
 }
 
 // WriteJSONL writes one JSON object per line.
@@ -48,8 +57,7 @@ func WriteJSONL[T any](path string, records []T) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return encodeJSONL(f, records)
+	return closeAfter(f, encodeJSONL(f, records))
 }
 
 func encodeJSONL[T any](w io.Writer, records []T) error {
@@ -69,19 +77,18 @@ func WriteSQL[T any](path, table string, records []T) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return encodeSQL(f, table, records)
+	return closeAfter(f, encodeSQL(f, table, records))
 }
 
 func encodeSQL[T any](w io.Writer, table string, records []T) error {
 	var zero T
-	cols := fieldNames(reflect.TypeOf(zero))
+	idx, cols := exportedFields(reflect.TypeOf(zero))
 	colList := strings.Join(cols, ", ")
 	for i := range records {
 		rv := reflect.ValueOf(records[i])
 		vals := make([]string, len(cols))
-		for j := range cols {
-			vals[j] = sqlValue(rv.Field(j).Interface())
+		for j, fi := range idx {
+			vals[j] = sqlValue(rv.Field(fi).Interface())
 		}
 		if _, err := fmt.Fprintf(w, "INSERT INTO %s (%s) VALUES (%s);\n", table, colList, strings.Join(vals, ", ")); err != nil {
 			return err
@@ -91,6 +98,14 @@ func encodeSQL[T any](w io.Writer, table string, records []T) error {
 }
 
 func sqlValue(v any) string {
+	// A pointer field stands for its target, and a nil one for NULL; printed
+	// as-is it was a memory address.
+	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return "NULL"
+		}
+		return sqlValue(rv.Elem().Interface())
+	}
 	switch x := v.(type) {
 	case nil:
 		return "NULL"
@@ -108,12 +123,20 @@ func sqlValue(v any) string {
 }
 
 func fieldNames(rt reflect.Type) []string {
-	var cols []string
+	_, cols := exportedFields(rt)
+	return cols
+}
+
+// exportedFields returns the index and name of each exported field. Values
+// must be read by these indices: reading field j for column j shifted every
+// column after an unexported field and panicked on reaching it.
+func exportedFields(rt reflect.Type) (idx []int, cols []string) {
 	for i := 0; i < rt.NumField(); i++ {
 		if rt.Field(i).PkgPath != "" {
 			continue
 		}
+		idx = append(idx, i)
 		cols = append(cols, rt.Field(i).Name)
 	}
-	return cols
+	return idx, cols
 }

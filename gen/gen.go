@@ -589,7 +589,19 @@ func (e *Engine) Schema() *schema.Schema { return e.schema }
 
 // HasUnique reports whether any field requires unique values. Unique tracking
 // is stateful, so callers must use serial generation when this is true.
-func (e *Engine) HasUnique() bool { return e.seen != nil }
+func (e *Engine) HasUnique() bool {
+	if e.seen != nil {
+		return true
+	}
+	// A nested struct compiles to its own engine with its own seen-set, so a
+	// unique field there is tracked state too.
+	for _, sub := range e.sub {
+		if sub.HasUnique() {
+			return true
+		}
+	}
+	return false
+}
 
 // blankShare reads the field's blank probability. It accepts a fraction
 // ("0.15") or a percentage ("15%"), because both readings of "blank: 15" are

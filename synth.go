@@ -7,6 +7,7 @@ package synth
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/bakhod1r/synth/gen"
@@ -55,10 +56,17 @@ func WithLocale(name string) Option { return func(c *config) { c.locale = name }
 //
 //	synth.Weighted("Status", map[string]float64{"settled":0.94,"pending":0.05,"failed":0.01})
 func Weighted(field string, choices map[string]float64) Option {
+	// Sorted: map order is random, and the pick walks the choices in order, so
+	// an unsorted slice would give a different value per run for one seed.
+	keys := make([]string, 0, len(choices))
+	for k := range choices {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 	ws := weightedSpec{}
-	for k, v := range choices {
+	for _, k := range keys {
 		ws.choices = append(ws.choices, k)
-		ws.weights = append(ws.weights, v)
+		ws.weights = append(ws.weights, choices[k])
 	}
 	return func(c *config) {
 		if c.weighted == nil {

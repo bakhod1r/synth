@@ -60,8 +60,7 @@ func (s *Streamer[T]) ToCSV(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return s.csvTo(f)
+	return closeAfter(f, s.csvTo(f))
 }
 
 // csvTo is ToCSV against an already-open sink. The split is what makes the
@@ -73,7 +72,6 @@ func (s *Streamer[T]) csvTo(w io.Writer) error {
 		return err
 	}
 	cw := csv.NewWriter(w)
-	defer cw.Flush()
 	if err := cw.Write(cols); err != nil {
 		return err
 	}
@@ -87,6 +85,11 @@ func (s *Streamer[T]) csvTo(w io.Writer) error {
 			return err
 		}
 	}
+	// csv.Writer buffers: the last block's write error only surfaces here.
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return err
+	}
 	return eng.Err()
 }
 
@@ -99,8 +102,7 @@ func (s *Streamer[T]) ToJSONL(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return s.jsonlTo(f)
+	return closeAfter(f, s.jsonlTo(f))
 }
 
 // jsonlTo is ToJSONL against an already-open sink; see csvTo.

@@ -31,7 +31,14 @@ func Build(t reflect.Type) (*schema.Schema, []schema.Warning) {
 	return b.schema, b.warnings
 }
 
-func build(t reflect.Type) *built {
+func build(t reflect.Type) *built { return buildIn(t, map[reflect.Type]bool{}) }
+
+// buildIn is build with the struct types already being built on this path. A
+// type that contains itself (a tree node's Children, a Parent pointer) would
+// otherwise recurse until the stack overflows, which kills the process.
+func buildIn(t reflect.Type, building map[reflect.Type]bool) *built {
+	building[t] = true
+	defer delete(building, t)
 	s := &schema.Schema{}
 	var warns []schema.Warning
 	for i := 0; i < t.NumField(); i++ {
@@ -46,13 +53,17 @@ func build(t reflect.Type) *built {
 		} else if isStructural(sf.Type) {
 			// Nested struct or slice: structure wins over any name synonym
 			// (a field named "Address" of struct type is an object, not a street).
-			enrichStructural(&f, sf.Type)
+			enrichStructural(&f, sf.Type, building)
 		} else {
 			k, _ := infer.Kind(sf.Name, f.GoType)
 			f.Kind = k
 		}
 		if f.Kind == schema.KindUnknown {
-			warns = append(warns, schema.Warning{Field: sf.Name, Reason: "no synonym or type match; left as zero value"})
+			reason := "no synonym or type match; left as zero value"
+			if refersTo(sf.Type, building) {
+				reason = "recursive type; left as zero value"
+			}
+			warns = append(warns, schema.Warning{Field: sf.Name, Reason: reason})
 		}
 		s.Fields = append(s.Fields, f)
 	}
@@ -82,17 +93,17 @@ func isStructural(t reflect.Type) bool {
 
 // enrichStructural handles nested structs and slices. Pointers are unwrapped.
 // time.Time and uuid.UUID are treated as scalars, not structs.
-func enrichStructural(f *schema.Field, t reflect.Type) {
+func enrichStructural(f *schema.Field, t reflect.Type, building map[reflect.Type]bool) {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	if isScalarStruct(t) {
+	if isScalarStruct(t) || refersTo(t, building) {
 		return
 	}
 	switch t.Kind() {
 	case reflect.Struct:
 		f.Kind = schema.KindObject
-		f.Nested = build(t).schema
+		f.Nested = buildIn(t, building).schema
 	case reflect.Slice, reflect.Array:
 		elem := t.Elem()
 		for elem.Kind() == reflect.Ptr {
@@ -101,7 +112,7 @@ func enrichStructural(f *schema.Field, t reflect.Type) {
 		ef := &schema.Field{Name: f.Name, GoType: goTypeName(elem), Params: map[string]string{}}
 		if elem.Kind() == reflect.Struct && !isScalarStruct(elem) {
 			ef.Kind = schema.KindObject
-			ef.Nested = build(elem).schema
+			ef.Nested = buildIn(elem, building).schema
 		} else {
 			k, _ := infer.Kind(f.Name, goTypeName(elem))
 			if k == schema.KindUnknown {
@@ -115,6 +126,19 @@ func enrichStructural(f *schema.Field, t reflect.Type) {
 		f.Kind = schema.KindArray
 		f.Elem = ef
 		f.ArrMin, f.ArrMax = 1, 3
+	}
+}
+
+// refersTo reports whether t, through pointers, slices and arrays, is a struct
+// type already being built on this path.
+func refersTo(t reflect.Type, building map[reflect.Type]bool) bool {
+	for {
+		switch t.Kind() {
+		case reflect.Ptr, reflect.Slice, reflect.Array:
+			t = t.Elem()
+			continue
+		}
+		return building[t]
 	}
 }
 

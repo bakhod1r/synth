@@ -233,10 +233,10 @@ func applyEnum(f *schema.Field, values []any) {
 
 func applyRange(f *schema.Field, min, max *float64) {
 	if min != nil {
-		f.Params["min"] = fmt.Sprintf("%g", *min)
+		f.Params["min"] = strconv.FormatFloat(*min, 'f', -1, 64)
 	}
 	if max != nil {
-		f.Params["max"] = fmt.Sprintf("%g", *max)
+		f.Params["max"] = strconv.FormatFloat(*max, 'f', -1, 64)
 	}
 }
 

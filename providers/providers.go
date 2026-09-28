@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -177,13 +178,13 @@ func urlProvider(c Ctx) any {
 
 // amount returns a monetary value in [min,max] rounded to 2 decimals.
 func amount(c Ctx) any {
-	min := paramInt(c.Params, "min", 1)
-	max := paramInt(c.Params, "max", 100000)
+	min := paramFloat(c.Params, "min", 1)
+	max := paramFloat(c.Params, "max", 100000)
 	var v float64
 	if s, ok := sampleDist(c); ok {
-		v = clampFloat(s, float64(min), float64(max))
+		v = clampFloat(s, min, max)
 	} else {
-		v = float64(min) + c.Rand.Float64()*float64(max-min)
+		v = min + c.Rand.Float64()*(max-min)
 	}
 	return float64(int(v*100)) / 100
 }
@@ -329,15 +330,17 @@ func intProvider(c Ctx) any {
 }
 
 func floatProvider(c Ctx) any {
-	min := paramInt(c.Params, "min", 0)
-	max := paramInt(c.Params, "max", 1000)
+	// Float bounds are read as floats: min=0.01,max=0.99 read as ints was
+	// 0..0, and every value came out 0.
+	min := paramFloat(c.Params, "min", 0)
+	max := paramFloat(c.Params, "max", 1000)
 	if v, ok := derived(c); ok {
-		return clampFloat(v, float64(min), float64(max))
+		return clampFloat(v, min, max)
 	}
 	if v, ok := sampleDist(c); ok {
-		return clampFloat(v, float64(min), float64(max))
+		return clampFloat(v, min, max)
 	}
-	return float64(min) + c.Rand.Float64()*float64(max-min)
+	return min + c.Rand.Float64()*(max-min)
 }
 
 // tsEpoch is the default origin for a time-series axis: t is measured from
@@ -654,11 +657,18 @@ func paramInt(p map[string]string, key string, def int) int {
 	if p == nil {
 		return def
 	}
-	if v, ok := p[key]; ok {
-		var n int
-		if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
-			return n
-		}
+	v, ok := p[key]
+	if !ok {
+		return def
+	}
+	if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+		return n
+	}
+	// Frontends write numeric bounds with %g, which spells 1000000 as
+	// "1e+06"; a %d scan read that as 1. Accept any float that is in range.
+	if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil &&
+		!math.IsNaN(f) && f >= math.MinInt64 && f <= math.MaxInt64 {
+		return int(f)
 	}
 	return def
 }
