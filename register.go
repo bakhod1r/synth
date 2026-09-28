@@ -2,6 +2,7 @@ package synth
 
 import (
 	"github.com/bakhod1r/synth/infer"
+	"github.com/bakhod1r/synth/reflectfe"
 	"github.com/bakhod1r/synth/providers"
 	"github.com/bakhod1r/synth/schema"
 )
@@ -107,6 +108,7 @@ func Register(name string, fn func(r R) any) {
 		return fn(rAdapter{c: c})
 	})
 	infer.Alias(name, k)
+	reflectfe.Reset()
 }
 
 // RegisterSet is the common case: a custom type that picks uniformly from a

@@ -5,6 +5,7 @@ package infer
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/bakhod1r/synth/schema"
 )
@@ -223,8 +224,13 @@ var synonyms = map[string]schema.Kind{
 
 // Alias registers an extra field-name synonym (e.g. Uzbek "ismi" → name).
 func Alias(fieldName string, kind schema.Kind) {
+	synMu.Lock()
+	defer synMu.Unlock()
 	synonyms[normalize(fieldName)] = kind
 }
+
+// synMu guards synonyms against Alias running while other goroutines infer.
+var synMu sync.RWMutex
 
 // normalize lowercases and strips separators: "Full_Name" → "fullname".
 func normalize(s string) string {
@@ -236,7 +242,10 @@ func normalize(s string) string {
 // Kind infers a field's kind from its name, then its Go type.
 // Returns (kind, matchedByName). KindUnknown means the caller should warn.
 func Kind(fieldName, goType string) (schema.Kind, bool) {
-	if k, ok := synonyms[normalize(fieldName)]; ok {
+	synMu.RLock()
+	k, ok := synonyms[normalize(fieldName)]
+	synMu.RUnlock()
+	if ok {
 		return k, true
 	}
 	switch goType {

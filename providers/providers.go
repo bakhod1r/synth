@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bakhod1r/synth/dist"
@@ -41,7 +42,13 @@ type Ctx struct {
 // Provider produces one value.
 type Provider func(c Ctx) any
 
-var registry = map[schema.Kind]Provider{}
+// registry is written by init functions (single-threaded) and afterwards only
+// through Register, which may run while other goroutines generate; regMu
+// guards every access after init.
+var (
+	registry = map[schema.Kind]Provider{}
+	regMu    sync.RWMutex
+)
 
 func init() {
 	registry[schema.KindUUID] = func(c Ctx) any { return uuidFrom(c.Rand) }
@@ -190,12 +197,20 @@ func amount(c Ctx) any {
 }
 
 // Get returns the provider for a kind, or nil if unknown.
-func Get(k schema.Kind) Provider { return registry[k] }
+func Get(k schema.Kind) Provider {
+	regMu.RLock()
+	defer regMu.RUnlock()
+	return registry[k]
+}
 
 // Register adds or overrides a provider for a kind. Used by the public
 // synth.Register / synth.RegisterSet to support user-defined types (e.g. a
 // "cinema" type drawing from movie data).
-func Register(k schema.Kind, p Provider) { registry[k] = p }
+func Register(k schema.Kind, p Provider) {
+	regMu.Lock()
+	defer regMu.Unlock()
+	registry[k] = p
+}
 
 // PickString returns a random element from s, exposed so user providers built
 // on top of Ctx can reuse the same picking logic.
@@ -687,6 +702,8 @@ func Kinds() []schema.Kind {
 
 // Has reports whether a kind is registered.
 func Has(k schema.Kind) bool {
+	regMu.RLock()
+	defer regMu.RUnlock()
 	_, ok := registry[k]
 	return ok
 }

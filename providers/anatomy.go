@@ -21,7 +21,7 @@ func init() {
 // alias returns a provider that forwards to another kind, so the two names
 // share one dataset and can never drift apart.
 func alias(target schema.Kind) Provider {
-	return func(c Ctx) any { return registry[target](c) }
+	return func(c Ctx) any { return Get(target)(c) }
 }
 
 // bodyParts is the English fallback. Locale versions live in the locale

@@ -15,6 +15,10 @@ import (
 
 var cache sync.Map // reflect.Type -> *built
 
+// Reset drops every cached schema. A type inferred before a custom kind was
+// registered would otherwise keep the old inference.
+func Reset() { cache.Clear() }
+
 type built struct {
 	schema   *schema.Schema
 	warnings []schema.Warning
