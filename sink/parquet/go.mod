@@ -5,7 +5,7 @@ module github.com/bakhod1r/synth/sink/parquet
 go 1.26.2
 
 require (
-	github.com/bakhod1r/synth v0.0.0
+	github.com/bakhod1r/synth v1.8.0
 	github.com/google/uuid v1.6.0
 	github.com/parquet-go/parquet-go v0.30.1
 )
@@ -24,5 +24,3 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/bakhod1r/synth => ../..

@@ -27,3 +27,5 @@
 /npm/synth.wasm
 /npm/wasm_exec.js
 /npm/*.tgz
+go.work
+go.work.sum

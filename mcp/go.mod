@@ -3,7 +3,7 @@ module github.com/bakhod1r/synth/mcp
 go 1.26.2
 
 require (
-	github.com/bakhod1r/synth v0.0.0-00010101000000-000000000000
+	github.com/bakhod1r/synth v1.8.0
 	github.com/mark3labs/mcp-go v0.56.0
 )
 
@@ -19,5 +19,3 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/bakhod1r/synth => ../
