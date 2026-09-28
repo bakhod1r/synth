@@ -3,9 +3,10 @@
 // hand-writing a struct. It maps JSON Schema (type/format/enum/min/max) onto
 // schema.Kind, then the normal engine produces records.
 //
-// Scope: top-level object properties of a request body's application/json
-// schema (including a local $ref into components/schemas). Nested objects and
-// arrays are generated shallowly (as inferred scalars) in this version.
+// Scope: the application/json request body of an operation, including local
+// $refs into components/schemas, nested objects, and arrays (items, minItems,
+// maxItems). A property that refers back to a schema already being expanded
+// is left out, so recursive schemas terminate. pattern is not supported.
 package openapi
 
 import (
@@ -50,6 +51,9 @@ type jsonSchema struct {
 	MaxLength  *int                  `yaml:"maxLength" json:"maxLength"`
 	Required   []string              `yaml:"required" json:"required"`
 	Properties map[string]jsonSchema `yaml:"properties" json:"properties"`
+	Items      *jsonSchema           `yaml:"items" json:"items"`
+	MinItems   *int                  `yaml:"minItems" json:"minItems"`
+	MaxItems   *int                  `yaml:"maxItems" json:"maxItems"`
 }
 
 // Load parses an OpenAPI spec from a file (YAML or JSON).
@@ -84,14 +88,22 @@ func (s *Spec) Schema(method, path string) (*schema.Schema, error) {
 	if !ok {
 		return nil, fmt.Errorf("openapi: %s %s has no application/json body", method, path)
 	}
-	root := s.resolve(body.Schema)
+	root, rootRef := s.resolveNamed(body.Schema)
 	if root.Type != "object" && root.Properties == nil {
 		return nil, fmt.Errorf("openapi: request body is not an object")
 	}
-	required := map[string]bool{}
-	for _, r := range root.Required {
-		required[r] = true
+	stack := map[string]bool{}
+	if rootRef != "" {
+		stack[rootRef] = true
 	}
+	return s.object(root, stack), nil
+}
+
+// object builds the schema for an object's properties. stack holds the
+// component names being expanded on this path: a schema that refers back to
+// itself (Customer.referrer: Customer) has that property left out rather than
+// expanded forever.
+func (s *Spec) object(root jsonSchema, stack map[string]bool) *schema.Schema {
 	// Sorted: map order is random, and the order fields are drawn in decides
 	// the values, so an unsorted walk gives different payloads per run for
 	// one seed.
@@ -102,40 +114,82 @@ func (s *Spec) Schema(method, path string) (*schema.Schema, error) {
 	sort.Strings(names)
 	out := &schema.Schema{}
 	for _, name := range names {
-		prop := root.Properties[name]
-		p := s.resolve(prop)
-		f := schema.Field{Name: name, Params: map[string]string{}, Kind: mapKind(p)}
-		if len(p.Enum) > 0 {
-			f.Kind = schema.KindEnum
-			f.Choices = p.Enum
+		if f, ok := s.field(name, root.Properties[name], stack); ok {
+			out.Fields = append(out.Fields, f)
 		}
-		if p.Minimum != nil {
-			f.Params["min"] = strconv.FormatFloat(*p.Minimum, 'f', -1, 64)
-		}
-		if p.Maximum != nil {
-			f.Params["max"] = strconv.FormatFloat(*p.Maximum, 'f', -1, 64)
-		}
-		// maxLength is a real constraint on the endpoint: a payload that
-		// exceeds it is one the API would reject. The generator truncates to
-		// it, so generated request bodies stay valid.
-		if p.MaxLength != nil && *p.MaxLength > 0 {
-			f.Params["maxlen"] = strconv.Itoa(*p.MaxLength)
-		}
-		out.Fields = append(out.Fields, f)
 	}
-	return out, nil
+	return out
 }
 
-// resolve follows a local $ref into components/schemas (one level).
-func (s *Spec) resolve(js jsonSchema) jsonSchema {
-	if js.Ref == "" {
-		return js
+// field maps one property. It reports false for a property that recurses into
+// a schema already being expanded.
+func (s *Spec) field(name string, prop jsonSchema, stack map[string]bool) (schema.Field, bool) {
+	p, ref := s.resolveNamed(prop)
+	if ref != "" {
+		if stack[ref] {
+			return schema.Field{}, false
+		}
+		stack[ref] = true
+		defer delete(stack, ref)
 	}
-	name := js.Ref[strings.LastIndex(js.Ref, "/")+1:]
-	if target, ok := s.doc.Components.Schemas[name]; ok {
-		return target
+	f := schema.Field{Name: name, Params: map[string]string{}, Kind: mapKind(p)}
+	switch {
+	case len(p.Enum) > 0:
+		f.Kind = schema.KindEnum
+		f.Choices = p.Enum
+	case p.Type == "object" || (p.Type == "" && len(p.Properties) > 0):
+		f.Kind = schema.KindObject
+		f.Nested = s.object(p, stack)
+		return f, true
+	case p.Type == "array":
+		if p.Items == nil {
+			return f, true // mapKind's fallback: nothing said about elements
+		}
+		elem, ok := s.field(name, *p.Items, stack)
+		if !ok {
+			return schema.Field{}, false
+		}
+		f.Kind = schema.KindArray
+		f.Elem = &elem
+		f.ArrMin, f.ArrMax = 1, 3
+		if p.MinItems != nil {
+			f.ArrMin = *p.MinItems
+		}
+		if p.MaxItems != nil {
+			f.ArrMax = *p.MaxItems
+		} else if f.ArrMin > f.ArrMax {
+			f.ArrMax = f.ArrMin
+		}
+		return f, true
 	}
-	return js
+	if p.Minimum != nil {
+		f.Params["min"] = strconv.FormatFloat(*p.Minimum, 'f', -1, 64)
+	}
+	if p.Maximum != nil {
+		f.Params["max"] = strconv.FormatFloat(*p.Maximum, 'f', -1, 64)
+	}
+	// maxLength is a real constraint on the endpoint: a payload that
+	// exceeds it is one the API would reject. The generator truncates to
+	// it, so generated request bodies stay valid.
+	if p.MaxLength != nil && *p.MaxLength > 0 {
+		f.Params["maxlen"] = strconv.Itoa(*p.MaxLength)
+	}
+	return f, true
+}
+
+// resolveNamed is resolve that also names the component it followed, or ""
+// when there was no $ref. Chains of refs are followed up to a small limit.
+func (s *Spec) resolveNamed(js jsonSchema) (jsonSchema, string) {
+	name := ""
+	for i := 0; js.Ref != "" && i < 8; i++ {
+		n := js.Ref[strings.LastIndex(js.Ref, "/")+1:]
+		target, ok := s.doc.Components.Schemas[n]
+		if !ok {
+			break
+		}
+		name, js = n, target
+	}
+	return js, name
 }
 
 // mapKind maps a JSON Schema type+format to a Synth kind.
