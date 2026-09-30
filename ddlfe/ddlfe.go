@@ -199,6 +199,9 @@ func charLimit(t string) string {
 	default:
 		return ""
 	}
+	if !strings.HasSuffix(t, ")") || len(t) < i+2 {
+		return "" // unclosed, e.g. "char(" from truncated input
+	}
 	n := strings.TrimSpace(t[i+1 : len(t)-1])
 	if n == "" || strings.ContainsAny(n, ",") {
 		return ""
